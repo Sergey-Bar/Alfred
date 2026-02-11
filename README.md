@@ -326,9 +326,9 @@ cd docker && docker-compose up -d
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## � Author
+## 👤 Author
 
-**Project Lead & Vision:** [Sergey Bar](https://www.linkedin.com/in/sergeybar/)
+**Project Lead & Vision:** [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)
 
 Built with the assistance of AI as part of a mission to optimize resource sharing in organizations.
 
@@ -340,6 +340,6 @@ Built with the assistance of AI as part of a mission to optimize resource sharin
 
 ---
 
-**An Open Source Project by [Sergey Bar](https://www.linkedin.com/in/sergeybar/)**
+**An Open Source Project by [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)**
 
 *Found a bug? Have a feature request? [Open an issue!](https://github.com/AiTokenPool/tokenpool/issues)*
