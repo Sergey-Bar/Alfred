@@ -6,31 +6,35 @@ import os
 import pytest
 from decimal import Decimal
 from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.pool import StaticPool
 
-# Use SQLite in-memory for tests
-TEST_DATABASE_URL = "sqlite:///./test_tokenpool.db"
+# Use SQLite in-memory for tests (truly in-memory - no file)
+TEST_DATABASE_URL = "sqlite:///:memory:"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def engine():
-    """Create test database engine."""
+    """Create test database engine - fresh for each test function."""
+    # Use StaticPool to ensure the same in-memory database is shared across connections
     engine = create_engine(
         TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool  # Critical: ensures single shared in-memory db
     )
+    # Import models to register them with SQLModel metadata
+    from app import models  # noqa: F401
     SQLModel.metadata.create_all(engine)
     yield engine
-    # Cleanup
     SQLModel.metadata.drop_all(engine)
-    if os.path.exists("./test_tokenpool.db"):
-        os.remove("./test_tokenpool.db")
+    engine.dispose()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def session(engine):
-    """Create test database session."""
+    """Create test database session with transaction rollback."""
     with Session(engine) as session:
         yield session
+        session.rollback()
 
 
 @pytest.fixture
@@ -71,14 +75,31 @@ def test_team(session):
     return team
 
 
-@pytest.fixture
-def test_client():
-    """Create FastAPI test client."""
+@pytest.fixture(scope="function")
+def test_client(engine, monkeypatch):
+    """Create FastAPI test client with isolated database."""
     from fastapi.testclient import TestClient
-    from app.main import app
+    from sqlmodel import Session
+    import app.main as main_module
     
-    # Override database for tests
-    os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+    # Store original engine
+    original_engine = main_module.engine
     
-    with TestClient(app) as client:
+    # Patch the engine in main module BEFORE starting the app
+    main_module.engine = engine
+    
+    # Override the session dependency to use our test engine
+    def get_test_session():
+        with Session(engine) as session:
+            yield session
+    
+    main_module.app.dependency_overrides[main_module.get_session] = get_test_session
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    
+    with TestClient(main_module.app) as client:
         yield client
+    
+    # Cleanup
+    main_module.app.dependency_overrides.clear()
+    main_module.engine = original_engine

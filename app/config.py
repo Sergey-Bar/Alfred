@@ -79,6 +79,34 @@ class Settings(BaseSettings):
     force_strict_privacy: bool = Field(default=False, description="Force strict privacy mode org-wide")
     mask_pii_in_logs: bool = Field(default=True, description="Mask PII in log messages")
     
+    # Notifications - Slack
+    slack_webhook_url: Optional[str] = Field(default=None, description="Slack incoming webhook URL")
+    slack_alerts_webhook_url: Optional[str] = Field(default=None, description="Slack webhook for critical alerts")
+    slack_bot_token: Optional[str] = Field(default=None, description="Slack bot token for advanced features")
+    
+    # Notifications - Microsoft Teams
+    teams_webhook_url: Optional[str] = Field(default=None, description="Microsoft Teams incoming webhook URL")
+    teams_alerts_webhook_url: Optional[str] = Field(default=None, description="Teams webhook for critical alerts")
+    
+    # Notifications - Telegram
+    telegram_bot_token: Optional[str] = Field(default=None, description="Telegram bot token from @BotFather")
+    telegram_chat_id: Optional[str] = Field(default=None, description="Default Telegram chat/group/channel ID")
+    telegram_alerts_chat_id: Optional[str] = Field(default=None, description="Telegram chat for critical alerts")
+    
+    # Notifications - WhatsApp Business
+    whatsapp_phone_number_id: Optional[str] = Field(default=None, description="WhatsApp Business Phone Number ID")
+    whatsapp_access_token: Optional[str] = Field(default=None, description="Meta Graph API access token")
+    whatsapp_recipient_number: Optional[str] = Field(default=None, description="Default recipient phone number")
+    whatsapp_alerts_recipient_number: Optional[str] = Field(default=None, description="Recipient for critical alerts")
+    whatsapp_template_name: Optional[str] = Field(default=None, description="Pre-approved message template name")
+    
+    # Notification Settings
+    notifications_enabled: bool = Field(default=True, description="Enable/disable notifications globally")
+    notify_quota_warning_threshold: int = Field(default=80, ge=1, le=99, description="Quota % to trigger warning")
+    notify_on_quota_exceeded: bool = Field(default=True, description="Notify when quota is exceeded")
+    notify_on_approval_request: bool = Field(default=True, description="Notify on new approval requests")
+    notify_on_vacation_change: bool = Field(default=True, description="Notify when users change vacation status")
+    
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:

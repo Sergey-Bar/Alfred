@@ -3,6 +3,7 @@ TokenPool - AI Token Quota Manager
 FastAPI application with quota management, privacy modes, and efficiency tracking.
 """
 
+import asyncio
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -37,6 +38,13 @@ from .models import (
 from .logic import (
     QuotaManager, CreditCalculator, EfficiencyScorer,
     RequestLogger, AuthManager, LLMProxy, ApprovalManager
+)
+from .integrations import (
+    setup_notifications, get_notification_manager,
+    NotificationEvent, EventType,
+    emit_quota_exceeded, emit_quota_warning,
+    emit_approval_requested, emit_approval_resolved,
+    emit_vacation_status_change
 )
 
 # Initialize logging
@@ -93,7 +101,31 @@ async def lifespan(app: FastAPI):
             session.commit()
             logger.info("Default organization settings initialized")
     
+    # Setup notifications if enabled
+    if settings.notifications_enabled:
+        notification_manager = setup_notifications(
+            slack_webhook_url=settings.slack_webhook_url,
+            slack_alerts_webhook_url=settings.slack_alerts_webhook_url,
+            slack_bot_token=settings.slack_bot_token,
+            teams_webhook_url=settings.teams_webhook_url,
+            teams_alerts_webhook_url=settings.teams_alerts_webhook_url,
+        )
+        configured_count = len(notification_manager.configured_providers)
+        if configured_count > 0:
+            provider_names = [p.name for p in notification_manager.configured_providers]
+            logger.info(
+                f"Notifications enabled with {configured_count} provider(s)",
+                extra_data={"providers": provider_names}
+            )
+        else:
+            logger.info("Notifications enabled but no providers configured")
+    
     yield
+    
+    # Cleanup notifications
+    if settings.notifications_enabled:
+        manager = get_notification_manager()
+        await manager.close()
     
     logger.info("Shutting down TokenPool")
 
@@ -312,11 +344,21 @@ async def chat_completions(
     quota_result = quota_manager.check_quota(user, estimated_cost, priority)
     
     if not quota_result.allowed:
+        # Emit quota exceeded notification
+        if settings.notifications_enabled and settings.notify_on_quota_exceeded:
+            asyncio.create_task(emit_quota_exceeded(
+                user_id=str(user.id),
+                user_name=user.name,
+                user_email=user.email,
+                requested_credits=float(estimated_cost),
+                available_credits=float(user.available_quota)
+            ))
+        
         # Return 403 with approval process info
         error_response = QuotaErrorResponse(
             error="Quota exceeded",
             code="quota_exceeded",
-            quota_remaining=user.available_quota,
+            quota_remaining=float(user.available_quota),  # Convert Decimal to float for JSON serialization
             message=quota_result.message,
             approval_process=quota_result.approval_instructions
         )
@@ -368,6 +410,22 @@ async def chat_completions(
         
         # Refresh user to get updated quota
         session.refresh(user)
+        
+        # Check for quota warning threshold
+        if settings.notifications_enabled:
+            quota_percentage_used = float(
+                (user.used_tokens / user.personal_quota) * 100
+            ) if user.personal_quota > 0 else 0
+            
+            if quota_percentage_used >= settings.notify_quota_warning_threshold:
+                asyncio.create_task(emit_quota_warning(
+                    user_id=str(user.id),
+                    user_name=user.name,
+                    user_email=user.email,
+                    quota_remaining=float(user.available_quota),
+                    quota_total=float(user.personal_quota),
+                    percentage_used=quota_percentage_used
+                ))
         
         # Build response with TokenPool extensions
         choices = response.get("choices", [])
@@ -502,10 +560,24 @@ async def update_user_status(
     session: Session = Depends(get_session)
 ):
     """Update current user's status (e.g., set to vacation)."""
+    old_status = user.status
     user.status = status
     user.updated_at = datetime.utcnow()
     session.add(user)
     session.commit()
+    
+    # Send vacation status notification if status changed to/from vacation
+    if settings.notifications_enabled and settings.notify_on_vacation_change:
+        is_vacation_change = (
+            old_status == UserStatus.ON_VACATION or status == UserStatus.ON_VACATION
+        )
+        if is_vacation_change:
+            asyncio.create_task(emit_vacation_status_change(
+                user_id=str(user.id),
+                user_name=user.name,
+                user_email=user.email,
+                on_vacation=(status == UserStatus.ON_VACATION)
+            ))
     
     return {"message": f"Status updated to {status.value}"}
 
@@ -651,6 +723,16 @@ async def create_approval_request(
         priority=request_data.priority
     )
     
+    # Emit notification for new approval request
+    if settings.notifications_enabled and settings.notify_on_approval_request:
+        asyncio.create_task(emit_approval_requested(
+            user_id=str(user.id),
+            user_name=user.name,
+            user_email=user.email,
+            requested_credits=float(request_data.requested_credits),
+            reason=request_data.reason
+        ))
+    
     return ApprovalResponse(
         id=str(approval.id),
         status=approval.status,
@@ -711,6 +793,21 @@ async def approve_request(
             approver_id=str(user.id),
             approved_credits=approved_credits
         )
+        
+        # Send notification to the requester
+        if settings.notifications_enabled and settings.notify_on_approval_request:
+            # Get the requesting user
+            requesting_user = session.get(User, approval.user_id)
+            if requesting_user:
+                asyncio.create_task(emit_approval_resolved(
+                    user_id=str(requesting_user.id),
+                    user_name=requesting_user.name,
+                    user_email=requesting_user.email,
+                    approved=True,
+                    credits=float(approval.approved_credits),
+                    approver_name=user.name
+                ))
+        
         return {"message": "Request approved", "approved_credits": float(approval.approved_credits)}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -727,11 +824,33 @@ async def reject_request(
     manager = ApprovalManager(session)
     
     try:
+        # Get the approval first to get the requesting user
+        from .models import ApprovalRequest as ApprovalRequestModel
+        approval_statement = select(ApprovalRequestModel).where(
+            ApprovalRequestModel.id == uuid.UUID(approval_id)
+        )
+        approval = session.exec(approval_statement).first()
+        
         manager.reject(
             approval_id=approval_id,
             rejector_id=str(user.id),
             reason=reason
         )
+        
+        # Send notification to the requester
+        if settings.notifications_enabled and settings.notify_on_approval_request and approval:
+            requesting_user = session.get(User, approval.user_id)
+            if requesting_user:
+                asyncio.create_task(emit_approval_resolved(
+                    user_id=str(requesting_user.id),
+                    user_name=requesting_user.name,
+                    user_email=requesting_user.email,
+                    approved=False,
+                    credits=float(approval.requested_credits),
+                    approver_name=user.name,
+                    reason=reason
+                ))
+        
         return {"message": "Request rejected"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

@@ -204,8 +204,7 @@ class TestTeamManagement:
         
         # Add user to team
         response = test_client.post(
-            f"/v1/admin/teams/{team_id}/members",
-            json={"user_id": user_id}
+            f"/v1/admin/teams/{team_id}/members/{user_id}"
         )
         assert response.status_code == 200
 

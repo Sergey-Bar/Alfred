@@ -20,6 +20,7 @@ TokenPool is a FastAPI-based proxy server that manages AI token quotas across an
 - **📊 Efficiency Scoring**: Track completion/prompt token ratios with leaderboards
 - **💵 Dynamic Pricing**: Unified cost mapping via LiteLLM for 100+ providers
 - **✅ Manager Approvals**: Request additional quota with approval workflow
+- **🔔 Multi-Platform Notifications**: Slack, Teams, Telegram, WhatsApp alerts
 
 ## ⚡ Quick Install
 
@@ -127,6 +128,27 @@ curl -X PUT "http://localhost:8000/v1/users/me/status?status=on_vacation" \
 ```
 
 This enables team members to use up to 10% of the shared pool while you're away.
+
+## 🔔 Notifications
+
+TokenPool can send alerts to multiple platforms:
+
+| Platform | Events Supported |
+|----------|-----------------|
+| Slack | Quota warnings, approvals, vacation status |
+| Microsoft Teams | All events with Adaptive Cards |
+| Telegram | All events with rich formatting |
+| WhatsApp | All events (requires Business API) |
+
+**Quick Setup (Slack example):**
+
+```env
+# Add to your .env file
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00.../B00.../xxx
+NOTIFICATIONS_ENABLED=true
+```
+
+> 📚 **Full setup instructions**: See [Notifications Guide](docs/NOTIFICATIONS.md) for detailed setup for all platforms.
 
 ## 🏗️ Architecture
 
@@ -271,11 +293,11 @@ ruff app/
 
 - 🔐 **Authentication**: OAuth2, SAML integration
 - 📈 **Analytics**: More detailed usage dashboards
-- 🔔 **Notifications**: Slack/Teams alerts for quota warnings
 - 🌐 **Streaming**: Server-sent events support
 - 📦 **Caching**: Response caching for identical prompts
 - 🧪 **Testing**: Increase test coverage
 - 📚 **Documentation**: More examples and tutorials
+- 🔌 **Integrations**: Discord, Email, PagerDuty notifications
 
 ## 📁 Project Structure
 
@@ -289,7 +311,12 @@ tokenpool/
 │   ├── config.py           # Pydantic settings configuration
 │   ├── middleware.py       # Rate limiting & request context
 │   ├── exceptions.py       # Custom exception handlers
-│   └── logging_config.py   # Structured logging setup
+│   ├── logging_config.py   # Structured logging setup
+│   └── integrations/       # Notification providers
+│       ├── slack.py        # Slack webhooks
+│       ├── teams.py        # MS Teams webhooks
+│       ├── telegram.py     # Telegram Bot API
+│       └── whatsapp.py     # WhatsApp Business API
 ├── alembic/
 │   ├── env.py              # Migration environment
 │   └── versions/           # Database migrations
@@ -300,7 +327,8 @@ tokenpool/
 │   ├── Dockerfile          # Container configuration
 │   └── docker-compose.yml  # Multi-container setup
 ├── docs/
-│   └── INSTALL.md          # Detailed installation guide
+│   ├── INSTALL.md          # Detailed installation guide
+│   └── NOTIFICATIONS.md    # Notifications setup guide
 ├── tests/
 │   ├── test_api.py         # API endpoint tests
 │   ├── test_quota.py       # Quota logic tests

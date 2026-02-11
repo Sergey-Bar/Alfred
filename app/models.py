@@ -330,6 +330,6 @@ class QuotaErrorResponse(SQLModel):
     """Error response for quota exceeded scenarios."""
     error: str
     code: str = "quota_exceeded"
-    quota_remaining: Decimal
+    quota_remaining: float  # Use float for JSON serialization
     message: str
     approval_process: dict

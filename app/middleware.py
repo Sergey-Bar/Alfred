@@ -32,6 +32,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         
         # Start timing
         start_time = time.perf_counter()
+        response = None
         
         # Process request
         try:
@@ -47,8 +48,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             # Calculate duration
             duration_ms = (time.perf_counter() - start_time) * 1000
             
-            # Log request if enabled
-            if settings.log_requests:
+            # Log request if enabled (only if we got a response)
+            if settings.log_requests and response is not None:
                 log_request(
                     logger=logger,
                     method=request.method,
@@ -57,14 +58,14 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                     duration_ms=duration_ms,
                     user_id=user_id_var.get()
                 )
+            
+            # Clear context
+            request_id_var.set(None)
+            user_id_var.set(None)
         
         # Add headers to response
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
-        
-        # Clear context
-        request_id_var.set(None)
-        user_id_var.set(None)
         
         return response
 
