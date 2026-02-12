@@ -29,7 +29,7 @@ python -c "from app.notifications import enqueue_notification; enqueue_notificat
 
 Validation
 - Worker logs should show `backend.app.workers.process_task` execution and any provider send attempts.
-- If Redis is not reachable, the API will fall back to in-process execution (see `backend/app/notifications.py`).
+- If Redis is not reachable, the API will fall back to in-process execution (see `dev/backend/app/notifications.py`).
 
 Troubleshooting
 - If worker exits immediately: ensure `redis` is healthy and `REDIS_URL` points to it.

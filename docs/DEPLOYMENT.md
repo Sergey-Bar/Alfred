@@ -38,7 +38,7 @@ git clone https://github.com/your-org/alfred.git
 cd alfred
 
 # Configure environment
-cp backend/config/.env.example .env
+cp dev/backend/config/.env.example .env
 # Edit .env with your API keys and settings
 
 # Start with Docker Compose
@@ -58,7 +58,7 @@ docker build -t alfred -f dev/devops/docker/Dockerfile .
 docker run -d \
   --name alfred \
   -p 8000:8000 \
-  -e DATABASE_URL=sqlite:///./backend/data/alfred.db \
+  -e DATABASE_URL=sqlite:///./dev/backend/data/alfred.db \
   -e OPENAI_API_KEY=sk-your-key \
   -v alfred-data:/app/data \
   alfred
@@ -84,7 +84,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=alfred
       - POSTGRES_PASSWORD=password
@@ -290,14 +290,14 @@ docker run -d \
   -e POSTGRES_DB=alfred \
   -p 5432:5432 \
   -v postgres-data:/var/lib/postgresql/data \
-  postgres:15-alpine
+  postgres:16-alpine
 ```
 
 ### Run Migrations
 
 ```bash
 # With venv activated
-alembic -c backend/config/alembic.ini upgrade head
+alembic -c dev/backend/config/alembic.ini upgrade head
 ```
 
 ### Backup Strategy

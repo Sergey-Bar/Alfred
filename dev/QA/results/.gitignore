@@ -1,0 +1,14 @@
+# Ignore all test results and generated files
+html/
+test-results/
+coverage/
+results.json
+*.mp4
+*.webm
+*.zip
+*.png
+*.jpg
+*.jpeg
+
+# Keep directory structure
+!.gitkeep

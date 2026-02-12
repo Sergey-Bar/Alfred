@@ -54,13 +54,13 @@ source .venv/bin/activate        # Linux/macOS
 .\.venv\Scripts\Activate.ps1     # Windows PowerShell
 
 # Install dependencies
-pip install -r requirements/requirements-dev.txt
+pip install -r dev/backend/requirements/requirements-dev.txt
 
 # Copy environment config
-cp backend/config/.env.example .env
+cp dev/backend/config/.env.example .env
 
 # Run migrations
-alembic -c backend/config/alembic.ini upgrade head
+alembic -c dev/backend/config/alembic.ini upgrade head
 
 # Start development server
 uvicorn app.main:app --reload
@@ -115,12 +115,12 @@ isort app/ tests/
 **Lint code:**
 ```bash
 ruff app/ tests/
-mypy backend/app/
+mypy dev/backend/app/
 ```
 
 **Run all checks:**
 ```bash
-black . && isort . && ruff . && mypy backend/app/
+black . && isort . && ruff . && mypy dev/backend/app/
 ```
 
 ### JavaScript/TypeScript
@@ -154,32 +154,33 @@ pre-commit install
 
 ```bash
 # All tests
-pytest backend/tests/ -v
+pytest dev/QA/Backend/ -v
 
 # With coverage
-pytest backend/tests/ -v --cov=backend/app --cov-report=html
+pytest dev/QA/Backend/ -v --cov=dev/backend/app --cov-report=html
 
 # Specific test file
-pytest backend/tests/test_quota.py -v
+pytest dev/QA/Backend/Unit/test_quota.py -v
 
 # Tests matching pattern
-pytest backend/tests/ -v -k "test_vacation"
+pytest dev/QA/Backend/ -v -k "test_vacation"
 
 # Run in parallel
-pytest backend/tests/ -v -n auto
+pytest dev/QA/Backend/ -v -n auto
 ```
 
 ### Test Structure
 
 ```
-tests/
+dev/QA/Backend/
 ├── conftest.py          # Shared fixtures
-├── test_api.py          # API endpoint tests
-├── test_config.py       # Configuration tests
-├── test_integration.py  # Integration tests
-├── test_middleware.py   # Middleware tests
-├── test_quota.py        # Quota logic tests
-└── test_vacation_sharing.py  # Vacation feature tests
+├── Unit/
+│   ├── test_api.py          # API endpoint tests
+│   ├── test_config.py       # Configuration tests
+│   ├── test_middleware.py   # Middleware tests
+│   └── test_quota.py        # Quota logic tests
+└── Integration/
+    └── test_integration.py  # Integration tests
 ```
 
 ### Writing Tests
@@ -279,9 +280,9 @@ git push origin feature/amazing-feature
 
 ### PR Checklist
 
-- [ ] Tests pass locally (`pytest backend/tests/ -v`)
+- [ ] Tests pass locally (`pytest dev/QA/Backend/ -v`)
 - [ ] Code is formatted (`black . && isort .`)
-- [ ] No lint errors (`ruff . && mypy backend/app/`)
+- [ ] No lint errors (`ruff . && mypy dev/backend/app/`)
 - [ ] Documentation updated (if needed)
 - [ ] Commit messages are clear
 

@@ -38,9 +38,9 @@ class ApiService {
             ...options.headers,
         };
 
-        // Add API key if available
+        // Add API key if available - use standard Authorization header
         if (this.apiKey) {
-            headers['X-API-Key'] = this.apiKey;
+            headers['Authorization'] = `Bearer ${this.apiKey}`;
         }
 
         const response = await fetch(`${API_BASE}${endpoint}`, {

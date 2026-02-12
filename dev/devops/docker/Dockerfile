@@ -16,7 +16,7 @@ RUN npm run build
 
 
 # ===== Python Build Stage =====
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 WORKDIR /app
 
@@ -31,13 +31,13 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
-COPY backend/requirements/requirements.txt ./requirements.txt
+COPY dev/backend/requirements/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r ./requirements.txt
 
 
 # ===== Production Stage =====
-FROM python:3.11-slim as production
+FROM python:3.12-slim as production
 
 WORKDIR /app
 
@@ -55,9 +55,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN useradd --create-home --shell /bin/bash appuser
 
 # Copy application code
-COPY --chown=appuser:appuser backend/app app/
-COPY --chown=appuser:appuser backend/alembic alembic/
-COPY --chown=appuser:appuser backend/config config/
+COPY --chown=appuser:appuser dev/backend/app app/
+COPY --chown=appuser:appuser dev/backend/alembic alembic/
+COPY --chown=appuser:appuser dev/backend/config config/
 
 # Copy built frontend (from frontend build stage)
 COPY --from=frontend-builder --chown=appuser:appuser /frontend/dist static/

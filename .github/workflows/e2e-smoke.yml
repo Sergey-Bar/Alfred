@@ -18,14 +18,14 @@ jobs:
           node-version: '20'
 
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: dev/frontend
         run: |
           npm ci
           npx playwright install --with-deps
 
       - name: Run Playwright smoke test
-        working-directory: frontend
+        working-directory: dev/frontend
         env:
-          STAGING_URL: ${{ secrets.STAGING_URL }}
+          BASE_URL: https://staging.alfred.dev
         run: |
           npm run test:e2e -- --config=playwright.config.js --reporter=list

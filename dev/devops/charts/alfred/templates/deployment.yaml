@@ -36,6 +36,8 @@ spec:
             - name: REDIS_URL
               value: "redis://{{ include "alfred.fullname" . }}-redis:{{ .Values.redis.service.port }}"
             {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /health

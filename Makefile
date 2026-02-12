@@ -2,7 +2,7 @@
 
 install:
 	python -m pip install --upgrade pip
-	pip install -r backend/requirements/requirements.txt
+	pip install -r dev/backend/requirements/requirements.txt
 
 dev:
 	uvicorn app.main:app --reload
@@ -33,12 +33,12 @@ docker-up:
 	docker-compose up -d
 
 migrate:
-	alembic -c backend/config/alembic.ini upgrade head
+	alembic -c dev/backend/config/alembic.ini upgrade head
 
 reset-db:
 	rm -f alfred.db || del alfred.db
-	alembic -c backend/config/alembic.ini downgrade base || true
-	alembic -c backend/config/alembic.ini upgrade head
+	alembic -c dev/backend/config/alembic.ini downgrade base || true
+	alembic -c dev/backend/config/alembic.ini upgrade head
 
 minimal:
 	@echo "Building minimal artifact in ./dist"

@@ -26,7 +26,7 @@ docker compose up -d
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r backend/requirements/requirements-dev.txt
+pip install -r dev/backend/requirements/requirements-dev.txt
 pytest -q
 ```
 

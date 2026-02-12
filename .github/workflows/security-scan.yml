@@ -14,15 +14,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Trivy filesystem scan (OS & Python deps)
-        uses: aquasecurity/trivy-action@v1
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          format: 'table'
           scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
           vuln-type: 'os,library'
 
       - name: Run Trivy Dockerfile scan
-        uses: aquasecurity/trivy-action@v1
+        uses: aquasecurity/trivy-action@0.28.0
         with:
+          scan-type: 'config'
+          scan-ref: 'dev/devops/docker/Dockerfile'
           format: 'table'
-          scan-type: 'dockerfile'
-          vuln-type: 'os,library'

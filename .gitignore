@@ -84,3 +84,12 @@ logs/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# QA test results
+dev/QA/results/html/
+dev/QA/results/test-results/
+dev/QA/results/coverage/
+dev/QA/results/results.json
+dev/QA/results/*.mp4
+dev/QA/results/*.webm
+dev/QA/results/*.zip

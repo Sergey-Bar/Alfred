@@ -27,6 +27,13 @@ spec:
               value: "postgresql://alfred:changeme@alfred-db:5432/alfred"
             - name: DEBUG
               value: "false"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "125m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           livenessProbe:
             httpGet:
               path: /health

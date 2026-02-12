@@ -7,10 +7,12 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: './src/setupTests.js',
+        include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+        exclude: ['**/node_modules/**', 'playwright/**', '../QA/**'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            reportsDirectory: '../coverage/frontend'
+            reportsDirectory: '../QA/results/coverage'
         }
     }
 })

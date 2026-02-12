@@ -69,14 +69,14 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r backend/requirements/requirements.txt
+pip install -r dev/backend/requirements/requirements.txt
 ```
 
 ### Step 3: Configure Environment
 
 ```bash
 # Copy example configuration
-cp backend/config/.env.example .env
+cp dev/backend/config/.env.example .env
 
 # Edit .env with your settings
 # At minimum, add your LLM provider API keys:

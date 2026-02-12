@@ -8,17 +8,17 @@ Complete setup instructions for new team members and contributors.
 
 ### Linux/macOS
 ```bash
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements/requirements.txt && cp backend/config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r dev/backend/requirements/requirements.txt && cp dev/backend/config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (PowerShell)
 ```powershell
-git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r backend/requirements/requirements.txt; Copy-Item config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r dev/backend/requirements/requirements.txt; Copy-Item dev/backend/config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (CMD)
 ```cmd
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r backend/requirements/requirements.txt && copy config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r dev/backend/requirements/requirements.txt && copy dev/backend/config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
 ```
 
 ---
@@ -84,8 +84,8 @@ sudo -u postgres createdb alfred
 <summary><b>macOS</b></summary>
 
 ```bash
-brew install postgresql@15
-brew services start postgresql@15
+brew install postgresql@16
+brew services start postgresql@16
 createdb alfred
 ```
 </details>
@@ -128,17 +128,17 @@ python -m venv .venv
 
 ```bash
 # Production dependencies
-pip install -r backend/requirements/requirements.txt
+pip install -r dev/backend/requirements/requirements.txt
 
 # Development dependencies (for contributors)
-pip install -r requirements/requirements-dev.txt
+pip install -r dev/backend/requirements/requirements-dev.txt
 ```
 
 ### 5. Configure Environment
 
 ```bash
 # Copy example configuration
-cp backend/config/.env.example .env    # Linux/macOS
+cp dev/backend/config/.env.example .env    # Linux/macOS
 # Copy-Item config/.env.example .env  # Windows PowerShell
 
 # Edit .env with your settings
@@ -148,7 +148,7 @@ cp backend/config/.env.example .env    # Linux/macOS
 ### 6. Run Database Migrations
 
 ```bash
-alembic -c backend/config/alembic.ini upgrade head
+alembic -c dev/backend/config/alembic.ini upgrade head
 ```
 
 ### 7. Start the Server
@@ -478,7 +478,7 @@ pip install -r requirements/requirements-dev.txt
 pre-commit install
 
 # Run tests to verify setup
-pytest backend/tests/ -v
+pytest dev/QA/Backend/ -v
 
 # Start development server
 uvicorn app.main:app --reload
@@ -488,16 +488,16 @@ uvicorn app.main:app --reload
 
 ```bash
 # Run all tests
-pytest backend/tests/ -v
+pytest dev/QA/Backend/ -v
 
 # Run with coverage
-pytest backend/tests/ -v --cov=backend/app --cov-report=html
+pytest dev/QA/Backend/ -v --cov=dev/backend/app --cov-report=html
 
 # Run specific test file
-pytest backend/tests/test_quota.py -v
+pytest dev/QA/Backend/Unit/test_quota.py -v
 
 # Run tests matching pattern
-pytest backend/tests/ -v -k "test_vacation"
+pytest dev/QA/Backend/ -v -k "test_vacation"
 ```
 
 ### Code Quality Tools
@@ -514,7 +514,7 @@ ruff app/ tests/
 mypy backend/app/
 
 # Run all checks
-black . && isort . && ruff . && mypy backend/app/
+black . && isort . && ruff . && mypy dev/backend/app/
 ```
 
 ---
@@ -534,7 +534,7 @@ source .venv/bin/activate  # Linux/macOS
 
 Then reinstall dependencies:
 ```bash
-pip install -r backend/requirements/requirements.txt
+pip install -r dev/backend/requirements/requirements.txt
 ```
 </details>
 

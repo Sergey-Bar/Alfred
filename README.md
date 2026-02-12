@@ -22,11 +22,12 @@ Alfred is a FastAPI-based proxy server that manages AI token quotas across an or
 - **📊 Efficiency Tracking** - Leaderboards and analytics
 - **🔐 Enterprise SSO** - LDAP, Okta, Azure AD, SCIM 2.0
 - **🏦 Liquidity Pool** - Rollover unused credits instead of expiring
+- **🔧 VS Code Extension** - Manage tokens directly from your editor
 
 ## ⚡ Quick Install
 
 ```bash
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements/requirements.txt && cp backend/config/.env.example .env
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r dev/backend/requirements/requirements.txt && cp dev/backend/config/.env.example .env
 ```
 
 ## 🚀 Quick Start
@@ -36,7 +37,7 @@ git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv 
 nano .env
 
 # 2. Run migrations
-alembic -c backend/config/alembic.ini upgrade head
+alembic -c dev/backend/config/alembic.ini upgrade head
 
 # 3. Start server
 uvicorn app.main:app --reload
@@ -62,7 +63,53 @@ curl -X POST http://localhost:8000/v1/chat/completions \
   -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
-## 📚 Documentation
+## � VS Code Extension
+
+Alfred now comes with a **VS Code extension** for seamless token management directly in your editor!
+
+### Features
+- **📊 Real-time Quota Display** - View token balance in status bar
+- **💸 Token Transfers** - Send tokens to colleagues with validation
+- **📜 Transfer History** - Track all your token transactions
+- **🔄 Auto-refresh** - Configurable automatic quota updates
+- **🚀 Quick Dashboard Access** - One-click access to web dashboard
+
+### Installation
+
+```bash
+# From the extension directory
+cd extension
+npm install
+npm run compile
+
+# Install in VS Code
+# 1. Press F5 to open Extension Development Host
+# OR
+# 2. Package and install: vsce package && code --install-extension alfred-token-manager-0.0.1.vsix
+```
+
+### Configuration
+
+1. Open VS Code Settings (`Ctrl+,` or `Cmd+,`)
+2. Search for "Alfred"
+3. Configure:
+   - `alfred.serverUrl` - Your Alfred server URL (default: `http://localhost:8000`)
+   - `alfred.apiKey` - Your Alfred API key (starts with `tp-`)
+   - `alfred.refreshInterval` - Auto-refresh interval in seconds (default: 60)
+   - `alfred.showInStatusBar` - Show quota in status bar (default: true)
+
+### Commands
+
+Access via Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+- `Alfred: Show Token Quota` - Display detailed quota information
+- `Alfred: Transfer Tokens` - Transfer tokens to another user
+- `Alfred: Refresh Quota` - Manually refresh your quota
+- `Alfred: View Transfer History` - View recent transfers
+- `Alfred: Open Dashboard` - Open Alfred web dashboard
+
+📖 **Full extension documentation**: [extension/README.md](extension/README.md)
+
+## �📚 Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -112,7 +159,7 @@ cd dev/devops/docker && docker-compose up -d
 ## 🧪 Testing
 
 ```bash
-pytest backend/tests/ -v --cov=backend/app
+pytest dev/QA/Backend/ -v --cov=dev/backend/app\n```
 ```
 
 ## 📄 License

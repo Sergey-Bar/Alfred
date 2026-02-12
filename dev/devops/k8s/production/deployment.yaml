@@ -30,6 +30,13 @@ spec:
                   key: DATABASE_URL
             - name: DEBUG
               value: "false"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /health
