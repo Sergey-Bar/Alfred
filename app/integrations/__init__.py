@@ -17,6 +17,7 @@ from .manager import (
     emit_approval_requested,
     emit_approval_resolved,
     emit_vacation_status_change,
+    emit_token_transfer,
 )
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "emit_approval_requested",
     "emit_approval_resolved",
     "emit_vacation_status_change",
+    "emit_token_transfer",
 ]

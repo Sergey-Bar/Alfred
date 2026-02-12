@@ -24,6 +24,7 @@ TokenPool supports sending notifications to multiple platforms when important ev
 |-------|-------------|
 | Quota Warning | User reaches 80%+ of their quota |
 | Quota Exceeded | Request denied due to insufficient quota |
+| Token Transfer | Tokens gifted between users |
 | Approval Requested | New quota increase request submitted |
 | Approval Resolved | Request approved or rejected |
 | Vacation Status | User starts/ends vacation mode |
@@ -365,6 +366,8 @@ _TokenPool_
 | `QUOTA_WARNING` | User at 80%+ of quota | Warning |
 | `QUOTA_EXCEEDED` | Request denied | Error |
 | `QUOTA_RESET` | Quota refilled | Info |
+| `TOKEN_TRANSFER_SENT` | User sent tokens to another | Info |
+| `TOKEN_TRANSFER_RECEIVED` | User received tokens from another | Info |
 | `APPROVAL_REQUESTED` | New approval request | Info |
 | `APPROVAL_APPROVED` | Request approved | Info |
 | `APPROVAL_REJECTED` | Request rejected | Warning |

@@ -551,3 +551,79 @@ async def emit_vacation_status_change(
     )
     
     return await manager.emit(event)
+
+
+async def emit_token_transfer(
+    sender_id: str,
+    sender_name: str,
+    sender_email: str,
+    recipient_id: str,
+    recipient_name: str,
+    recipient_email: str,
+    amount: float,
+    message: Optional[str] = None,
+    sender_remaining: Optional[float] = None,
+    recipient_new_total: Optional[float] = None
+) -> Dict[str, NotificationResult]:
+    """
+    Emit token transfer notifications to both sender and recipient.
+    
+    Sends two notifications:
+    1. TOKEN_TRANSFER_SENT to sender
+    2. TOKEN_TRANSFER_RECEIVED to recipient
+    """
+    manager = get_notification_manager()
+    results = {}
+    
+    # Notification for sender
+    sent_event = NotificationEvent(
+        event_type=EventType.TOKEN_TRANSFER_SENT,
+        title="Tokens Sent",
+        message=f"You sent {amount:.2f} credits to {recipient_name}",
+        user_id=sender_id,
+        user_name=sender_name,
+        user_email=sender_email,
+        severity="info",
+        data={
+            "amount": f"{amount:.2f}",
+            "recipient_name": recipient_name,
+            "recipient_email": recipient_email,
+            **({
+                "remaining_quota": f"{sender_remaining:.2f}"
+            } if sender_remaining is not None else {}),
+            **({
+                "message": message
+            } if message else {})
+        }
+    )
+    
+    # Notification for recipient
+    received_event = NotificationEvent(
+        event_type=EventType.TOKEN_TRANSFER_RECEIVED,
+        title="Tokens Received",
+        message=f"You received {amount:.2f} credits from {sender_name}",
+        user_id=recipient_id,
+        user_name=recipient_name,
+        user_email=recipient_email,
+        severity="info",
+        data={
+            "amount": f"{amount:.2f}",
+            "sender_name": sender_name,
+            "sender_email": sender_email,
+            **({
+                "new_quota_total": f"{recipient_new_total:.2f}"
+            } if recipient_new_total is not None else {}),
+            **({
+                "message": message
+            } if message else {})
+        }
+    )
+    
+    # Emit both events
+    sent_results = await manager.emit(sent_event)
+    received_results = await manager.emit(received_event)
+    
+    results.update({f"sent_{k}": v for k, v in sent_results.items()})
+    results.update({f"received_{k}": v for k, v in received_results.items()})
+    
+    return results

@@ -243,6 +243,27 @@ class ApprovalRequest(SQLModel, table=True):
     resolved_at: Optional[datetime] = Field(default=None)
 
 
+class TokenTransfer(SQLModel, table=True):
+    """Track token/credit transfers between users."""
+    __tablename__ = "token_transfers"
+    
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    
+    # Sender and recipient
+    sender_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    recipient_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    
+    # Transfer details
+    amount: Decimal = Field(max_digits=12, decimal_places=2, description="Credits transferred")
+    message: Optional[str] = Field(default=None, max_length=500, description="Optional message/reason")
+    
+    # Status
+    status: str = Field(default="completed", max_length=20)  # completed, cancelled
+    
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class OrgSettings(SQLModel, table=True):
     """Organization-wide settings for TokenPool."""
     __tablename__ = "org_settings"

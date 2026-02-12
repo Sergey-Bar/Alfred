@@ -30,7 +30,7 @@ from .exceptions import (
 )
 from .models import (
     User, Team, TeamMemberLink, RequestLog, LeaderboardEntry,
-    OrgSettings, ApprovalRequest,
+    OrgSettings, ApprovalRequest, TokenTransfer,
     UserStatus, ProjectPriority,
     ChatCompletionRequest, ChatCompletionResponse, ChatChoice,
     ChatMessage, UsageInfo, QuotaErrorResponse
@@ -44,7 +44,7 @@ from .integrations import (
     NotificationEvent, EventType,
     emit_quota_exceeded, emit_quota_warning,
     emit_approval_requested, emit_approval_resolved,
-    emit_vacation_status_change
+    emit_vacation_status_change, emit_token_transfer
 )
 
 # Initialize logging
@@ -595,6 +595,171 @@ async def update_privacy_preference(
     session.commit()
     
     return {"message": f"Privacy preference updated to {'strict' if strict_privacy else 'normal'}"}
+
+
+# -------------------------------------------------------------------
+# Token Transfer Endpoints
+# -------------------------------------------------------------------
+
+class TokenTransferRequest(BaseModel):
+    """Request body for token transfer."""
+    recipient_email: str
+    amount: float
+    message: Optional[str] = None
+
+
+class TokenTransferResponse(BaseModel):
+    """Response for token transfer."""
+    transfer_id: str
+    sender_name: str
+    recipient_name: str
+    amount: float
+    message: Optional[str] = None
+    sender_remaining_quota: float
+    recipient_new_quota: float
+    timestamp: str
+
+
+@app.post("/v1/users/me/transfer", response_model=TokenTransferResponse)
+async def transfer_tokens(
+    transfer: TokenTransferRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Transfer tokens/credits to another user.
+    
+    Send some of your available quota to another user as a gift.
+    Notifications will be sent to both sender and recipient via
+    configured channels (Slack, Teams, Telegram, WhatsApp).
+    """
+    # Validate amount
+    if transfer.amount <= 0:
+        raise HTTPException(status_code=400, detail="Transfer amount must be positive")
+    
+    if Decimal(str(transfer.amount)) > user.available_quota:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient quota. You have {float(user.available_quota):.2f} credits available"
+        )
+    
+    # Find recipient by email
+    recipient = session.exec(
+        select(User).where(User.email == transfer.recipient_email)
+    ).first()
+    
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+    
+    if recipient.id == user.id:
+        raise HTTPException(status_code=400, detail="Cannot transfer tokens to yourself")
+    
+    # Perform the transfer
+    transfer_amount = Decimal(str(transfer.amount))
+    
+    # Deduct from sender (add to used_tokens)
+    user.used_tokens += transfer_amount
+    user.updated_at = datetime.utcnow()
+    
+    # Add to recipient (increase their personal_quota)
+    recipient.personal_quota += transfer_amount
+    recipient.updated_at = datetime.utcnow()
+    
+    # Create transfer record
+    token_transfer = TokenTransfer(
+        sender_id=user.id,
+        recipient_id=recipient.id,
+        amount=transfer_amount,
+        message=transfer.message,
+        status="completed"
+    )
+    
+    session.add(user)
+    session.add(recipient)
+    session.add(token_transfer)
+    session.commit()
+    session.refresh(token_transfer)
+    session.refresh(user)
+    session.refresh(recipient)
+    
+    # Send notifications
+    asyncio.create_task(emit_token_transfer(
+        sender_id=str(user.id),
+        sender_name=user.name,
+        sender_email=user.email,
+        recipient_id=str(recipient.id),
+        recipient_name=recipient.name,
+        recipient_email=recipient.email,
+        amount=float(transfer_amount),
+        message=transfer.message,
+        sender_remaining=float(user.available_quota),
+        recipient_new_total=float(recipient.personal_quota)
+    ))
+    
+    return TokenTransferResponse(
+        transfer_id=str(token_transfer.id),
+        sender_name=user.name,
+        recipient_name=recipient.name,
+        amount=float(transfer_amount),
+        message=transfer.message,
+        sender_remaining_quota=float(user.available_quota),
+        recipient_new_quota=float(recipient.personal_quota),
+        timestamp=token_transfer.created_at.isoformat()
+    )
+
+
+@app.get("/v1/users/me/transfers")
+async def get_transfer_history(
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    limit: int = 20
+):
+    """
+    Get token transfer history for the current user.
+    
+    Shows both sent and received transfers.
+    """
+    # Get transfers where user is sender or recipient
+    sent_transfers = session.exec(
+        select(TokenTransfer)
+        .where(TokenTransfer.sender_id == user.id)
+        .order_by(TokenTransfer.created_at.desc())
+        .limit(limit)
+    ).all()
+    
+    received_transfers = session.exec(
+        select(TokenTransfer)
+        .where(TokenTransfer.recipient_id == user.id)
+        .order_by(TokenTransfer.created_at.desc())
+        .limit(limit)
+    ).all()
+    
+    # Format response
+    def format_transfer(t: TokenTransfer, is_sent: bool) -> dict:
+        other_user_id = t.recipient_id if is_sent else t.sender_id
+        other_user = session.get(User, other_user_id)
+        return {
+            "id": str(t.id),
+            "type": "sent" if is_sent else "received",
+            "amount": float(t.amount),
+            "other_user": {
+                "id": str(other_user.id) if other_user else None,
+                "name": other_user.name if other_user else "Unknown",
+                "email": other_user.email if other_user else None
+            },
+            "message": t.message,
+            "timestamp": t.created_at.isoformat()
+        }
+    
+    sent = [format_transfer(t, True) for t in sent_transfers]
+    received = [format_transfer(t, False) for t in received_transfers]
+    
+    return {
+        "sent": sent,
+        "received": received,
+        "total_sent": len(sent),
+        "total_received": len(received)
+    }
 
 
 # -------------------------------------------------------------------

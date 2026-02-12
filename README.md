@@ -14,7 +14,8 @@ TokenPool is a FastAPI-based proxy server that manages AI token quotas across an
 
 - **🔄 OpenAI-Compatible API**: Drop-in replacement for `/v1/chat/completions`
 - **💰 Quota Management**: Personal and team-based token quotas in unified "Org-Credits"
-- **🏖️ Vacation Sharing**: Automatically share up to 10% of team pool when members are on vacation
+- **� Token Gifting**: Transfer tokens to colleagues with notifications
+- **�🏖️ Vacation Sharing**: Automatically share up to 10% of team pool when members are on vacation
 - **🚨 Priority Overrides**: Critical projects can bypass quota limits
 - **🔒 Privacy Mode**: `X-Privacy-Mode: strict` header prevents message logging
 - **📊 Efficiency Scoring**: Track completion/prompt token ratios with leaderboards
@@ -222,6 +223,12 @@ When a request comes in, the quota is checked in this order:
 | POST | `/v1/admin/teams` | Create new team |
 | POST | `/v1/admin/teams/{id}/members/{user_id}` | Add user to team |
 | GET | `/v1/teams/my-teams` | Get user's teams |
+
+### Token Transfers
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/v1/users/me/transfer` | Gift tokens to another user |
+| GET | `/v1/users/me/transfers` | Get transfer history |
 
 ### Approvals
 | Method | Endpoint | Description |

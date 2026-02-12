@@ -19,6 +19,10 @@ class EventType(str, Enum):
     QUOTA_EXCEEDED = "quota_exceeded"        # Quota limit reached
     QUOTA_RESET = "quota_reset"              # Quota was reset/refilled
     
+    # Token transfer events
+    TOKEN_TRANSFER_SENT = "token_transfer_sent"         # User sent tokens
+    TOKEN_TRANSFER_RECEIVED = "token_transfer_received" # User received tokens
+    
     # Approval events
     APPROVAL_REQUESTED = "approval_requested"   # New approval request
     APPROVAL_APPROVED = "approval_approved"     # Request approved

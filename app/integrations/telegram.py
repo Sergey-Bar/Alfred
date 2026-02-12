@@ -48,6 +48,8 @@ class TelegramNotifier(NotificationProvider):
         EventType.QUOTA_WARNING: "⚠️",
         EventType.QUOTA_EXCEEDED: "🚫",
         EventType.QUOTA_RESET: "✅",
+        EventType.TOKEN_TRANSFER_SENT: "💸",
+        EventType.TOKEN_TRANSFER_RECEIVED: "🎁",
         EventType.APPROVAL_REQUESTED: "📝",
         EventType.APPROVAL_APPROVED: "✅",
         EventType.APPROVAL_REJECTED: "❌",

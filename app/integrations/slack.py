@@ -40,6 +40,8 @@ class SlackNotifier(NotificationProvider):
         EventType.QUOTA_WARNING: "#FFA500",      # Orange
         EventType.QUOTA_EXCEEDED: "#FF0000",     # Red
         EventType.QUOTA_RESET: "#36A64F",        # Green
+        EventType.TOKEN_TRANSFER_SENT: "#439FE0",    # Blue
+        EventType.TOKEN_TRANSFER_RECEIVED: "#36A64F", # Green
         EventType.APPROVAL_REQUESTED: "#439FE0", # Blue
         EventType.APPROVAL_APPROVED: "#36A64F",  # Green
         EventType.APPROVAL_REJECTED: "#FF0000",  # Red
