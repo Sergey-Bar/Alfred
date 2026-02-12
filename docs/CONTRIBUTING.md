@@ -325,7 +325,7 @@ alfred/
 │   ├── middleware.py      # Request middleware
 │   ├── exceptions.py      # Error handlers
 │   └── integrations/      # Notification providers
-├── frontend/              # Frontend (React/Vite)
+├── dev/frontend/          # Frontend (React/Vite) (moved under `dev`)
 │   ├── src/
 │   │   ├── components/    # React components
 │   │   ├── pages/         # Page components

@@ -3,7 +3,7 @@ Alfred Dashboard API
 Endpoints for dashboard KPIs and analytics.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 import uuid
@@ -177,7 +177,7 @@ async def get_overview_stats(
     total_requests, total_tokens, total_credits = request_stats
     
     # Active users in last 7 days
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     active_users = session.exec(
         select(func.count(func.distinct(RequestLog.user_id)))
         .where(RequestLog.created_at >= week_ago)
@@ -216,13 +216,22 @@ async def get_user_usage_stats(
         .limit(limit)
     ).all()
     
+    # Pre-fetch request counts
+    user_ids = [u.id for u in users]
+    request_counts = {}
+    if user_ids:
+        # Group by user_id
+        counts = session.exec(
+            select(RequestLog.user_id, func.count(RequestLog.id))
+            .where(RequestLog.user_id.in_(user_ids))
+            .group_by(RequestLog.user_id)
+        ).all()
+        request_counts = {u_id: count for u_id, count in counts}
+    
     result = []
     for user in users:
-        # Count requests for this user
-        req_count = session.exec(
-            select(func.count(RequestLog.id))
-            .where(RequestLog.user_id == user.id)
-        ).one() or 0
+        # Get count from map
+        req_count = request_counts.get(user.id, 0)
         
         usage_pct = 0.0
         if user.personal_quota > 0:
@@ -255,13 +264,21 @@ async def get_team_pool_stats(
         .order_by(Team.used_pool.desc())
     ).all()
     
+    # Pre-fetch member counts
+    team_ids = [t.id for t in teams]
+    member_counts = {}
+    if team_ids:
+        counts = session.exec(
+            select(TeamMemberLink.team_id, func.count(TeamMemberLink.user_id))
+            .where(TeamMemberLink.team_id.in_(team_ids))
+            .group_by(TeamMemberLink.team_id)
+        ).all()
+        member_counts = {t_id: count for t_id, count in counts}
+    
     result = []
     for team in teams:
-        # Count members
-        member_count = session.exec(
-            select(func.count(TeamMemberLink.user_id))
-            .where(TeamMemberLink.team_id == team.id)
-        ).one() or 0
+        # Get count from map
+        member_count = member_counts.get(team.id, 0)
         
         usage_pct = 0.0
         if team.common_pool > 0:
@@ -287,7 +304,7 @@ async def get_cost_trends(
     days: int = Query(default=30, le=90)
 ):
     """Get cost trends over time."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     # Get daily aggregates
     # Note: SQLite uses date() function, PostgreSQL uses DATE()
@@ -310,7 +327,7 @@ async def get_cost_trends(
     # Fill in missing dates
     result = []
     current = cutoff.date()
-    end = datetime.utcnow().date()
+    end = datetime.now(timezone.utc).date()
     
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
@@ -333,7 +350,7 @@ async def get_model_usage(
     days: int = Query(default=30, le=90)
 ):
     """Get model usage breakdown."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     logs = session.exec(
         select(RequestLog)
@@ -376,7 +393,7 @@ async def get_efficiency_leaderboard(
     limit: int = Query(default=10, le=50)
 ):
     """Get efficiency leaderboard."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     # Get user aggregates
     users = session.exec(select(User)).all()
@@ -436,7 +453,7 @@ async def get_approval_stats(
     session: Session = Depends(get_db_session)
 ):
     """Get approval request statistics."""
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     
     # Counts
     pending = session.exec(
@@ -521,7 +538,7 @@ async def get_transfer_stats(
     limit: int = Query(default=50, le=200)
 ):
     """Get credit reallocation statistics."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     transfers = session.exec(
         select(TokenTransfer)
@@ -540,6 +557,10 @@ async def get_transfer_stats(
             "id": str(t.id),
             "sender": sender.name if sender else "Unknown",
             "recipient": recipient.name if recipient else "Unknown",
+            "sender_id": str(sender.id) if sender else None,
+            "recipient_id": str(recipient.id) if recipient else None,
+            "sender_email": sender.email if sender else None,
+            "recipient_email": recipient.email if recipient else None,
             "amount": float(t.amount),
             "message": t.message,
             "timestamp": t.created_at.isoformat()

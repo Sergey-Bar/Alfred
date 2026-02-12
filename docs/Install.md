@@ -434,7 +434,7 @@ cp backend/config/.env.example .env
 # Edit .env with your API keys
 
 # Start with Docker Compose
-cd devops/docker && docker-compose up -d
+cd dev/devops/docker && docker-compose up -d
 
 # Check logs
 docker-compose logs -f
@@ -444,13 +444,13 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t alfred -f devops/docker/Dockerfile .
+docker build -t alfred -f dev/devops/docker/Dockerfile .
 
 # Run container
 docker run -d \
   --name alfred \
   -p 8000:8000 \
-  -e DATABASE_URL=sqlite:///./data/alfred.db \
+  -e DATABASE_URL=sqlite:///./backend/data/alfred.db \
   -e OPENAI_API_KEY=sk-your-key \
   -v alfred-data:/app/data \
   alfred

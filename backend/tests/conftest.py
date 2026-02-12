@@ -59,6 +59,28 @@ def test_user(session):
 
 
 @pytest.fixture
+def admin_api_key(session):
+    """Create an admin user and return auth headers for tests."""
+    from app.logic import AuthManager
+    from app.models import User
+    from decimal import Decimal
+
+    api_key, api_key_hash = AuthManager.generate_api_key()
+
+    admin = User(
+        email="admin@example.com",
+        name="Admin",
+        api_key_hash=api_key_hash,
+        is_admin=True,
+        personal_quota=Decimal("10000.00")
+    )
+    session.add(admin)
+    session.commit()
+    session.refresh(admin)
+    return {"Authorization": f"Bearer {api_key}"}
+
+
+@pytest.fixture
 def test_team(session):
     """Create a test team."""
     from app.models import Team

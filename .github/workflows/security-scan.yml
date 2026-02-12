@@ -1,0 +1,28 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  trivy-scan:
+    name: Trivy vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan (OS & Python deps)
+        uses: aquasecurity/trivy-action@v1
+        with:
+          format: 'table'
+          scan-type: 'fs'
+          vuln-type: 'os,library'
+
+      - name: Run Trivy Dockerfile scan
+        uses: aquasecurity/trivy-action@v1
+        with:
+          format: 'table'
+          scan-type: 'dockerfile'
+          vuln-type: 'os,library'

@@ -325,4 +325,4 @@ Alfred normalizes all costs to unified **Org-Credits** (1 USD = 100 credits).
 
 ---
 
-*See also: [Architecture](ARCHITECTURE.md) | [API Reference](API.md) | [Deployment](DEPLOYMENT.md)*
+*See also: [Architecture](architecture.md) | [API Reference](api.md) | [Deployment](deployment.md)*

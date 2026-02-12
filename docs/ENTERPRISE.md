@@ -350,4 +350,4 @@ OVERDRAFT_INTEREST_RATE=1.5        # Repaid from next cycle
 
 ---
 
-*See also: [Security](SECURITY.md) | [API Reference](API.md) | [Architecture](ARCHITECTURE.md)*
+*See also: [Security](security.md) | [API Reference](api.md) | [Architecture](architecture.md)*

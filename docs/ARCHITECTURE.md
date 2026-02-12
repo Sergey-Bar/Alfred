@@ -311,7 +311,7 @@ alfred/
 │   ├── Dockerfile          # Container configuration
 │   └── docker-compose.yml  # Multi-container setup
 ├── docs/                   # Documentation
-├── frontend/               # React admin dashboard
+├── dev/frontend/           # React admin dashboard (moved under `dev`)
 ├── tests/                  # Test suite
 ├── requirements/           # Requirements folder
 │   ├── requirements.txt        # Production dependencies
@@ -320,4 +320,4 @@ alfred/
 
 ---
 
-*See also: [API Reference](API.md) | [Providers](PROVIDERS.md) | [Deployment](DEPLOYMENT.md)*
+*See also: [API Reference](api.md) | [Providers](providers.md) | [Deployment](deployment.md)*

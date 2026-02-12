@@ -6,7 +6,7 @@ Handles quota management, vacation sharing, priority overrides, and efficiency s
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional, Tuple, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
 
@@ -295,7 +295,7 @@ class QuotaManager:
         """Deduct credits from the appropriate quota source."""
         if source == "personal":
             user.used_tokens += cost
-            user.last_request_at = datetime.utcnow()
+            user.last_request_at = datetime.now(timezone.utc)
             self.session.add(user)
         
         elif source in ("team_pool", "priority_bypass", "vacation_share"):
@@ -310,10 +310,10 @@ class QuotaManager:
             
             if team:
                 team.used_pool += cost
-                team.updated_at = datetime.utcnow()
+                team.updated_at = datetime.now(timezone.utc)
                 self.session.add(team)
             
-            user.last_request_at = datetime.utcnow()
+            user.last_request_at = datetime.now(timezone.utc)
             self.session.add(user)
         
         self.session.commit()
@@ -321,7 +321,7 @@ class QuotaManager:
     def add_quota(self, user: User, credits: Decimal) -> None:
         """Add credits to a user's personal quota."""
         user.personal_quota += credits
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         self.session.add(user)
         self.session.commit()
 
@@ -355,7 +355,7 @@ class EfficiencyScorer:
         period_type: str = "daily"
     ) -> LeaderboardEntry:
         """Update or create leaderboard entry for the user."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Determine period boundaries
         if period_type == "daily":
@@ -402,7 +402,7 @@ class EfficiencyScorer:
                 Decimal(entry.total_completion_tokens) / Decimal(entry.total_prompt_tokens)
             )
         
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         
         self.session.add(entry)
         self.session.commit()
@@ -416,7 +416,7 @@ class EfficiencyScorer:
         limit: int = 10
     ) -> List[LeaderboardEntry]:
         """Get the top performers by efficiency score."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Current period start
         if period_type == "daily":
@@ -645,7 +645,7 @@ class ApprovalManager:
         approval.status = "approved"
         approval.approved_by = uuid_module.UUID(approver_id)
         approval.approved_credits = approved_credits or approval.requested_credits
-        approval.resolved_at = datetime.utcnow()
+        approval.resolved_at = datetime.now(timezone.utc)
         
         # Add credits to user
         user_statement = select(User).where(User.id == approval.user_id)
@@ -653,7 +653,7 @@ class ApprovalManager:
         
         if user:
             user.personal_quota += approval.approved_credits
-            user.updated_at = datetime.utcnow()
+            user.updated_at = datetime.now(timezone.utc)
             self.session.add(user)
         
         self.session.add(approval)
@@ -682,7 +682,7 @@ class ApprovalManager:
         approval.status = "rejected"
         approval.approved_by = uuid_module.UUID(rejector_id)
         approval.rejection_reason = reason
-        approval.resolved_at = datetime.utcnow()
+        approval.resolved_at = datetime.now(timezone.utc)
         
         self.session.add(approval)
         self.session.commit()

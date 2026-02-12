@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/sidebar-big.png" alt="Alfred Logo" width="400"/>
+  <img src="dev/frontend/sidebar-big.png" alt="Alfred Logo" width="400"/>
 </p>
 
 # Alfred 🦇
@@ -66,20 +66,16 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 
 | Document | Description |
 |----------|-------------|
-| [Installation](docs/Install.md) | Detailed setup instructions |
-| [API Reference](docs/API.md) | Complete API documentation |
-| [Architecture](docs/ARCHITECTURE.md) | System design and data flow |
-| [Providers](docs/PROVIDERS.md) | Supported LLM providers |
-| [Enterprise](docs/ENTERPRISE.md) | SSO, LDAP, HRIS, Liquidity Pool |
-| [Security](docs/SECURITY.md) | Guardrails, auditing, compliance |
-| [Deployment](docs/DEPLOYMENT.md) | Docker, Kubernetes, production |
-| [Notifications](docs/NOTIFICATIONS.md) | Slack, Teams, Telegram setup |
-| [Dashboard](docs/DASHBOARD.md) | Admin UI customization |
-| [User Guide](docs/USER_GUIDE.md) | End-user documentation |
-| [Repository Structure](docs/REPO_STRUCTURE.md) | Repo layout and conventions |
-| [FAQ](docs/FAQ.md) | Common questions |
-| [Roadmap](docs/ROADMAP.md) | Product roadmap |
-| [Contributing](docs/CONTRIBUTING.md) | Contribution guidelines |
+| [Installation](docs/install.md) | Detailed setup instructions |
+| [API Reference](docs/api.md) | Complete API documentation |
+| [Architecture](docs/architecture.md) | System design and data flow |
+| [Providers](docs/providers.md) | Supported LLM providers |
+| [Enterprise](docs/enterprise.md) | SSO, LDAP, HRIS, Liquidity Pool |
+| [Security](docs/security.md) | Guardrails, auditing, compliance |
+| [Deployment](docs/deployment.md) | Docker, Kubernetes, production |
+| [Notifications](docs/notifications.md) | Slack, Teams, Telegram setup |
+| [User Guide](docs/user_guide.md) | End-user documentation |
+| [Contributing](docs/contributing.md) | Contribution guidelines |
 
 ## 🏗️ Architecture Overview
 
@@ -110,7 +106,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ## 🐳 Docker
 
 ```bash
-cd devops/docker && docker-compose up -d
+cd dev/devops/docker && docker-compose up -d
 ```
 
 ## 🧪 Testing

@@ -5,7 +5,7 @@ Abstract interfaces for notification providers.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 import uuid
@@ -71,7 +71,7 @@ class NotificationEvent:
     team_name: Optional[str] = None
     data: Dict[str, Any] = field(default_factory=dict)
     severity: str = "info"  # info, warning, error, critical
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     
     def to_dict(self) -> Dict[str, Any]:
@@ -181,7 +181,7 @@ class NotificationResult:
         self.success = success
         self.error = error
         self.response_data = response_data or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
     
     def __repr__(self) -> str:
         status = "OK" if self.success else f"FAILED: {self.error}"

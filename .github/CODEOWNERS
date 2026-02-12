@@ -6,9 +6,9 @@
 
 # Area specific owners
 /docs/ @AlfredDev/docs-team
-/frontend/ @AlfredDev/frontend-team
+/dev/frontend/ @AlfredDev/frontend-team
 /backend/app/ @AlfredDev/backend-team
-/devops/k8s/ @AlfredDev/platform-team
-/devops/docker/ @AlfredDev/platform-team
-/devops/scripts/ @AlfredDev/devops-team
+/dev/devops/k8s/ @AlfredDev/platform-team
+/dev/devops/docker/ @AlfredDev/platform-team
+/dev/devops/scripts/ @AlfredDev/devops-team
 /backend/tests/ @AlfredDev/qa-team

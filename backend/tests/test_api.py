@@ -47,7 +47,7 @@ class TestRootEndpoint:
 class TestUserEndpoints:
     """Tests for user management endpoints."""
     
-    def test_create_user(self, test_client: TestClient):
+    def test_create_user(self, test_client: TestClient, admin_api_key):
         """Test user creation returns API key."""
         response = test_client.post(
             "/v1/admin/users",
@@ -56,13 +56,14 @@ class TestUserEndpoints:
                 "name": "New User",
                 "personal_quota": 5000
             }
+            , headers=admin_api_key
         )
         assert response.status_code == 200
         data = response.json()
         assert "api_key" in data
         assert data["api_key"].startswith("tp-")
     
-    def test_create_user_duplicate_email(self, test_client: TestClient):
+    def test_create_user_duplicate_email(self, test_client: TestClient, admin_api_key):
         """Test duplicate email returns error."""
         # Create first user
         test_client.post(
@@ -70,7 +71,8 @@ class TestUserEndpoints:
             json={
                 "email": "duplicate@example.com",
                 "name": "First User"
-            }
+            },
+            headers=admin_api_key
         )
         
         # Try to create duplicate
@@ -79,7 +81,8 @@ class TestUserEndpoints:
             json={
                 "email": "duplicate@example.com",
                 "name": "Second User"
-            }
+            },
+            headers=admin_api_key
         )
         assert response.status_code == 400
     
@@ -115,7 +118,7 @@ class TestChatCompletions:
 class TestTeamEndpoints:
     """Tests for team management endpoints."""
     
-    def test_create_team(self, test_client: TestClient):
+    def test_create_team(self, test_client: TestClient, admin_api_key):
         """Test team creation."""
         response = test_client.post(
             "/v1/admin/teams",
@@ -124,6 +127,7 @@ class TestTeamEndpoints:
                 "description": "The engineering department",
                 "common_pool": 50000
             }
+            , headers=admin_api_key
         )
         assert response.status_code == 200
         data = response.json()

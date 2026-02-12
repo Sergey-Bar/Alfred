@@ -5,7 +5,7 @@ Provides structured logging with JSON output for production and readable output 
 
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 import json
 from contextvars import ContextVar
@@ -49,7 +49,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         log_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -101,7 +101,7 @@ class DevelopmentFormatter(logging.Formatter):
         reset = self.RESET
         
         # Build base message
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         parts = [
             f"{color}[{timestamp}]{reset}",
             f"{color}[{record.levelname}]{reset}",

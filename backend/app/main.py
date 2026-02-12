@@ -5,8 +5,9 @@ FastAPI application with quota management, privacy modes, and efficiency trackin
 
 import asyncio
 import time
+import json
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 import uuid
@@ -49,7 +50,13 @@ from .integrations import (
     emit_vacation_status_change, emit_token_transfer
 )
 from .dashboard import router as dashboard_router
-from prometheus_fastapi_instrumentator import Instrumentator
+
+# Prometheus instrumentation is optional in test/dev environments; import
+# defensively so tests don't require the package to be installed.
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+except Exception:
+    Instrumentator = None
 
 # Initialize logging
 setup_logging(
@@ -59,6 +66,17 @@ setup_logging(
     log_file=settings.log_file
 )
 logger = get_logger(__name__)
+
+
+def create_background_task(coro):
+    """Create a background task with error logging."""
+    async def task_wrapper():
+        try:
+            await coro
+        except Exception as e:
+            logger.exception(f"Background task failed: {str(e)}")
+    
+    return asyncio.create_task(task_wrapper())
 
 
 # -------------------------------------------------------------------
@@ -147,12 +165,15 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None
 )
 
-# Prometheus instrumentation
-try:
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-    logger.info("Prometheus instrumentation configured at /metrics")
-except Exception:
-    logger.exception("Failed to initialize Prometheus instrumentation")
+# Prometheus instrumentation (optional)
+if Instrumentator is not None:
+    try:
+        Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+        logger.info("Prometheus instrumentation configured at /metrics")
+    except Exception:
+        logger.exception("Failed to initialize Prometheus instrumentation")
+else:
+    logger.info("Prometheus instrumentation not installed; skipping /metrics")
 
 # Setup exception handlers
 setup_exception_handlers(app)
@@ -236,6 +257,13 @@ def get_privacy_mode(
     return user.strict_privacy_default
 
 
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Require the current user to be an admin."""
+    if not getattr(user, "is_admin", False):
+        raise AuthorizationException("Admin privileges required")
+    return user
+
+
 # -------------------------------------------------------------------
 # Request/Response Models
 # -------------------------------------------------------------------
@@ -257,6 +285,8 @@ class UserResponse(BaseModel):
     used_tokens: float
     available_quota: float
     default_priority: str
+    preferences: Optional[dict] = None  # JSON parsed dict
+
 
 
 class ApiKeyResponse(BaseModel):
@@ -316,6 +346,8 @@ class ApprovalResponse(BaseModel):
     approved_credits: Optional[float]
     reason: str
     created_at: str
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
 
 
 class LeaderboardResponse(BaseModel):
@@ -383,7 +415,7 @@ async def chat_completions(
     if not quota_result.allowed:
         # Emit quota exceeded notification
         if settings.notifications_enabled and settings.notify_on_quota_exceeded:
-            asyncio.create_task(emit_quota_exceeded(
+            create_background_task(emit_quota_exceeded(
                 user_id=str(user.id),
                 user_name=user.name,
                 user_email=user.email,
@@ -455,7 +487,7 @@ async def chat_completions(
             ) if user.personal_quota > 0 else 0
             
             if quota_percentage_used >= settings.notify_quota_warning_threshold:
-                asyncio.create_task(emit_quota_warning(
+                create_background_task(emit_quota_warning(
                     user_id=str(user.id),
                     user_name=user.name,
                     user_email=user.email,
@@ -521,10 +553,11 @@ def _detect_provider(model: str) -> str:
 # User Management Endpoints
 # -------------------------------------------------------------------
 
-@app.post("/v1/admin/users", response_model=ApiKeyResponse)
+@app.post("/v1/admin/users", response_model=ApiKeyResponse, dependencies=[Depends(require_admin)])
 async def create_user(
     user_data: UserCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Create a new user and return their API key."""
     # Check if email already exists
@@ -545,6 +578,19 @@ async def create_user(
     
     session.add(user)
     session.commit()
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="create_user",
+            target_type="user",
+            target_id=str(user.id),
+            details={"email": user.email, "name": user.name},
+        )
+    except Exception:
+        pass
     
     return ApiKeyResponse(
         api_key=api_key,
@@ -552,12 +598,14 @@ async def create_user(
     )
 
 
-@app.get("/v1/admin/users", response_model=List[UserResponse])
+@app.get("/v1/admin/users", response_model=List[UserResponse], dependencies=[Depends(require_admin)])
 async def list_users(
+    skip: int = 0,
+    limit: int = 100,
     session: Session = Depends(get_session)
 ):
     """List all users (admin endpoint)."""
-    users = session.exec(select(User)).all()
+    users = session.exec(select(User).offset(skip).limit(limit)).all()
     return [
         UserResponse(
             id=str(user.id),
@@ -573,11 +621,12 @@ async def list_users(
     ]
 
 
-@app.put("/v1/admin/users/{user_id}", response_model=UserResponse)
+@app.put("/v1/admin/users/{user_id}", response_model=UserResponse, dependencies=[Depends(require_admin)])
 async def update_user(
     user_id: str,
     user_data: UserUpdate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Update a user (admin endpoint)."""
     user = session.get(User, uuid.UUID(user_id))
@@ -594,6 +643,19 @@ async def update_user(
     session.add(user)
     session.commit()
     session.refresh(user)
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="update_user",
+            target_type="user",
+            target_id=str(user.id),
+            details={"updated_fields": [k for k, v in user_data.dict(exclude_unset=True).items()]},
+        )
+    except Exception:
+        pass
     
     return UserResponse(
         id=str(user.id),
@@ -603,14 +665,16 @@ async def update_user(
         personal_quota=float(user.personal_quota),
         used_tokens=float(user.used_tokens),
         available_quota=float(user.available_quota),
-        default_priority=user.default_priority.value
+        default_priority=user.default_priority.value,
+        preferences=json.loads(user.preferences_json) if user.preferences_json else {}
     )
 
 
-@app.delete("/v1/admin/users/{user_id}")
+@app.delete("/v1/admin/users/{user_id}", dependencies=[Depends(require_admin)])
 async def delete_user(
     user_id: str,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Delete a user (admin endpoint)."""
     user = session.get(User, uuid.UUID(user_id))
@@ -619,7 +683,20 @@ async def delete_user(
     
     session.delete(user)
     session.commit()
-    
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="delete_user",
+            target_type="user",
+            target_id=str(user.id),
+            details={"email": user.email},
+        )
+    except Exception:
+        pass
+
     return {"message": "User deleted successfully"}
 
 
@@ -636,7 +713,51 @@ async def get_current_user_info(
         personal_quota=float(user.personal_quota),
         used_tokens=float(user.used_tokens),
         available_quota=float(user.available_quota),
-        default_priority=user.default_priority.value
+        default_priority=user.default_priority.value,
+        preferences=json.loads(user.preferences_json) if user.preferences_json else {}
+    )
+
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    preferences: Optional[dict] = None
+
+@app.put("/v1/users/me", response_model=UserResponse)
+async def update_my_profile(
+    updates: UserProfileUpdate,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Update current user profile."""
+    if updates.email is not None and updates.email != user.email:
+        # Check if email is taken
+        existing = session.exec(select(User).where(User.email == updates.email)).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = updates.email
+        
+    if updates.name is not None:
+        user.name = updates.name
+    
+    if updates.preferences is not None:
+        user.preferences_json = json.dumps(updates.preferences)
+    
+    user.updated_at = datetime.now(timezone.utc)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        name=user.name,
+        status=user.status.value,
+        personal_quota=float(user.personal_quota),
+        used_tokens=float(user.used_tokens),
+        available_quota=float(user.available_quota),
+        default_priority=user.default_priority.value,
+        preferences=json.loads(user.preferences_json) if user.preferences_json else {}
     )
 
 
@@ -670,7 +791,7 @@ async def update_user_status(
     """Update current user's status (e.g., set to vacation)."""
     old_status = user.status
     user.status = status
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     session.add(user)
     session.commit()
     
@@ -680,7 +801,7 @@ async def update_user_status(
             old_status == UserStatus.ON_VACATION or status == UserStatus.ON_VACATION
         )
         if is_vacation_change:
-            asyncio.create_task(emit_vacation_status_change(
+            create_background_task(emit_vacation_status_change(
                 user_id=str(user.id),
                 user_name=user.name,
                 user_email=user.email,
@@ -706,7 +827,7 @@ async def update_privacy_preference(
     strict_privacy = True if str(mode).lower() in ('strict', 'true', '1') else False
 
     user.strict_privacy_default = strict_privacy
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     session.add(user)
     session.commit()
     
@@ -788,11 +909,11 @@ async def transfer_tokens(
     
     # Deduct from sender (add to used_tokens)
     user.used_tokens += transfer_amount
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     
     # Add to recipient (increase their personal_quota)
     recipient.personal_quota += transfer_amount
-    recipient.updated_at = datetime.utcnow()
+    recipient.updated_at = datetime.now(timezone.utc)
     
     # Create transfer record
     token_transfer = TokenTransfer(
@@ -812,7 +933,7 @@ async def transfer_tokens(
     session.refresh(recipient)
     
     # Send notifications
-    asyncio.create_task(emit_token_transfer(
+    create_background_task(emit_token_transfer(
         sender_id=str(user.id),
         sender_name=user.name,
         sender_email=user.email,
@@ -863,10 +984,22 @@ async def get_transfer_history(
         .limit(limit)
     ).all()
     
+    # Collect all related user IDs to fetch in one query
+    related_user_ids = set()
+    for t in sent_transfers:
+        related_user_ids.add(t.recipient_id)
+    for t in received_transfers:
+        related_user_ids.add(t.sender_id)
+        
+    related_users = {}
+    if related_user_ids:
+        users = session.exec(select(User).where(User.id.in_(related_user_ids))).all()
+        related_users = {u.id: u for u in users}
+    
     # Format response
     def format_transfer(t: TokenTransfer, is_sent: bool) -> dict:
         other_user_id = t.recipient_id if is_sent else t.sender_id
-        other_user = session.get(User, other_user_id)
+        other_user = related_users.get(other_user_id)
         return {
             "id": str(t.id),
             "type": "sent" if is_sent else "received",
@@ -895,10 +1028,11 @@ async def get_transfer_history(
 # Team Management Endpoints
 # -------------------------------------------------------------------
 
-@app.post("/v1/admin/teams", response_model=TeamResponse)
+@app.post("/v1/admin/teams", response_model=TeamResponse, dependencies=[Depends(require_admin)])
 async def create_team(
     team_data: TeamCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Create a new team."""
     team = Team(
@@ -910,6 +1044,19 @@ async def create_team(
     session.add(team)
     session.commit()
     session.refresh(team)
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="create_team",
+            target_type="team",
+            target_id=str(team.id),
+            details={"name": team.name},
+        )
+    except Exception:
+        pass
     
     return TeamResponse(
         id=str(team.id),
@@ -922,12 +1069,14 @@ async def create_team(
     )
 
 
-@app.get("/v1/admin/teams", response_model=List[TeamResponse])
+@app.get("/v1/admin/teams", response_model=List[TeamResponse], dependencies=[Depends(require_admin)])
 async def list_teams(
+    skip: int = 0,
+    limit: int = 100,
     session: Session = Depends(get_session)
 ):
     """List all teams (admin endpoint)."""
-    teams = session.exec(select(Team)).all()
+    teams = session.exec(select(Team).offset(skip).limit(limit)).all()
     result = []
     for team in teams:
         member_count = len(session.exec(
@@ -945,11 +1094,12 @@ async def list_teams(
     return result
 
 
-@app.put("/v1/admin/teams/{team_id}", response_model=TeamResponse)
+@app.put("/v1/admin/teams/{team_id}", response_model=TeamResponse, dependencies=[Depends(require_admin)])
 async def update_team(
     team_id: str,
     team_data: TeamUpdate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Update a team (admin endpoint)."""
     team = session.get(Team, uuid.UUID(team_id))
@@ -966,6 +1116,19 @@ async def update_team(
     session.add(team)
     session.commit()
     session.refresh(team)
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="update_team",
+            target_type="team",
+            target_id=str(team.id),
+            details={"updated_fields": [k for k, v in team_data.dict(exclude_unset=True).items()]},
+        )
+    except Exception:
+        pass
     
     member_count = len(session.exec(
         select(TeamMemberLink).where(TeamMemberLink.team_id == team.id)
@@ -982,10 +1145,11 @@ async def update_team(
     )
 
 
-@app.delete("/v1/admin/teams/{team_id}")
+@app.delete("/v1/admin/teams/{team_id}", dependencies=[Depends(require_admin)])
 async def delete_team(
     team_id: str,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    admin_user: User = Depends(get_current_user),
 ):
     """Delete a team (admin endpoint)."""
     team = session.get(Team, uuid.UUID(team_id))
@@ -1001,11 +1165,114 @@ async def delete_team(
     
     session.delete(team)
     session.commit()
-    
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=admin_user.id,
+            action="delete_team",
+            target_type="team",
+            target_id=str(team.id),
+            details={"name": team.name},
+        )
+    except Exception:
+        pass
+
     return {"message": "Team deleted successfully"}
 
 
-@app.post("/v1/admin/teams/{team_id}/members/{user_id}")
+
+class TeamMember(BaseModel):
+    id: str
+    name: str
+    email: str
+    is_admin: bool
+
+class AddMemberByEmailRequest(BaseModel):
+    email: str
+    is_admin: bool = False
+
+@app.get("/v1/admin/teams/{team_id}/members", response_model=List[TeamMember], dependencies=[Depends(require_admin)])
+async def get_team_members(
+    team_id: str,
+    session: Session = Depends(get_session)
+):
+    """Get members of a team."""
+    team = session.get(Team, uuid.UUID(team_id))
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+        
+    members = session.exec(
+        select(User, TeamMemberLink.is_admin)
+        .join(TeamMemberLink, User.id == TeamMemberLink.user_id)
+        .where(TeamMemberLink.team_id == team.id)
+    ).all()
+    
+    return [
+        TeamMember(
+            id=str(user.id),
+            name=user.name,
+            email=user.email,
+            is_admin=is_admin
+        )
+        for user, is_admin in members
+    ]
+
+
+@app.post("/v1/admin/teams/{team_id}/members", dependencies=[Depends(require_admin)])
+async def add_team_member_email(
+    team_id: str, 
+    request: AddMemberByEmailRequest,
+    session: Session = Depends(get_session)
+):
+    """Add member by email."""
+    # Verify team exists
+    team = session.get(Team, uuid.UUID(team_id))
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    user = session.exec(select(User).where(User.email == request.email)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found with this email")
+        
+    # Check existing membership
+    existing = session.exec(
+        select(TeamMemberLink).where(
+            TeamMemberLink.team_id == uuid.UUID(team_id),
+            TeamMemberLink.user_id == user.id
+        )
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="User already in team")
+        
+    # Add membership
+    link = TeamMemberLink(
+        team_id=uuid.UUID(team_id),
+        user_id=user.id,
+        is_admin=request.is_admin
+    )
+    session.add(link)
+    session.commit()
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=None,
+            action="add_team_member",
+            target_type="team",
+            target_id=str(team.id),
+            details={"added_user_id": str(user.id), "added_email": user.email},
+        )
+    except Exception:
+        pass
+    
+    return {"message": "User added to team successfully"}
+
+
+@app.post("/v1/admin/teams/{team_id}/members/{user_id}", dependencies=[Depends(require_admin)])
 async def add_team_member(
     team_id: str,
     user_id: str,
@@ -1043,11 +1310,24 @@ async def add_team_member(
     
     session.add(link)
     session.commit()
-    
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=None,
+            action="add_team_member",
+            target_type="team",
+            target_id=str(team.id),
+            details={"added_user_id": str(user.id), "is_admin": is_admin},
+        )
+    except Exception:
+        pass
+
     return {"message": f"User added to team {'as admin' if is_admin else ''}"}
 
 
-@app.delete("/v1/admin/teams/{team_id}/members/{user_id}")
+@app.delete("/v1/admin/teams/{team_id}/members/{user_id}", dependencies=[Depends(require_admin)])
 async def remove_team_member(
     team_id: str,
     user_id: str,
@@ -1066,6 +1346,19 @@ async def remove_team_member(
     
     session.delete(membership)
     session.commit()
+    try:
+        from .audit import log_audit
+
+        log_audit(
+            session=session,
+            actor_user_id=None,
+            action="remove_team_member",
+            target_type="team",
+            target_id=str(team_id),
+            details={"removed_user_id": user_id},
+        )
+    except Exception:
+        pass
     
     return {"message": "User removed from team"}
 
@@ -1130,13 +1423,32 @@ async def create_approval_request(
     
     # Emit notification for new approval request
     if settings.notifications_enabled and settings.notify_on_approval_request:
-        asyncio.create_task(emit_approval_requested(
-            user_id=str(user.id),
-            user_name=user.name,
-            user_email=user.email,
-            requested_credits=float(request_data.requested_credits),
-            reason=request_data.reason
-        ))
+        # Use resolved `requested` value (supports requested_credits or requested_amount)
+        try:
+            requested_float = float(requested)
+        except Exception:
+            requested_float = None
+
+        # Enqueue notification via Redis/RQ if available, otherwise fall back to in-process
+        try:
+            from .notifications import enqueue_notification
+
+            enqueue_notification('approval_requested', {
+                'user_id': str(user.id),
+                'user_name': user.name,
+                'user_email': user.email,
+                'requested_credits': requested_float,
+                'reason': request_data.reason
+            })
+        except Exception:
+            # Last-resort fallback to async task
+            create_background_task(emit_approval_requested(
+                user_id=str(user.id),
+                user_name=user.name,
+                user_email=user.email,
+                requested_credits=requested_float,
+                reason=request_data.reason
+            ))
     
     return ApprovalResponse(
         id=str(approval.id),
@@ -1169,17 +1481,21 @@ async def get_pending_approvals(
         pending = manager.get_pending(str(link.team_id))
         all_pending.extend(pending)
     
-    return [
-        ApprovalResponse(
+    response = []
+    for a in all_pending:
+        user_info = session.get(User, a.user_id)
+        response.append(ApprovalResponse(
             id=str(a.id),
             status=a.status,
             requested_credits=float(a.requested_credits),
             approved_credits=float(a.approved_credits) if a.approved_credits else None,
             reason=a.reason,
-            created_at=a.created_at.isoformat()
-        )
-        for a in all_pending
-    ]
+            created_at=a.created_at.isoformat(),
+            user_name=user_info.name if user_info else "Unknown",
+            user_email=user_info.email if user_info else None
+        ))
+    
+    return response
 
 
 @app.post("/v1/approvals/{approval_id}/approve")
@@ -1207,14 +1523,26 @@ async def approve_request(
             # Get the requesting user
             requesting_user = session.get(User, approval.user_id)
             if requesting_user:
-                asyncio.create_task(emit_approval_resolved(
-                    user_id=str(requesting_user.id),
-                    user_name=requesting_user.name,
-                    user_email=requesting_user.email,
-                    approved=True,
-                    credits=float(approval.approved_credits),
-                    approver_name=user.name
-                ))
+                try:
+                    from .notifications import enqueue_notification
+
+                    enqueue_notification('approval_resolved', {
+                        'user_id': str(requesting_user.id),
+                        'user_name': requesting_user.name,
+                        'user_email': requesting_user.email,
+                        'approved': True,
+                        'credits': float(approval.approved_credits),
+                        'approver_name': user.name
+                    })
+                except Exception:
+                    create_background_task(emit_approval_resolved(
+                        user_id=str(requesting_user.id),
+                        user_name=requesting_user.name,
+                        user_email=requesting_user.email,
+                        approved=True,
+                        credits=float(approval.approved_credits),
+                        approver_name=user.name
+                    ))
         
         return {"message": "Request approved", "approved_credits": float(approval.approved_credits)}
     except ValueError as e:
@@ -1249,15 +1577,28 @@ async def reject_request(
         if settings.notifications_enabled and settings.notify_on_approval_request and approval:
             requesting_user = session.get(User, approval.user_id)
             if requesting_user:
-                asyncio.create_task(emit_approval_resolved(
-                    user_id=str(requesting_user.id),
-                    user_name=requesting_user.name,
-                    user_email=requesting_user.email,
-                    approved=False,
-                    credits=float(approval.requested_credits),
-                    approver_name=user.name,
-                    reason=reason
-                ))
+                try:
+                    from .notifications import enqueue_notification
+
+                    enqueue_notification('approval_resolved', {
+                        'user_id': str(requesting_user.id),
+                        'user_name': requesting_user.name,
+                        'user_email': requesting_user.email,
+                        'approved': False,
+                        'credits': float(approval.requested_credits),
+                        'approver_name': user.name,
+                        'reason': reason
+                    })
+                except Exception:
+                    create_background_task(emit_approval_resolved(
+                        user_id=str(requesting_user.id),
+                        user_name=requesting_user.name,
+                        user_email=requesting_user.email,
+                        approved=False,
+                        credits=float(approval.requested_credits),
+                        approver_name=user.name,
+                        reason=reason
+                    ))
         
         return {"message": "Request rejected"}
     except ValueError as e:
@@ -1281,10 +1622,17 @@ async def get_leaderboard(
     scorer = EfficiencyScorer(session)
     entries = scorer.get_leaderboard(period, limit)
     
+    # Bulk fetch users
+    user_ids = {entry.user_id for entry in entries}
+    users_map = {}
+    if user_ids:
+        users = session.exec(select(User).where(User.id.in_(user_ids))).all()
+        users_map = {u.id: u for u in users}
+    
     result = []
     for i, entry in enumerate(entries, 1):
         # Get user name
-        user = session.get(User, entry.user_id)
+        user = users_map.get(entry.user_id)
         user_name = user.name if user else "Unknown"
         
         result.append(LeaderboardResponse(
@@ -1312,7 +1660,7 @@ async def get_usage_analytics(
     """Get usage analytics for the current user."""
     from datetime import timedelta
     
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     statement = (
         select(RequestLog)
@@ -1342,6 +1690,24 @@ async def get_usage_analytics(
         efficiencies = [log.efficiency_score for log in logs if log.efficiency_score]
         if efficiencies:
             avg_efficiency = sum(efficiencies) / len(efficiencies)
+            
+    # Calculate daily history
+    history = {}
+    for log in logs:
+        date_str = log.created_at.date().isoformat()
+        if date_str not in history:
+            history[date_str] = {"tokens": 0, "cost": Decimal("0")}
+        history[date_str]["tokens"] += log.total_tokens
+        history[date_str]["cost"] += log.cost_credits
+        
+    history_list = [
+        {
+            "date": date,
+            "tokens": data["tokens"],
+            "cost": float(data["cost"])
+        }
+        for date, data in sorted(history.items())
+    ]
     
     return {
         "period_days": days,
@@ -1356,7 +1722,8 @@ async def get_usage_analytics(
                 "cost_credits": float(data["cost"])
             }
             for model, data in by_model.items()
-        }
+        },
+        "history": history_list
     }
 
 
@@ -1364,13 +1731,46 @@ async def get_usage_analytics(
 # Health Check
 # -------------------------------------------------------------------
 
+
+class IntegrationConfig(BaseModel):
+    id: str
+    name: str
+    enabled: bool
+
+@app.get("/v1/config/integrations", response_model=List[IntegrationConfig])
+async def get_integrations_config():
+    """Get status of configured integrations."""
+    manager = get_notification_manager()
+    supported = ["slack", "teams", "telegram", "whatsapp"]
+    
+    # Check what's configured
+    configured_names = set()
+    if manager:
+        configured_names = {p.name.lower() for p in manager.configured_providers}
+    
+    result = []
+    for name in supported:
+        display_name = {
+            "slack": "Slack",
+            "teams": "Microsoft Teams",
+            "telegram": "Telegram",
+            "whatsapp": "WhatsApp"
+        }.get(name, name.capitalize())
+        
+        result.append(IntegrationConfig(
+            id=name,
+            name=display_name,
+            enabled=name in configured_names
+        ))
+    return result
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 

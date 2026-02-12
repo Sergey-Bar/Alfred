@@ -47,9 +47,9 @@ docs/
 *.sqlite3
 
 # Frontend development files (built files are copied separately)
-frontend/node_modules
-frontend/.vite
-frontend/dist
+dev/frontend/node_modules
+dev/frontend/.vite
+dev/frontend/dist
 
 # Logs
 *.log

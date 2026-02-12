@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "alfred.fullname" . }}-worker
+  labels:
+    app.kubernetes.io/name: {{ include "alfred.name" . }}-worker
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "alfred.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "alfred.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: alfred-worker
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          command: {{ toJson .Values.worker.command }}
+          args: {{ toJson .Values.worker.args }}
+          env:
+            - name: REDIS_URL
+              value: "redis://{{ include "alfred.fullname" . }}-redis:{{ .Values.redis.service.port }}"
+          resources: {}
+          livenessProbe:
+            exec:
+              command: ["/bin/sh","-c","ps aux | grep -q rq"]
+            initialDelaySeconds: 30
+            periodSeconds: 30

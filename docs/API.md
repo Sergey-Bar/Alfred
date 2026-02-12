@@ -678,4 +678,4 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 
 ---
 
-*See also: [Architecture](ARCHITECTURE.md) | [Enterprise Features](ENTERPRISE.md) | [Security](SECURITY.md)*
+*See also: [Architecture](architecture.md) | [Enterprise Features](enterprise.md) | [Security](security.md)*

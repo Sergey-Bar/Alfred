@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 class TestChatCompletionFlow:
     """Integration tests for chat completion endpoint."""
     
-    def test_complete_request_flow_with_quota(self, test_client: TestClient):
+    def test_complete_request_flow_with_quota(self, test_client: TestClient, admin_api_key):
         """Test a complete request flow with quota checking."""
         # Create a user first
         response = test_client.post(
@@ -22,7 +22,7 @@ class TestChatCompletionFlow:
                 "name": "Integration Test User",
                 "personal_quota": 10000
             }
-        )
+        , headers=admin_api_key)
         assert response.status_code == 200
         api_key = response.json()["api_key"]
         
@@ -60,7 +60,7 @@ class TestChatCompletionFlow:
             assert "choices" in data
             assert data["choices"][0]["message"]["content"] == "Hello!"
     
-    def test_quota_exceeded_returns_403(self, test_client: TestClient):
+    def test_quota_exceeded_returns_403(self, test_client: TestClient, admin_api_key):
         """Test that exceeding quota returns 403 with approval info."""
         # Create user with very low quota
         response = test_client.post(
@@ -69,7 +69,8 @@ class TestChatCompletionFlow:
                 "email": "low_quota@example.com",
                 "name": "Low Quota User",
                 "personal_quota": 1  # Very low quota
-            }
+            },
+            headers=admin_api_key
         )
         assert response.status_code == 200
         api_key = response.json()["api_key"]
@@ -93,7 +94,7 @@ class TestChatCompletionFlow:
 class TestApprovalWorkflow:
     """Tests for the approval workflow."""
     
-    def test_create_approval_request(self, test_client: TestClient):
+    def test_create_approval_request(self, test_client: TestClient, admin_api_key):
         """Test creating an approval request."""
         # Create a user
         response = test_client.post(
@@ -102,7 +103,7 @@ class TestApprovalWorkflow:
                 "email": "approval_test@example.com",
                 "name": "Approval Test User"
             }
-        )
+        , headers=admin_api_key)
         api_key = response.json()["api_key"]
         
         # Submit approval request
@@ -125,7 +126,7 @@ class TestApprovalWorkflow:
 class TestPrivacyMode:
     """Tests for privacy mode functionality."""
     
-    def test_strict_privacy_header(self, test_client: TestClient):
+    def test_strict_privacy_header(self, test_client: TestClient, admin_api_key):
         """Test strict privacy mode via header."""
         # Create user
         response = test_client.post(
@@ -135,7 +136,7 @@ class TestPrivacyMode:
                 "name": "Privacy Test User",
                 "personal_quota": 10000
             }
-        )
+        , headers=admin_api_key)
         api_key = response.json()["api_key"]
         
         with patch("app.logic.LLMProxy.forward_request", new_callable=AsyncMock) as mock_llm:
@@ -171,7 +172,7 @@ class TestPrivacyMode:
 class TestTeamManagement:
     """Tests for team management functionality."""
     
-    def test_add_user_to_team(self, test_client: TestClient):
+    def test_add_user_to_team(self, test_client: TestClient, admin_api_key):
         """Test adding a user to a team."""
         # Create team
         response = test_client.post(
@@ -181,7 +182,7 @@ class TestTeamManagement:
                 "description": "Development team",
                 "common_pool": 50000
             }
-        )
+        , headers=admin_api_key)
         assert response.status_code == 200
         team_id = response.json()["id"]
         
@@ -192,7 +193,7 @@ class TestTeamManagement:
                 "email": "team_member@example.com",
                 "name": "Team Member"
             }
-        )
+        , headers=admin_api_key)
         api_key = response.json()["api_key"]
         
         # Get user ID
@@ -204,7 +205,8 @@ class TestTeamManagement:
         
         # Add user to team
         response = test_client.post(
-            f"/v1/admin/teams/{team_id}/members/{user_id}"
+            f"/v1/admin/teams/{team_id}/members/{user_id}",
+            headers=admin_api_key
         )
         assert response.status_code == 200
 
@@ -212,14 +214,15 @@ class TestTeamManagement:
 class TestErrorResponses:
     """Tests for consistent error response format."""
     
-    def test_validation_error_format(self, test_client: TestClient):
+    def test_validation_error_format(self, test_client: TestClient, admin_api_key):
         """Test validation error response format."""
         response = test_client.post(
             "/v1/admin/users",
             json={
                 # Missing required 'name' field
                 "email": "missing_name@example.com"
-            }
+            },
+            headers=admin_api_key
         )
         
         assert response.status_code == 422

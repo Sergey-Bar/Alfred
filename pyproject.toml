@@ -95,4 +95,4 @@ omit = [
 fail_under = 80
 
 [tool.pylint]
-ignore = ["frontend", "frontend/static"]
+ignore = ["dev/frontend", "dev/frontend/static"]

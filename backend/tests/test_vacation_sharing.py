@@ -4,7 +4,7 @@ Comprehensive tests for vacation sharing logic.
 
 import pytest
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.models import User, Team, TeamMemberLink, UserStatus, ProjectPriority
 from app.logic import QuotaManager
@@ -30,8 +30,8 @@ class TestVacationSharing:
             personal_quota=Decimal("1000.00"),
             used_tokens=Decimal("0.00"),
             status=UserStatus.ON_VACATION,
-            vacation_start=datetime.utcnow() - timedelta(days=1),
-            vacation_end=datetime.utcnow() + timedelta(days=7)
+            vacation_start=datetime.now(timezone.utc) - timedelta(days=1),
+            vacation_end=datetime.now(timezone.utc) + timedelta(days=7)
         )
         session.add(vacation_user)
         session.commit()

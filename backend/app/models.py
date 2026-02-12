@@ -3,7 +3,7 @@ Alfred Database Models
 SQLModel-based models for user management, team quotas, and request tracking.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List
 from decimal import Decimal
@@ -41,7 +41,7 @@ class TeamMemberLink(SQLModel, table=True):
     user_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="users.id", primary_key=True
     )
-    joined_at: datetime = Field(default_factory=datetime.utcnow)
+    joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_admin: bool = Field(default=False)
 
 
@@ -69,8 +69,8 @@ class Team(SQLModel, table=True):
         description="Max percentage of pool available for vacation sharing"
     )
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Relationships
     members: List["User"] = Relationship(back_populates="teams", link_model=TeamMemberLink)
@@ -111,8 +111,11 @@ class User(SQLModel, table=True):
     # Privacy preferences
     strict_privacy_default: bool = Field(default=False, description="Default privacy mode for requests")
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # User Preferences (JSON)
+    preferences_json: Optional[str] = Field(default=None, description="JSON-encoded user preferences")
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_request_at: Optional[datetime] = Field(default=None)
     
     # Relationships
@@ -181,7 +184,7 @@ class RequestLog(SQLModel, table=True):
     )
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     latency_ms: Optional[int] = Field(default=None, description="Request latency in milliseconds")
     
     # Relationships
@@ -216,8 +219,8 @@ class LeaderboardEntry(SQLModel, table=True):
     # Ranking
     rank: Optional[int] = Field(default=None, ge=1)
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user: Optional[User] = Relationship(back_populates="leaderboard_entries")
@@ -238,11 +241,31 @@ class ApprovalRequest(SQLModel, table=True):
     
     # Approval status
     status: str = Field(default="pending", max_length=20)  # pending, approved, rejected
+    
+    # Audit / resolution fields
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    approved_by: Optional[uuid.UUID] = Field(default=None)
+    approved_credits: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2)
+    rejection_reason: Optional[str] = Field(default=None, max_length=500)
+    resolved_at: Optional[datetime] = Field(default=None)
+
+
+class AuditLog(SQLModel, table=True):
+    """Append-only audit log for admin actions."""
+    __tablename__ = "audit_logs"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    actor_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
+    action: str = Field(max_length=200)
+    target_type: Optional[str] = Field(default=None, max_length=100)
+    target_id: Optional[str] = Field(default=None, max_length=100)
+    details_json: Optional[str] = Field(default=None, description="JSON-encoded details")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     approved_by: Optional[uuid.UUID] = Field(default=None)
     approved_credits: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2)
     rejection_reason: Optional[str] = Field(default=None, max_length=500)
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: Optional[datetime] = Field(default=None)
 
 
@@ -264,7 +287,7 @@ class TokenTransfer(SQLModel, table=True):
     status: str = Field(default="completed", max_length=20)  # completed, cancelled
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class OrgSettings(SQLModel, table=True):
@@ -289,8 +312,8 @@ class OrgSettings(SQLModel, table=True):
     force_strict_privacy: bool = Field(default=False, description="Force privacy mode for all requests")
     log_retention_days: int = Field(default=90, description="Days to retain request logs")
     
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # -------------------------------------------------------------------
