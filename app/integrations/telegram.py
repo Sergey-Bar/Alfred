@@ -1,5 +1,5 @@
 """
-TokenPool Telegram Integration
+Alfred Telegram Integration
 Send notifications to Telegram via Bot API.
 """
 
@@ -167,7 +167,7 @@ class TelegramNotifier(NotificationProvider):
         timestamp = event.timestamp.strftime("%Y\\-%m\\-%d %H:%M UTC")
         event_id = self._escape_markdown(event.event_id[:8])
         lines.append(f"_{severity_emoji} {event.severity.upper()} \\| {timestamp}_")
-        lines.append(f"_TokenPool \\| Event: {event_id}_")
+        lines.append(f"_Alfred \\| Event: {event_id}_")
         
         return "\n".join(lines)
     
@@ -198,7 +198,7 @@ class TelegramNotifier(NotificationProvider):
         lines.append("")
         timestamp = event.timestamp.strftime("%Y-%m-%d %H:%M UTC")
         lines.append(f"<i>{severity_emoji} {event.severity.upper()} | {timestamp}</i>")
-        lines.append(f"<i>TokenPool | Event: {event.event_id[:8]}</i>")
+        lines.append(f"<i>Alfred | Event: {event.event_id[:8]}</i>")
         
         return "\n".join(lines)
     

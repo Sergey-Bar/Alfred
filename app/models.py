@@ -1,5 +1,5 @@
 """
-TokenPool Database Models
+Alfred Database Models
 SQLModel-based models for user management, team quotas, and request tracking.
 """
 
@@ -94,6 +94,9 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True, max_length=255)
     name: str = Field(max_length=255)
     api_key_hash: str = Field(max_length=255, description="Hashed API key for authentication")
+    
+    # Admin flag for dashboard access
+    is_admin: bool = Field(default=False, description="Global admin privileges")
     
     # Personal quota in "Org-Credits"  
     personal_quota: Decimal = Field(default=Decimal("1000.00"), max_digits=12, decimal_places=2)
@@ -265,7 +268,7 @@ class TokenTransfer(SQLModel, table=True):
 
 
 class OrgSettings(SQLModel, table=True):
-    """Organization-wide settings for TokenPool."""
+    """Organization-wide settings for Alfred."""
     __tablename__ = "org_settings"
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -314,7 +317,7 @@ class ChatCompletionRequest(SQLModel):
     stream: Optional[bool] = Field(default=False)
     user: Optional[str] = None
     
-    # TokenPool specific
+    # Alfred specific
     project_priority: Optional[ProjectPriority] = Field(default=None)
 
 
@@ -341,7 +344,7 @@ class ChatCompletionResponse(SQLModel):
     choices: List[ChatChoice]
     usage: UsageInfo
     
-    # TokenPool extensions
+    # Alfred extensions
     cost_credits: Optional[Decimal] = None
     quota_source: Optional[str] = None
     remaining_quota: Optional[Decimal] = None

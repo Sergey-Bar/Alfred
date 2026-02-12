@@ -1,5 +1,5 @@
 """
-TokenPool Structured Logging Configuration
+Alfred Structured Logging Configuration
 Provides structured logging with JSON output for production and readable output for development.
 """
 

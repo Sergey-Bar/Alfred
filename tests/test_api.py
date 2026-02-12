@@ -2,8 +2,13 @@
 Tests for API endpoints.
 """
 
+import os
 import pytest
 from fastapi.testclient import TestClient
+
+# Check if static files exist (SPA mode)
+_static_dir = os.path.join(os.path.dirname(__file__), '..', 'static')
+_spa_mode = os.path.exists(_static_dir) and os.path.exists(os.path.join(_static_dir, "index.html"))
 
 
 class TestHealthEndpoint:
@@ -21,13 +26,22 @@ class TestHealthEndpoint:
 class TestRootEndpoint:
     """Tests for root endpoint."""
     
+    @pytest.mark.skipif(_spa_mode, reason="Root returns HTML when SPA is deployed")
     def test_root(self, test_client: TestClient):
         """Test root endpoint returns API info."""
         response = test_client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == "TokenPool"
+        assert data["name"] == "Alfred"
         assert "version" in data
+    
+    def test_root_spa_mode(self, test_client: TestClient):
+        """Test root endpoint returns HTML when SPA is deployed."""
+        if not _spa_mode:
+            pytest.skip("Not in SPA mode")
+        response = test_client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers.get("content-type", "")
 
 
 class TestUserEndpoints:
@@ -46,7 +60,7 @@ class TestUserEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "api_key" in data
-        assert data["api_key"].startswith("ab-")
+        assert data["api_key"].startswith("tp-")
     
     def test_create_user_duplicate_email(self, test_client: TestClient):
         """Test duplicate email returns error."""

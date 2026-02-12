@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for TokenPool tests.
+Pytest configuration and fixtures for Alfred tests.
 """
 
 import os

@@ -1,5 +1,5 @@
 """
-TokenPool - AI Token Quota Manager
+Alfred - AI Token Quota Manager
 FastAPI application with quota management, privacy modes, and efficiency tracking.
 """
 
@@ -8,14 +8,16 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 import uuid
 
 from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, SQLModel, create_engine, select
 from pydantic import BaseModel
+import os
 
 from .config import settings
 from .logging_config import setup_logging, get_logger, user_id_var
@@ -46,6 +48,7 @@ from .integrations import (
     emit_approval_requested, emit_approval_resolved,
     emit_vacation_status_change, emit_token_transfer
 )
+from .dashboard import router as dashboard_router
 
 # Initialize logging
 setup_logging(
@@ -79,7 +82,7 @@ engine = create_engine(
 async def lifespan(app: FastAPI):
     """Application lifespan - setup and teardown."""
     logger.info(
-        "Starting TokenPool",
+        "Starting Alfred",
         extra_data={
             "version": settings.app_version,
             "environment": settings.environment,
@@ -127,7 +130,7 @@ async def lifespan(app: FastAPI):
         manager = get_notification_manager()
         await manager.close()
     
-    logger.info("Shutting down TokenPool")
+    logger.info("Shutting down Alfred")
 
 
 # -------------------------------------------------------------------
@@ -136,7 +139,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    description="Open Source Multi-LLM Proxy Gateway with Quota Management",
+    description="Enterprise AI Credit Governance Platform - Multi-LLM Proxy Gateway with B2B Quota Management, supporting OpenAI, Anthropic, Azure, AWS Bedrock, and self-hosted models",
     version=settings.app_version,
     lifespan=lifespan,
     docs_url="/docs" if not settings.is_production else None,
@@ -149,15 +152,23 @@ setup_exception_handlers(app)
 # Setup middleware (includes rate limiting, request context, etc.)
 setup_middleware(app)
 
-# CORS middleware
+# CORS middleware - restricted in production
+if settings.is_production:
+    # Production: only allow specific origins
+    cors_origins = [o for o in settings.cors_origins if o != "*"] or ["https://localhost"]
+else:
+    cors_origins = settings.cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Request-ID", "X-Privacy-Mode", "X-Project-Priority"],
 )
 
+# Include dashboard router
+app.include_router(dashboard_router)
 
 # -------------------------------------------------------------------
 # Dependencies
@@ -262,6 +273,20 @@ class TeamResponse(BaseModel):
     used_pool: float
     available_pool: float
     member_count: int
+
+
+class UserUpdate(BaseModel):
+    """Update user data."""
+    name: Optional[str] = None
+    personal_quota: Optional[Decimal] = None
+    status: Optional[str] = None
+
+
+class TeamUpdate(BaseModel):
+    """Update team data."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    common_pool: Optional[Decimal] = None
 
 
 class ApprovalRequestCreate(BaseModel):
@@ -427,7 +452,7 @@ async def chat_completions(
                     percentage_used=quota_percentage_used
                 ))
         
-        # Build response with TokenPool extensions
+        # Build response with Alfred extensions
         choices = response.get("choices", [])
         response_choices = [
             ChatChoice(
@@ -515,6 +540,77 @@ async def create_user(
     )
 
 
+@app.get("/v1/admin/users", response_model=List[UserResponse])
+async def list_users(
+    session: Session = Depends(get_session)
+):
+    """List all users (admin endpoint)."""
+    users = session.exec(select(User)).all()
+    return [
+        UserResponse(
+            id=str(user.id),
+            email=user.email,
+            name=user.name,
+            status=user.status.value,
+            personal_quota=float(user.personal_quota),
+            used_tokens=float(user.used_tokens),
+            available_quota=float(user.available_quota),
+            default_priority=user.default_priority.value
+        )
+        for user in users
+    ]
+
+
+@app.put("/v1/admin/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: str,
+    user_data: UserUpdate,
+    session: Session = Depends(get_session)
+):
+    """Update a user (admin endpoint)."""
+    user = session.get(User, uuid.UUID(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user_data.name is not None:
+        user.name = user_data.name
+    if user_data.personal_quota is not None:
+        user.personal_quota = user_data.personal_quota
+    if user_data.status is not None:
+        user.status = UserStatus(user_data.status)
+    
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        name=user.name,
+        status=user.status.value,
+        personal_quota=float(user.personal_quota),
+        used_tokens=float(user.used_tokens),
+        available_quota=float(user.available_quota),
+        default_priority=user.default_priority.value
+    )
+
+
+@app.delete("/v1/admin/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    session: Session = Depends(get_session)
+):
+    """Delete a user (admin endpoint)."""
+    user = session.get(User, uuid.UUID(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    session.delete(user)
+    session.commit()
+    
+    return {"message": "User deleted successfully"}
+
+
 @app.get("/v1/users/me", response_model=UserResponse)
 async def get_current_user_info(
     user: User = Depends(get_current_user)
@@ -598,18 +694,18 @@ async def update_privacy_preference(
 
 
 # -------------------------------------------------------------------
-# Token Transfer Endpoints
+# Credit Reallocation Endpoints
 # -------------------------------------------------------------------
 
 class TokenTransferRequest(BaseModel):
-    """Request body for token transfer."""
+    """Request body for credit reallocation."""
     recipient_email: str
     amount: float
     message: Optional[str] = None
 
 
 class TokenTransferResponse(BaseModel):
-    """Response for token transfer."""
+    """Response for credit reallocation."""
     transfer_id: str
     sender_name: str
     recipient_name: str
@@ -627,11 +723,11 @@ async def transfer_tokens(
     session: Session = Depends(get_session)
 ):
     """
-    Transfer tokens/credits to another user.
+    Reallocate credits to another user.
     
-    Send some of your available quota to another user as a gift.
-    Notifications will be sent to both sender and recipient via
-    configured channels (Slack, Teams, Telegram, WhatsApp).
+    Transfer credits from your allocated quota to another user.
+    This enables dynamic budget management when project needs change.
+    Notifications will be sent to both parties via configured channels.
     """
     # Validate amount
     if transfer.amount <= 0:
@@ -715,9 +811,9 @@ async def get_transfer_history(
     limit: int = 20
 ):
     """
-    Get token transfer history for the current user.
+    Get credit reallocation history for the current user.
     
-    Shows both sent and received transfers.
+    Shows both outgoing and incoming reallocations for audit purposes.
     """
     # Get transfers where user is sender or recipient
     sent_transfers = session.exec(
@@ -793,6 +889,89 @@ async def create_team(
     )
 
 
+@app.get("/v1/admin/teams", response_model=List[TeamResponse])
+async def list_teams(
+    session: Session = Depends(get_session)
+):
+    """List all teams (admin endpoint)."""
+    teams = session.exec(select(Team)).all()
+    result = []
+    for team in teams:
+        member_count = len(session.exec(
+            select(TeamMemberLink).where(TeamMemberLink.team_id == team.id)
+        ).all())
+        result.append(TeamResponse(
+            id=str(team.id),
+            name=team.name,
+            description=team.description,
+            common_pool=float(team.common_pool),
+            used_pool=float(team.used_pool),
+            available_pool=float(team.available_pool),
+            member_count=member_count
+        ))
+    return result
+
+
+@app.put("/v1/admin/teams/{team_id}", response_model=TeamResponse)
+async def update_team(
+    team_id: str,
+    team_data: TeamUpdate,
+    session: Session = Depends(get_session)
+):
+    """Update a team (admin endpoint)."""
+    team = session.get(Team, uuid.UUID(team_id))
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    if team_data.name is not None:
+        team.name = team_data.name
+    if team_data.description is not None:
+        team.description = team_data.description
+    if team_data.common_pool is not None:
+        team.common_pool = team_data.common_pool
+    
+    session.add(team)
+    session.commit()
+    session.refresh(team)
+    
+    member_count = len(session.exec(
+        select(TeamMemberLink).where(TeamMemberLink.team_id == team.id)
+    ).all())
+    
+    return TeamResponse(
+        id=str(team.id),
+        name=team.name,
+        description=team.description,
+        common_pool=float(team.common_pool),
+        used_pool=float(team.used_pool),
+        available_pool=float(team.available_pool),
+        member_count=member_count
+    )
+
+
+@app.delete("/v1/admin/teams/{team_id}")
+async def delete_team(
+    team_id: str,
+    session: Session = Depends(get_session)
+):
+    """Delete a team (admin endpoint)."""
+    team = session.get(Team, uuid.UUID(team_id))
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    # Delete team memberships first
+    memberships = session.exec(
+        select(TeamMemberLink).where(TeamMemberLink.team_id == team.id)
+    ).all()
+    for membership in memberships:
+        session.delete(membership)
+    
+    session.delete(team)
+    session.commit()
+    
+    return {"message": "Team deleted successfully"}
+
+
 @app.post("/v1/admin/teams/{team_id}/members/{user_id}")
 async def add_team_member(
     team_id: str,
@@ -833,6 +1012,29 @@ async def add_team_member(
     session.commit()
     
     return {"message": f"User added to team {'as admin' if is_admin else ''}"}
+
+
+@app.delete("/v1/admin/teams/{team_id}/members/{user_id}")
+async def remove_team_member(
+    team_id: str,
+    user_id: str,
+    session: Session = Depends(get_session)
+):
+    """Remove a user from a team."""
+    membership = session.exec(
+        select(TeamMemberLink).where(
+            TeamMemberLink.team_id == uuid.UUID(team_id),
+            TeamMemberLink.user_id == uuid.UUID(user_id)
+        )
+    ).first()
+    
+    if not membership:
+        raise HTTPException(status_code=404, detail="User is not a member of this team")
+    
+    session.delete(membership)
+    session.commit()
+    
+    return {"message": "User removed from team"}
 
 
 @app.get("/v1/teams/my-teams")
@@ -1131,13 +1333,42 @@ async def health_check():
     }
 
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
-    return {
-        "name": "TokenPool",
-        "version": "1.0.0",
-        "description": "Open Source Multi-LLM Proxy Gateway",
-        "docs": "/docs",
-        "health": "/health"
-    }
+# -------------------------------------------------------------------
+# Static Files & SPA Serving (must be last to avoid catch-all conflicts)
+# -------------------------------------------------------------------
+
+static_dir = os.path.join(os.path.dirname(__file__), '..', 'static')
+_static_exists = os.path.exists(static_dir) and os.path.exists(os.path.join(static_dir, "index.html"))
+
+if _static_exists:
+    # Mount assets directory
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static-assets")
+
+    @app.get("/", include_in_schema=False)
+    async def serve_spa():
+        """Serve the React SPA index.html."""
+        return FileResponse(os.path.join(static_dir, "index.html"))
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def serve_spa_fallback(path: str):
+        """Fallback route for SPA - serve index.html for client-side routing."""
+        # Don't intercept API routes - let them return proper 404s
+        if path.startswith("v1/") or path.startswith("docs") or path.startswith("openapi") or path.startswith("health"):
+            raise HTTPException(status_code=404, detail="Not found")
+        file_path = os.path.join(static_dir, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        """Root endpoint with API information."""
+        return {
+            "name": "Alfred",
+            "version": "1.0.0",
+            "description": "Open Source AI Token Quota Manager",
+            "docs": "/docs",
+            "health": "/health"
+        }

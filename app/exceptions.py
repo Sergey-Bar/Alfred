@@ -1,5 +1,5 @@
 """
-TokenPool Custom Exceptions and Error Handlers
+Alfred Custom Exceptions and Error Handlers
 Provides consistent error responses across the API.
 """
 
@@ -18,8 +18,8 @@ logger = get_logger(__name__)
 # Custom Exceptions
 # -------------------------------------------------------------------
 
-class TokenPoolException(Exception):
-    """Base exception for all TokenPool errors."""
+class AlfredException(Exception):
+    """Base exception for all Alfred errors."""
     
     def __init__(
         self,
@@ -35,7 +35,7 @@ class TokenPoolException(Exception):
         super().__init__(message)
 
 
-class QuotaExceededException(TokenPoolException):
+class QuotaExceededException(AlfredException):
     """Raised when user quota is exceeded."""
     
     def __init__(
@@ -55,7 +55,7 @@ class QuotaExceededException(TokenPoolException):
         )
 
 
-class AuthenticationException(TokenPoolException):
+class AuthenticationException(AlfredException):
     """Raised for authentication failures."""
     
     def __init__(self, message: str = "Authentication required"):
@@ -66,7 +66,7 @@ class AuthenticationException(TokenPoolException):
         )
 
 
-class AuthorizationException(TokenPoolException):
+class AuthorizationException(AlfredException):
     """Raised for authorization failures."""
     
     def __init__(self, message: str = "Permission denied"):
@@ -77,7 +77,7 @@ class AuthorizationException(TokenPoolException):
         )
 
 
-class ResourceNotFoundException(TokenPoolException):
+class ResourceNotFoundException(AlfredException):
     """Raised when a requested resource is not found."""
     
     def __init__(self, resource_type: str, resource_id: str):
@@ -89,7 +89,7 @@ class ResourceNotFoundException(TokenPoolException):
         )
 
 
-class ValidationException(TokenPoolException):
+class ValidationException(AlfredException):
     """Raised for validation errors."""
     
     def __init__(self, message: str, field: Optional[str] = None):
@@ -101,7 +101,7 @@ class ValidationException(TokenPoolException):
         )
 
 
-class RateLimitException(TokenPoolException):
+class RateLimitException(AlfredException):
     """Raised when rate limit is exceeded."""
     
     def __init__(self, retry_after: int):
@@ -113,7 +113,7 @@ class RateLimitException(TokenPoolException):
         )
 
 
-class LLMProviderException(TokenPoolException):
+class LLMProviderException(AlfredException):
     """Raised for LLM provider errors."""
     
     def __init__(self, provider: str, message: str, original_error: Optional[str] = None):
@@ -128,7 +128,7 @@ class LLMProviderException(TokenPoolException):
         )
 
 
-class ConfigurationException(TokenPoolException):
+class ConfigurationException(AlfredException):
     """Raised for configuration errors."""
     
     def __init__(self, message: str):
@@ -156,15 +156,15 @@ class ErrorResponse(BaseModel):
 # Exception Handlers
 # -------------------------------------------------------------------
 
-async def tokenpool_exception_handler(
+async def alfred_exception_handler(
     request: Request,
-    exc: TokenPoolException
+    exc: AlfredException
 ) -> JSONResponse:
-    """Handle custom TokenPool exceptions."""
+    """Handle custom Alfred exceptions."""
     request_id = request_id_var.get()
     
     logger.error(
-        f"TokenPoolException: {exc.message}",
+        f"AlfredException: {exc.message}",
         extra_data={
             "code": exc.code,
             "status_code": exc.status_code,
@@ -295,7 +295,7 @@ async def generic_exception_handler(
 
 def setup_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
-    app.add_exception_handler(TokenPoolException, tokenpool_exception_handler)
+    app.add_exception_handler(AlfredException, alfred_exception_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, generic_exception_handler)

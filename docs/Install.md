@@ -1,4 +1,4 @@
-# TokenPool Installation Guide
+# Alfred Installation Guide
 
 Complete setup instructions for new team members and contributors.
 
@@ -8,17 +8,17 @@ Complete setup instructions for new team members and contributors.
 
 ### Linux/macOS
 ```bash
-git clone https://github.com/AiTokenPool/tokenpool.git && cd tokenpool && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (PowerShell)
 ```powershell
-git clone https://github.com/AiTokenPool/tokenpool.git; cd tokenpool; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt; Copy-Item config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt; Copy-Item config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (CMD)
 ```cmd
-git clone https://github.com/AiTokenPool/tokenpool.git && cd tokenpool && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r requirements.txt && copy config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r requirements.txt && copy config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
 ```
 
 ---
@@ -76,7 +76,7 @@ choco install python --version=3.10.0
 sudo apt install postgresql postgresql-contrib
 sudo systemctl start postgresql
 sudo -u postgres createuser --interactive
-sudo -u postgres createdb tokenpool
+sudo -u postgres createdb alfred
 ```
 </details>
 
@@ -86,7 +86,7 @@ sudo -u postgres createdb tokenpool
 ```bash
 brew install postgresql@15
 brew services start postgresql@15
-createdb tokenpool
+createdb alfred
 ```
 </details>
 
@@ -106,8 +106,8 @@ winget install PostgreSQL.PostgreSQL
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/AiTokenPool/tokenpool.git
-cd tokenpool
+git clone https://github.com/your-org/alfred.git
+cd alfred
 ```
 
 ### 2. Create Virtual Environment
@@ -173,7 +173,7 @@ curl http://localhost:8000/health
 
 ```env
 # Database
-DATABASE_URL=sqlite:///./tokenpool.db
+DATABASE_URL=sqlite:///./alfred.db
 
 # At least one LLM provider
 OPENAI_API_KEY=sk-your-key-here
@@ -185,7 +185,7 @@ OPENAI_API_KEY=sk-your-key-here
 # =============================================================================
 # Application Settings
 # =============================================================================
-APP_NAME=TokenPool
+APP_NAME=Alfred
 APP_VERSION=1.0.0
 DEBUG=false
 ENVIRONMENT=development  # development, staging, production, test
@@ -201,10 +201,10 @@ WORKERS=4  # For production with gunicorn
 # Database Configuration
 # =============================================================================
 # SQLite (development)
-DATABASE_URL=sqlite:///./tokenpool.db
+DATABASE_URL=sqlite:///./alfred.db
 
 # PostgreSQL (production)
-# DATABASE_URL=postgresql://user:password@localhost:5432/tokenpool
+# DATABASE_URL=postgresql://user:password@localhost:5432/alfred
 
 DATABASE_POOL_SIZE=5
 DATABASE_MAX_OVERFLOW=10
@@ -228,11 +228,27 @@ RATE_LIMIT_BURST=20
 # =============================================================================
 # LLM Provider API Keys
 # =============================================================================
+
+# Public APIs
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=...
+
+# Enterprise Cloud
 AZURE_API_KEY=...
 AZURE_API_BASE=https://your-resource.openai.azure.com/
+AZURE_API_VERSION=2024-02-15-preview
+AZURE_DEPLOYMENT_NAME=gpt-4o
+
+# AWS Bedrock
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+
+# Self-Hosted (vLLM, TGI, Ollama)
+VLLM_API_BASE=http://gpu-server:8000/v1
+TGI_API_BASE=http://tgi-server:8080
+OLLAMA_API_BASE=http://localhost:11434
 
 # =============================================================================
 # Quota Settings
@@ -258,6 +274,150 @@ MASK_PII_IN_LOGS=true
 FORCE_STRICT_PRIVACY=false
 ```
 
+### 🏢 Enterprise Configuration
+
+For enterprise deployments, additional configuration is available:
+
+<details>
+<summary><b>Identity & SSO (LDAP, Azure AD, Okta)</b></summary>
+
+```env
+# Active Directory / LDAP
+LDAP_ENABLED=true
+LDAP_SERVER=ldap://ad.company.com:389
+LDAP_BASE_DN=DC=company,DC=com
+LDAP_BIND_DN=CN=alfred-svc,OU=ServiceAccounts,DC=company,DC=com
+LDAP_BIND_PASSWORD=your-service-account-password
+LDAP_SYNC_INTERVAL_MINUTES=60
+
+# SSO (Azure AD example)
+SSO_ENABLED=true
+SSO_PROVIDER=azure_ad
+SSO_CLIENT_ID=your-client-id
+SSO_CLIENT_SECRET=your-client-secret
+SSO_ISSUER_URL=https://login.microsoftonline.com/{tenant}/v2.0
+
+# SCIM 2.0 for automated user provisioning
+SCIM_ENABLED=true
+SCIM_BEARER_TOKEN=your-scim-token
+```
+</details>
+
+<details>
+<summary><b>HR System Integration (RBAC)</b></summary>
+
+```env
+# Workday Integration
+HRIS_ENABLED=true
+HRIS_PROVIDER=workday
+HRIS_API_URL=https://wd5-impl-services1.workday.com/ccx/service/
+HRIS_API_KEY=your-workday-api-key
+
+# Role-based quotas (auto-assigned based on job level)
+RBAC_DEFAULT_QUOTAS={"junior": 50000, "mid": 100000, "senior": 250000}
+
+# Project Management (Jira) for priority bursting
+PM_INTEGRATION_ENABLED=true
+PM_PROVIDER=jira
+PM_API_URL=https://company.atlassian.net
+PM_API_TOKEN=your-jira-token
+PM_HIGH_PRIORITY_BURST_MULTIPLIER=2.0
+```
+</details>
+
+<details>
+<summary><b>Liquidity Pool & Financial Controls</b></summary>
+
+```env
+# Liquidity Pool (unused credits rollover)
+LIQUIDITY_POOL_ENABLED=true
+ROLLOVER_ENABLED=true
+ROLLOVER_PERCENTAGE=50.0
+RESERVE_REQUEST_DISCOUNT=20.0
+BILLING_CYCLE_DAY=1
+
+# Emergency Overdraft
+OVERDRAFT_ENABLED=true
+OVERDRAFT_LIMIT_MULTIPLIER=0.1
+OVERDRAFT_INTEREST_RATE=1.5
+```
+</details>
+
+<details>
+<summary><b>Security & Guardrails</b></summary>
+
+```env
+# Transfer Security
+MFA_REQUIRED_THRESHOLD=10000.0
+TRANSFER_COOLDOWN_SECONDS=60
+MAX_DAILY_TRANSFER_AMOUNT=100000.0
+
+# Output Guardrails (prevent prompt injection abuse)
+MAX_OUTPUT_TOKENS_TRANSFERRED=4096
+ENABLE_SEMANTIC_SCRUTINY=true
+LOOP_DETECTION_THRESHOLD=3
+
+# Anomaly Detection
+ANOMALY_DETECTION_ENABLED=true
+ANOMALY_ALERT_THRESHOLD=3.0
+
+# Session Security
+SESSION_TOKEN_TTL_MINUTES=15
+
+# HashiCorp Vault
+VAULT_ENABLED=true
+VAULT_ADDR=https://vault.company.com:8200
+VAULT_TOKEN=your-vault-token
+```
+</details>
+
+<details>
+<summary><b>Semantic Cache & Cost Optimization</b></summary>
+
+```env
+# Semantic Cache (reduce redundant API calls)
+SEMANTIC_CACHE_ENABLED=true
+SEMANTIC_CACHE_SIMILARITY_THRESHOLD=0.90
+SEMANTIC_CACHE_TTL_HOURS=24
+CACHE_ACCESS_FEE_CREDITS=0.1
+
+# Version-Locked Pricing (insulate budgets from model changes)
+VERSION_LOCKED_PRICING_ENABLED=true
+CAPABILITY_PRICING_MAP={"frontier_reasoning": 3.0, "standard_chat": 1.0}
+
+# Predictive Burn-Rate Alerts
+BURN_RATE_ALERTS_ENABLED=true
+BURN_RATE_WARNING_THRESHOLD=0.8
+```
+</details>
+
+<details>
+<summary><b>Multi-Tenant SaaS Mode</b></summary>
+
+```env
+# Multi-Tenant with TEE Isolation
+MULTI_TENANT_MODE=true
+TEE_PROVIDER=azure_confidential
+ENCLAVE_ATTESTATION_ENABLED=true
+CLIENT_DATA_ISOLATION=strict
+```
+</details>
+
+<details>
+<summary><b>Analytics & ROI Tracking</b></summary>
+
+```env
+# GitHub Integration (engineering ROI)
+GITHUB_TOKEN=ghp_your-token
+GITHUB_ORG=your-company
+
+# Salesforce Integration (sales ROI)
+SALESFORCE_ENABLED=true
+SALESFORCE_INSTANCE_URL=https://company.salesforce.com
+SALESFORCE_ACCESS_TOKEN=your-sf-token
+```
+</details>
+
 ---
 
 ## 🐳 Docker Installation
@@ -266,8 +426,8 @@ FORCE_STRICT_PRIVACY=false
 
 ```bash
 # Clone repository
-git clone https://github.com/AiTokenPool/tokenpool.git
-cd tokenpool
+git clone https://github.com/your-org/alfred.git
+cd alfred
 
 # Copy and configure environment
 cp config/.env.example .env
@@ -284,16 +444,16 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t tokenpool -f docker/Dockerfile .
+docker build -t alfred -f docker/Dockerfile .
 
 # Run container
 docker run -d \
-  --name tokenpool \
+  --name alfred \
   -p 8000:8000 \
-  -e DATABASE_URL=sqlite:///./data/tokenpool.db \
+  -e DATABASE_URL=sqlite:///./data/alfred.db \
   -e OPENAI_API_KEY=sk-your-key \
-  -v tokenpool-data:/app/data \
-  tokenpool
+  -v alfred-data:/app/data \
+  alfred
 ```
 
 ---
@@ -304,8 +464,8 @@ For contributors and developers:
 
 ```bash
 # Clone and setup
-git clone https://github.com/AiTokenPool/tokenpool.git
-cd tokenpool
+git clone https://github.com/your-org/alfred.git
+cd alfred
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -434,6 +594,6 @@ After installation:
 ## 🆘 Getting Help
 
 - 📖 **Documentation**: [README.md](../README.md)
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/AiTokenPool/tokenpool/issues)
-- 💬 **Questions**: [GitHub Discussions](https://github.com/AiTokenPool/tokenpool/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-org/alfred/issues)
+- 💬 **Questions**: [GitHub Discussions](https://github.com/your-org/alfred/discussions)
 - 👤 **Author**: [Sergey Bar](https://www.linkedin.com/in/sergeybar/)

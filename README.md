@@ -1,371 +1,130 @@
-# TokenPool 🎯
+<p align="center">
+  <img src="static/Logo.png" alt="Alfred Logo" width="200"/>
+</p>
 
-**Open Source AI Token Quota Manager**
+# Alfred 🦇
 
-TokenPool is a FastAPI-based proxy server that manages AI token quotas across an organization. It features team-sharing during vacations, priority-based overrides, privacy modes, and efficiency tracking.
+**Open Source Enterprise AI Credit Governance Platform**
+
+Alfred is a FastAPI-based proxy server that manages AI token quotas across an organization. It provides unified credit governance for 100+ LLM providers including OpenAI, Anthropic, Azure, AWS Bedrock, and self-hosted models.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> 💡 **An open source project by [Sergey Bar](https://www.linkedin.com/in/sergeybar/)** — Built with AI assistance to optimize resource sharing in organizations.
+## ✨ Key Features
 
-## ✨ Features
-
-- **🔄 OpenAI-Compatible API**: Drop-in replacement for `/v1/chat/completions`
-- **💰 Quota Management**: Personal and team-based token quotas in unified "Org-Credits"
-- **� Token Gifting**: Transfer tokens to colleagues with notifications
-- **�🏖️ Vacation Sharing**: Automatically share up to 10% of team pool when members are on vacation
-- **🚨 Priority Overrides**: Critical projects can bypass quota limits
-- **🔒 Privacy Mode**: `X-Privacy-Mode: strict` header prevents message logging
-- **📊 Efficiency Scoring**: Track completion/prompt token ratios with leaderboards
-- **💵 Dynamic Pricing**: Unified cost mapping via LiteLLM for 100+ providers
-- **✅ Manager Approvals**: Request additional quota with approval workflow
-- **🔔 Multi-Platform Notifications**: Slack, Teams, Telegram, WhatsApp alerts
+- **🔄 OpenAI-Compatible API** - Drop-in replacement for `/v1/chat/completions`
+- **💰 Unified Credit Governance** - Personal and team quotas across all providers
+- **🏖️ Vacation Sharing** - Auto-release idle quotas to team pool
+- **🚨 Priority Overrides** - Critical projects bypass individual limits
+- **🔒 Privacy Mode** - `X-Privacy-Mode: strict` prevents message logging
+- **📊 Efficiency Tracking** - Leaderboards and analytics
+- **🔐 Enterprise SSO** - LDAP, Okta, Azure AD, SCIM 2.0
+- **🏦 Liquidity Pool** - Rollover unused credits instead of expiring
 
 ## ⚡ Quick Install
 
 ```bash
-git clone https://github.com/AiTokenPool/tokenpool.git && cd tokenpool && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env
 ```
-
-> 📚 **New to the project?** See the full [Installation Guide](docs/INSTALL.md) for detailed instructions, prerequisites, and troubleshooting.
 
 ## 🚀 Quick Start
 
-### 1. Install & Configure
-
 ```bash
-# Clone and setup
-git clone https://github.com/AiTokenPool/tokenpool.git
-cd tokenpool
-python -m venv .venv && source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+# 1. Configure (add your API keys to .env)
+nano .env
 
-# Configure (add your API keys)
-cp config/.env.example .env
-```
+# 2. Run migrations
+alembic -c config/alembic.ini upgrade head
 
-### 2. Run the Server
-
-```bash
+# 3. Start server
 uvicorn app.main:app --reload
-```
 
-### 3. Verify
-
-```bash
+# 4. Verify
 curl http://localhost:8000/health
-# {"status": "healthy", "version": "1.0.0"}
 ```
 
-**API Docs**: http://localhost:8000/docs
+**Dashboard**: http://localhost:8000 | **API Docs**: http://localhost:8000/docs
 
-## 📖 Usage Guide
-
-### 1. Create a User
+## 📖 Make a Request
 
 ```bash
+# Create a user
 curl -X POST http://localhost:8000/v1/admin/users \
   -H "Content-Type: application/json" \
-  -d '{"email": "developer@company.com", "name": "John Developer", "personal_quota": 5000}'
-```
+  -d '{"email": "dev@company.com", "name": "Developer", "personal_quota": 100000}'
 
-Response:
-```json
-{
-  "api_key": "ab-xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "message": "Store this API key securely - it cannot be retrieved later"
-}
-```
-
-### 2. Make a Chat Completion Request
-
-```bash
+# Use the API key from response
 curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer ab-xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  -H "Authorization: Bearer tp-your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [
-      {"role": "user", "content": "Hello, how are you?"}
-    ]
-  }'
+  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
-### 3. Enable Privacy Mode
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Installation](docs/Install.md) | Detailed setup instructions |
+| [API Reference](docs/API.md) | Complete API documentation |
+| [Architecture](docs/ARCHITECTURE.md) | System design and data flow |
+| [Providers](docs/PROVIDERS.md) | Supported LLM providers |
+| [Enterprise](docs/ENTERPRISE.md) | SSO, LDAP, HRIS, Liquidity Pool |
+| [Security](docs/SECURITY.md) | Guardrails, auditing, compliance |
+| [Deployment](docs/DEPLOYMENT.md) | Docker, Kubernetes, production |
+| [Notifications](docs/NOTIFICATIONS.md) | Slack, Teams, Telegram setup |
+| [Dashboard](docs/DASHBOARD.md) | Admin UI customization |
+| [User Guide](docs/USER_GUIDE.md) | End-user documentation |
+| [FAQ](docs/FAQ.md) | Common questions |
+| [Roadmap](docs/ROADMAP.md) | Product roadmap |
+| [Contributing](docs/CONTRIBUTING.md) | Contribution guidelines |
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         ALFRED                               │
+├─────────────────────────────────────────────────────────────┤
+│  ┌────────────┐   ┌────────────┐   ┌────────────────────┐  │
+│  │  FastAPI   │──▶│   Quota    │──▶│  LiteLLM Proxy     │  │
+│  │  Gateway   │   │  Manager   │   │  (100+ providers)  │  │
+│  └────────────┘   └────────────┘   └────────────────────┘  │
+│        │                │                    │              │
+│        ▼                ▼                    ▼              │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  PostgreSQL: Users │ Teams │ Quotas │ Transactions  │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🔌 Supported Providers
+
+| Category | Providers |
+|----------|-----------|
+| **Public APIs** | OpenAI (GPT-4o, o1), Anthropic (Claude 3.5), Google (Gemini) |
+| **Enterprise Cloud** | Azure OpenAI, AWS Bedrock, Google Vertex AI |
+| **Self-Hosted** | vLLM (Llama 3.1), TGI (Mixtral), Ollama |
+
+## 🐳 Docker
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer ab-xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
-  -H "X-Privacy-Mode: strict" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [{"role": "user", "content": "Confidential question..."}]
-  }'
-```
-
-When `X-Privacy-Mode: strict` is set, only token counts are logged—**not** the messages or responses.
-
-### 4. Set Critical Priority
-
-```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer ab-xxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
-  -H "X-Project-Priority: critical" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [{"role": "user", "content": "Urgent production issue..."}]
-  }'
-```
-
-### 5. Set Vacation Status
-
-```bash
-curl -X PUT "http://localhost:8000/v1/users/me/status?status=on_vacation" \
-  -H "Authorization: Bearer ab-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-This enables team members to use up to 10% of the shared pool while you're away.
-
-## 🔔 Notifications
-
-TokenPool can send alerts to multiple platforms:
-
-| Platform | Events Supported |
-|----------|-----------------|
-| Slack | Quota warnings, approvals, vacation status |
-| Microsoft Teams | All events with Adaptive Cards |
-| Telegram | All events with rich formatting |
-| WhatsApp | All events (requires Business API) |
-
-**Quick Setup (Slack example):**
-
-```env
-# Add to your .env file
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00.../B00.../xxx
-NOTIFICATIONS_ENABLED=true
-```
-
-> 📚 **Full setup instructions**: See [Notifications Guide](docs/NOTIFICATIONS.md) for detailed setup for all platforms.
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         TokenPool                                │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │   FastAPI    │───▶│    Quota     │───▶│   LiteLLM    │      │
-│  │   Gateway    │    │   Manager    │    │    Proxy     │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│         │                   │                    │               │
-│         │                   │                    ▼               │
-│         │                   │           ┌──────────────┐        │
-│         │                   │           │  OpenAI      │        │
-│         │                   │           │  Anthropic   │        │
-│         │                   │           │  Gemini      │        │
-│         │                   │           │  100+ more   │        │
-│         │                   │           └──────────────┘        │
-│         │                   │                                    │
-│         ▼                   ▼                                    │
-│  ┌──────────────────────────────────────────────────────┐      │
-│  │                    PostgreSQL                         │      │
-│  │  Users │ Teams │ Quotas │ Logs │ Leaderboard          │      │
-│  └──────────────────────────────────────────────────────┘      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 🔧 The Balancer Logic
-
-When a request comes in, the quota is checked in this order:
-
-```
-1. Personal Quota Available?
-   └─ YES → Use personal quota ✓
-   └─ NO  → Continue...
-
-2. Is Priority "Critical"?
-   └─ YES → Bypass to Team Pool ✓
-   └─ NO  → Continue...
-
-3. Any Team Members on Vacation?
-   └─ YES → Use up to 10% of Team Pool ✓
-   └─ NO  → Continue...
-
-4. Return 403 Error
-   └─ Include "Manager Approval" instructions
-```
-
-## 📊 API Endpoints
-
-### Chat Completions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/chat/completions` | OpenAI-compatible chat completions |
-
-### User Management
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/admin/users` | Create new user (returns API key) |
-| GET | `/v1/users/me` | Get current user info |
-| GET | `/v1/users/me/quota` | Get detailed quota status |
-| PUT | `/v1/users/me/status` | Update status (active/vacation) |
-| PUT | `/v1/users/me/privacy` | Update default privacy preference |
-
-### Team Management
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/admin/teams` | Create new team |
-| POST | `/v1/admin/teams/{id}/members/{user_id}` | Add user to team |
-| GET | `/v1/teams/my-teams` | Get user's teams |
-
-### Token Transfers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/users/me/transfer` | Gift tokens to another user |
-| GET | `/v1/users/me/transfers` | Get transfer history |
-
-### Approvals
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/v1/approvals` | Request quota increase |
-| GET | `/v1/approvals/pending` | List pending requests (admins) |
-| POST | `/v1/approvals/{id}/approve` | Approve request |
-| POST | `/v1/approvals/{id}/reject` | Reject request |
-
-### Analytics
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/v1/leaderboard` | Efficiency leaderboard |
-| GET | `/v1/analytics/usage` | Usage analytics |
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-### Development Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/AiTokenPool/tokenpool.git
-cd tokenpool
-python -m venv .venv
-source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
-pip install -r requirements-dev.txt
-
-# Run tests
-pytest tests/ -v
-
-# Run with live reload
-uvicorn app.main:app --reload
-```
-
-### Code Style
-
-We use:
-- **Black** for formatting
-- **isort** for import sorting
-- **mypy** for type checking
-- **ruff** for linting
-
-```bash
-# Format code
-black app/
-isort app/
-
-# Type check
-mypy app/
-
-# Lint
-ruff app/
-```
-
-### Pull Request Guidelines
-
-1. **Fork** the repository
-2. Create a **feature branch**: `git checkout -b feature/amazing-feature`
-3. **Write tests** for new functionality
-4. Ensure **all tests pass**: `pytest tests/`
-5. **Format your code**: `black . && isort .`
-6. **Commit** with descriptive message: `git commit -m "Add amazing feature"`
-7. **Push** to your fork: `git push origin feature/amazing-feature`
-8. Open a **Pull Request**
-
-### Areas for Contribution
-
-- 🔐 **Authentication**: OAuth2, SAML integration
-- 📈 **Analytics**: More detailed usage dashboards
-- 🌐 **Streaming**: Server-sent events support
-- 📦 **Caching**: Response caching for identical prompts
-- 🧪 **Testing**: Increase test coverage
-- 📚 **Documentation**: More examples and tutorials
-- 🔌 **Integrations**: Discord, Email, PagerDuty notifications
-
-## 📁 Project Structure
-
-```
-tokenpool/
-├── app/
-│   ├── __init__.py         # Package initialization
-│   ├── main.py             # FastAPI application & routes
-│   ├── models.py           # SQLModel database models
-│   ├── logic.py            # Business logic (quota, scoring)
-│   ├── config.py           # Pydantic settings configuration
-│   ├── middleware.py       # Rate limiting & request context
-│   ├── exceptions.py       # Custom exception handlers
-│   ├── logging_config.py   # Structured logging setup
-│   └── integrations/       # Notification providers
-│       ├── slack.py        # Slack webhooks
-│       ├── teams.py        # MS Teams webhooks
-│       ├── telegram.py     # Telegram Bot API
-│       └── whatsapp.py     # WhatsApp Business API
-├── alembic/
-│   ├── env.py              # Migration environment
-│   └── versions/           # Database migrations
-├── config/
-│   ├── alembic.ini         # Alembic configuration
-│   └── .env.example        # Environment variable template
-├── docker/
-│   ├── Dockerfile          # Container configuration
-│   └── docker-compose.yml  # Multi-container setup
-├── docs/
-│   ├── INSTALL.md          # Detailed installation guide
-│   └── NOTIFICATIONS.md    # Notifications setup guide
-├── tests/
-│   ├── test_api.py         # API endpoint tests
-│   ├── test_quota.py       # Quota logic tests
-│   ├── test_config.py      # Configuration tests
-│   ├── test_middleware.py  # Middleware tests
-│   └── conftest.py         # Test fixtures
-├── requirements.txt        # Production dependencies
-├── requirements-dev.txt    # Development dependencies
-└── README.md               # This file
-```
-
-## 🐳 Docker Deployment
-
-```bash
-# Build image
-docker build -t tokenpool -f docker/Dockerfile .
-
-# Run with docker-compose
 cd docker && docker-compose up -d
+```
+
+## 🧪 Testing
+
+```bash
+pytest tests/ -v --cov=app
 ```
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## 👤 Author
 
-**Project Lead & Vision:** [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)
-
-Built with the assistance of AI as part of a mission to optimize resource sharing in organizations.
+**Project Lead:** [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)
 
 ## 🙏 Acknowledgments
 
@@ -375,7 +134,4 @@ Built with the assistance of AI as part of a mission to optimize resource sharin
 
 ---
 
-**An Open Source Project by [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)**
-
-*Found a bug? Have a feature request? [Open an issue!](https://github.com/AiTokenPool/tokenpool/issues)*
-# Tokenpool
+*Found a bug? Have a feature request? [Open an issue!](https://github.com/your-org/alfred/issues)*

@@ -1,5 +1,5 @@
 """
-TokenPool Core Business Logic
+Alfred Core Business Logic
 Handles quota management, vacation sharing, priority overrides, and efficiency scoring.
 """
 
@@ -19,6 +19,7 @@ from .models import (
     UserStatus, ProjectPriority,
     ChatCompletionRequest, ChatMessage
 )
+from .config import settings
 
 
 # -------------------------------------------------------------------
@@ -58,16 +59,44 @@ class CreditCalculator:
     USD_TO_CREDITS = Decimal("100.00")
     
     # Fallback rates per 1000 tokens when LiteLLM doesn't have pricing
+    # Covers Public LLMs, Open Source, and Enterprise Cloud models
     FALLBACK_RATES = {
+        # OpenAI
         "gpt-4": Decimal("0.03"),
         "gpt-4-turbo": Decimal("0.01"),
         "gpt-4o": Decimal("0.005"),
+        "gpt-4o-mini": Decimal("0.00015"),
         "gpt-3.5-turbo": Decimal("0.0015"),
+        "o1": Decimal("0.015"),
+        "o1-mini": Decimal("0.003"),
+        # Anthropic
         "claude-3-opus": Decimal("0.015"),
         "claude-3-sonnet": Decimal("0.003"),
+        "claude-3.5-sonnet": Decimal("0.003"),
         "claude-3-haiku": Decimal("0.00025"),
+        # Google
         "gemini-pro": Decimal("0.0005"),
         "gemini-1.5-pro": Decimal("0.00125"),
+        "gemini-1.5-flash": Decimal("0.000075"),
+        "gemini-2.0": Decimal("0.00"),  # Often free tier
+        # Open Source (self-hosted - compute cost varies)
+        "llama-3": Decimal("0.0001"),  # Self-hosted compute
+        "llama-3.1": Decimal("0.0001"),
+        "llama-3.2": Decimal("0.0001"),
+        "mixtral": Decimal("0.00024"),
+        "mistral": Decimal("0.00015"),
+        "codellama": Decimal("0.0001"),
+        "deepseek": Decimal("0.00014"),
+        # AWS Bedrock (varies by region)
+        "bedrock/anthropic": Decimal("0.008"),
+        "bedrock/amazon": Decimal("0.0008"),
+        "bedrock/meta": Decimal("0.00099"),
+        "bedrock/cohere": Decimal("0.0004"),
+        # Azure OpenAI (similar to OpenAI)
+        "azure/gpt-4": Decimal("0.03"),
+        "azure/gpt-4o": Decimal("0.005"),
+        "azure/gpt-35": Decimal("0.0015"),
+        # Default fallback
         "default": Decimal("0.005"),
     }
     
@@ -496,7 +525,7 @@ class AuthManager:
     @staticmethod
     def generate_api_key() -> Tuple[str, str]:
         """Generate a new API key and return (plaintext, hash)."""
-        plaintext = f"ab-{secrets.token_urlsafe(32)}"
+        plaintext = f"{settings.api_key_prefix}{secrets.token_urlsafe(settings.api_key_length)}"
         hashed = AuthManager.hash_api_key(plaintext)
         return plaintext, hashed
     

@@ -1,5 +1,5 @@
 """
-TokenPool Microsoft Teams Integration
+Alfred Microsoft Teams Integration
 Send notifications to Teams via Incoming Webhooks with Adaptive Cards.
 """
 
@@ -201,7 +201,7 @@ class TeamsNotifier(NotificationProvider):
         # Add footer
         body.append({
             "type": "TextBlock",
-            "text": f"Event ID: {event.event_id[:8]} | TokenPool",
+            "text": f"Event ID: {event.event_id[:8]} | Alfred",
             "size": "small",
             "isSubtle": True,
             "spacing": "large",

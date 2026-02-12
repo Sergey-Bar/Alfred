@@ -1,5 +1,5 @@
 """
-TokenPool Notification Manager
+Alfred Notification Manager
 Central coordinator for all notification providers with pub/sub event system.
 """
 
@@ -566,11 +566,11 @@ async def emit_token_transfer(
     recipient_new_total: Optional[float] = None
 ) -> Dict[str, NotificationResult]:
     """
-    Emit token transfer notifications to both sender and recipient.
+    Emit credit reallocation notifications to both sender and recipient.
     
     Sends two notifications:
-    1. TOKEN_TRANSFER_SENT to sender
-    2. TOKEN_TRANSFER_RECEIVED to recipient
+    1. TOKEN_TRANSFER_SENT to sender (credits reallocated out)
+    2. TOKEN_TRANSFER_RECEIVED to recipient (credits received)
     """
     manager = get_notification_manager()
     results = {}
@@ -578,8 +578,8 @@ async def emit_token_transfer(
     # Notification for sender
     sent_event = NotificationEvent(
         event_type=EventType.TOKEN_TRANSFER_SENT,
-        title="Tokens Sent",
-        message=f"You sent {amount:.2f} credits to {recipient_name}",
+        title="Credits Reallocated",
+        message=f"You reallocated {amount:.2f} credits to {recipient_name}",
         user_id=sender_id,
         user_name=sender_name,
         user_email=sender_email,
@@ -600,7 +600,7 @@ async def emit_token_transfer(
     # Notification for recipient
     received_event = NotificationEvent(
         event_type=EventType.TOKEN_TRANSFER_RECEIVED,
-        title="Tokens Received",
+        title="Credits Received",
         message=f"You received {amount:.2f} credits from {sender_name}",
         user_id=recipient_id,
         user_name=recipient_name,

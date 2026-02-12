@@ -1,5 +1,5 @@
 """
-TokenPool WhatsApp Integration
+Alfred WhatsApp Integration
 Send notifications to WhatsApp via WhatsApp Business Cloud API.
 """
 
@@ -162,7 +162,7 @@ class WhatsAppNotifier(NotificationProvider):
         lines.append("")
         timestamp = event.timestamp.strftime("%Y-%m-%d %H:%M UTC")
         lines.append(f"_{severity_emoji} {event.severity.upper()} | {timestamp}_")
-        lines.append(f"_TokenPool_")
+        lines.append(f"_Alfred_")
         
         return "\n".join(lines)
     

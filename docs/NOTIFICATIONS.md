@@ -1,4 +1,4 @@
-# TokenPool Notifications Setup Guide
+# Alfred Notifications Setup Guide
 
 Complete setup instructions for all notification integrations.
 
@@ -18,13 +18,13 @@ Complete setup instructions for all notification integrations.
 
 ## Overview
 
-TokenPool supports sending notifications to multiple platforms when important events occur:
+Alfred supports sending notifications to multiple platforms when important events occur:
 
 | Event | Description |
 |-------|-------------|
 | Quota Warning | User reaches 80%+ of their quota |
 | Quota Exceeded | Request denied due to insufficient quota |
-| Token Transfer | Tokens gifted between users |
+| Credit Reallocation | Credits reallocated between users |
 | Approval Requested | New quota increase request submitted |
 | Approval Resolved | Request approved or rejected |
 | Vacation Status | User starts/ends vacation mode |
@@ -46,7 +46,7 @@ TokenPool supports sending notifications to multiple platforms when important ev
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps)
 2. Click **Create New App** → **From scratch**
-3. Name it (e.g., "TokenPool Alerts") and select your workspace
+3. Name it (e.g., "Alfred Alerts") and select your workspace
 4. Click **Create App**
 
 ### Step 2: Enable Incoming Webhooks
@@ -62,7 +62,7 @@ TokenPool supports sending notifications to multiple platforms when important ev
 
 For critical alerts, repeat Step 2 for a separate channel (e.g., `#ai-critical-alerts`).
 
-### Step 4: Configure TokenPool
+### Step 4: Configure Alfred
 
 Add to your `.env` file:
 
@@ -93,7 +93,7 @@ Details:
 • Shortfall: 13.20
 
 ⚠️ ERROR | 2026-02-11 15:30 UTC
-TokenPool | Event: a1b2c3d4
+Alfred | Event: a1b2c3d4
 ```
 
 ---
@@ -111,7 +111,7 @@ TokenPool | Event: a1b2c3d4
 
 ### Step 2: Create Webhook
 
-1. Enter a name (e.g., "TokenPool Alerts")
+1. Enter a name (e.g., "Alfred Alerts")
 2. Optionally upload an icon
 3. Click **Create**
 4. Copy the **Webhook URL**
@@ -121,7 +121,7 @@ TokenPool | Event: a1b2c3d4
 
 Repeat for a separate channel for critical alerts.
 
-### Step 4: Configure TokenPool
+### Step 4: Configure Alfred
 
 Add to your `.env` file:
 
@@ -148,8 +148,8 @@ Messages appear as rich Adaptive Cards with:
 
 1. Open Telegram and search for [@BotFather](https://t.me/BotFather)
 2. Send `/newbot`
-3. Choose a name (e.g., "TokenPool Alerts")
-4. Choose a username (must end in `bot`, e.g., `tokenpool_alerts_bot`)
+3. Choose a name (e.g., "Alfred Alerts")
+4. Choose a username (must end in `bot`, e.g., `alfred_alerts_bot`)
 5. Save the **HTTP API token** (looks like: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
 
 ### Step 2: Get Your Chat ID
@@ -177,10 +177,10 @@ Run this command to verify (replace with your values):
 ```bash
 curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/sendMessage" \
   -H "Content-Type: application/json" \
-  -d '{"chat_id": "<CHAT_ID>", "text": "TokenPool test message!"}'
+  -d '{"chat_id": "<CHAT_ID>", "text": "Alfred test message!"}'
 ```
 
-### Step 4: Configure TokenPool
+### Step 4: Configure Alfred
 
 Add to your `.env` file:
 
@@ -209,7 +209,7 @@ John Developer's request was denied due to insufficient quota
 • Shortfall: `13.20`
 
 _⚠️ ERROR | 2026-02-11 15:30 UTC_
-_TokenPool | Event: a1b2c3d4_
+_Alfred | Event: a1b2c3d4_
 ```
 
 ---
@@ -254,9 +254,9 @@ For permanent tokens:
 3. Choose **Utility** category
 4. Create a template like:
 
-**Template Name:** `tokenpool_alert`
+**Template Name:** `alfred_alert`
 
-**Header:** None (or Text: "TokenPool Alert")
+**Header:** None (or Text: "Alfred Alert")
 
 **Body:**
 ```
@@ -282,7 +282,7 @@ Time: {{4}}
 2. Under **To**, add phone numbers you want to message
 3. Verify each number with the code sent via WhatsApp
 
-### Step 6: Configure TokenPool
+### Step 6: Configure Alfred
 
 Add to your `.env` file:
 
@@ -296,7 +296,7 @@ WHATSAPP_RECIPIENT_NUMBER=14155551234
 WHATSAPP_ALERTS_RECIPIENT_NUMBER=14155559999
 
 # Optional: Template for business-initiated messages
-WHATSAPP_TEMPLATE_NAME=tokenpool_alert
+WHATSAPP_TEMPLATE_NAME=alfred_alert
 ```
 
 ### Phone Number Format
@@ -320,7 +320,7 @@ John Developer's request was denied due to insufficient quota
 • *Shortfall:* 13.20
 
 _⚠️ ERROR | 2026-02-11 15:30 UTC_
-_TokenPool_
+_Alfred_
 ```
 
 ---
@@ -410,7 +410,7 @@ setup_notifications(
 event = NotificationEvent(
     event_type=EventType.QUOTA_WARNING,
     title="Test Notification",
-    message="This is a test from TokenPool!",
+    message="This is a test from Alfred!",
     user_name="Test User",
     severity="info",
     data={"test": "value"}
@@ -478,4 +478,5 @@ asyncio.run(test())
 
 ---
 
-**Need help?** [Open an issue](https://github.com/AiTokenPool/tokenpool/issues) on GitHub!
+**Need help?** [Open an issue](https://github.com/your-org/alfred/issues) on GitHub!
+

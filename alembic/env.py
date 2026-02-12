@@ -1,5 +1,5 @@
 """
-Alembic environment configuration for TokenPool.
+Alembic environment configuration for Alfred.
 Handles database migrations with SQLModel models.
 """
 """

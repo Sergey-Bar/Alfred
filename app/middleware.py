@@ -1,5 +1,5 @@
 """
-TokenPool Middleware
+Alfred Middleware
 Rate limiting, request logging, and other middleware components.
 """
 
@@ -206,9 +206,46 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Add security headers to all responses.
+    Required for SOC2/security compliance.
+    """
+    
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+        
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # CSP - Allow inline styles for Tailwind, scripts from self
+        if not request.url.path.startswith("/docs") and not request.url.path.startswith("/redoc"):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "connect-src 'self'"
+            )
+        
+        # HSTS (only in production)
+        if settings.is_production:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
+        return response
+
+
 def setup_middleware(app: FastAPI) -> None:
     """Configure all middleware for the application."""
-    # Add request context middleware (should be outermost)
+    # Add security headers middleware (outermost)
+    app.add_middleware(SecurityHeadersMiddleware)
+    
+    # Add request context middleware
     app.add_middleware(RequestContextMiddleware)
     
     # Add rate limiting middleware

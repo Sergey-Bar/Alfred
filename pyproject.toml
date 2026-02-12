@@ -1,14 +1,14 @@
 [project]
-name = "tokenpool"
+name = "alfred"
 version = "1.0.0"
-description = "Open Source AI Token Quota Manager - Share, Balance, and Track LLM Usage"
+description = "Enterprise AI Credit Governance Platform - B2B Multi-LLM Proxy with Quota Management, supporting OpenAI, Anthropic, Azure, AWS Bedrock, and self-hosted models"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Sergey Bar", email = "sergey@tokenpool.dev"}
+    {name = "Sergey Bar", email = "sergey@alfred.dev"}
 ]
-keywords = ["llm", "ai", "proxy", "quota", "fastapi", "openai", "tokens", "management"]
+keywords = ["llm", "ai", "proxy", "quota", "fastapi", "openai", "anthropic", "azure", "bedrock", "enterprise", "b2b", "governance"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: FastAPI",
@@ -21,10 +21,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/AiTokenPool/tokenpool"
-Documentation = "https://github.com/AiTokenPool/tokenpool#readme"
-Repository = "https://github.com/AiTokenPool/tokenpool.git"
-Issues = "https://github.com/AiTokenPool/tokenpool/issues"
+Homepage = "https://github.com/your-org/alfred"
+Documentation = "https://github.com/your-org/alfred#readme"
+Repository = "https://github.com/your-org/alfred.git"
+Issues = "https://github.com/your-org/alfred/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]

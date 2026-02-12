@@ -1,5 +1,5 @@
 """
-TokenPool Notification Base Classes
+Alfred Notification Base Classes
 Abstract interfaces for notification providers.
 """
 
@@ -19,9 +19,9 @@ class EventType(str, Enum):
     QUOTA_EXCEEDED = "quota_exceeded"        # Quota limit reached
     QUOTA_RESET = "quota_reset"              # Quota was reset/refilled
     
-    # Token transfer events
-    TOKEN_TRANSFER_SENT = "token_transfer_sent"         # User sent tokens
-    TOKEN_TRANSFER_RECEIVED = "token_transfer_received" # User received tokens
+    # Credit reallocation events
+    TOKEN_TRANSFER_SENT = "token_transfer_sent"         # User reallocated credits out
+    TOKEN_TRANSFER_RECEIVED = "token_transfer_received" # User received credits
     
     # Approval events
     APPROVAL_REQUESTED = "approval_requested"   # New approval request

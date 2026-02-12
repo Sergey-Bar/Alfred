@@ -1,5 +1,5 @@
 """
-TokenPool Integrations
+Alfred Integrations
 External service integrations for notifications and webhooks.
 """
 

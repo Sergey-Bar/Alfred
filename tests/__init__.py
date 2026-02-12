@@ -1,1 +1,1 @@
-"""TokenPool Tests"""
+"""Alfred Tests"""

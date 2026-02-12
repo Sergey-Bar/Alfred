@@ -18,7 +18,7 @@ class TestSettings:
         
         settings = get_settings()
         
-        assert settings.app_name == "TokenPool"
+        assert settings.app_name == "Alfred"
         assert settings.debug is False
         assert settings.rate_limit_enabled is True
         assert settings.rate_limit_requests == 100

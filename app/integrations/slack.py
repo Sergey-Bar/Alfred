@@ -1,5 +1,5 @@
 """
-TokenPool Slack Integration
+Alfred Slack Integration
 Send notifications to Slack via webhooks or Bot API.
 """
 
@@ -186,7 +186,7 @@ class SlackNotifier(NotificationProvider):
             "attachments": [
                 {
                     "color": color,
-                    "footer": f"TokenPool | Event ID: {event.event_id[:8]}",
+                    "footer": f"Alfred | Event ID: {event.event_id[:8]}",
                     "ts": int(event.timestamp.timestamp())
                 }
             ]

@@ -1,4 +1,4 @@
-"""Add token transfers table
+"""Add credit reallocations table
 
 Revision ID: 002_add_token_transfers
 Revises: 001_initial
@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create token_transfers table for tracking token gifts between users."""
+    """Create token_transfers table for tracking credit reallocations between users."""
     op.create_table(
         'token_transfers',
         sa.Column('id', sa.Uuid(), nullable=False),
