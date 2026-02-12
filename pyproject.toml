@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Sergey Bar", email = "sergey@alfred.dev"}
+    {name = "Sergey Bar", email = "Sergeybaris@gmail.com"}
 ]
 keywords = ["llm", "ai", "proxy", "quota", "fastapi", "openai", "anthropic", "azure", "bedrock", "enterprise", "b2b", "governance"]
 classifiers = [
@@ -21,17 +21,17 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/alfred"
-Documentation = "https://github.com/your-org/alfred#readme"
-Repository = "https://github.com/your-org/alfred.git"
-Issues = "https://github.com/your-org/alfred/issues"
+Homepage = "https://github.com/AlfredDev/alfred"
+Documentation = "https://github.com/AlfredDev/alfred#readme"
+Repository = "https://github.com/AlfredDev/alfred.git"
+Issues = "https://github.com/AlfredDev/alfred/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["backend/app*"]
 
 [tool.black]
 line-length = 100
@@ -78,8 +78,21 @@ ignore = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["backend/tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["backend/app"]
+
+[tool.coverage.report]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+fail_under = 80
+
+[tool.pylint]
+ignore = ["frontend", "frontend/static"]

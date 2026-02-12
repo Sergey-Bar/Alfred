@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alfred-config
+  namespace: alfred
+data:
+  APP_NAME: "Alfred"
+  LOG_LEVEL: "INFO"
+  DEFAULT_PERSONAL_QUOTA: "1000"

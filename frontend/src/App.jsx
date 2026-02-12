@@ -1,9 +1,9 @@
-import { useState, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext';
-import { UserProvider } from './context/UserContext';
-import { ToastProvider } from './context/ToastContext';
+import { lazy, Suspense, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/LayoutNew';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import { UserProvider } from './context/UserContext';
 import api from './services/api';
 
 // Lazy load pages for better performance

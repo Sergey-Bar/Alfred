@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "your-org/maintainers"
+    labels:
+      - "dependencies"
+      - "python"
+    ignore:
+      # Ignore major version updates for stable packages
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+  
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "your-org/maintainers"
+    labels:
+      - "dependencies"
+      - "frontend"
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "github-actions"

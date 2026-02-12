@@ -30,7 +30,7 @@ htmlcov
 *~
 
 # Tests
-tests/
+backend/tests/
 *.test.py
 
 # Documentation

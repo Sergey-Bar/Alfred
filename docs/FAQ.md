@@ -299,7 +299,7 @@ ldapsearch -x -H ldap://ad.company.com:389 \
 
 1. Ensure the backend is running: `curl http://localhost:8000/health`
 2. Check frontend is built: `cd frontend && npm run build`
-3. Verify database migrations ran: `alembic -c config/alembic.ini upgrade head`
+3. Verify database migrations ran: `alembic -c backend/config/alembic.ini upgrade head`
 
 ---
 
@@ -313,3 +313,4 @@ ldapsearch -x -H ldap://ad.company.com:389 \
 ---
 
 *See also: [User Guide](USER_GUIDE.md) | [API Reference](API.md) | [Security](SECURITY.md)*
+

@@ -8,17 +8,17 @@ Complete setup instructions for new team members and contributors.
 
 ### Linux/macOS
 ```bash
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements/requirements.txt && cp backend/config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (PowerShell)
 ```powershell
-git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt; Copy-Item config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
+git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r backend/requirements/requirements.txt; Copy-Item config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
 ```
 
 ### Windows (CMD)
 ```cmd
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r requirements.txt && copy config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r backend/requirements/requirements.txt && copy config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
 ```
 
 ---
@@ -128,17 +128,17 @@ python -m venv .venv
 
 ```bash
 # Production dependencies
-pip install -r requirements.txt
+pip install -r backend/requirements/requirements.txt
 
 # Development dependencies (for contributors)
-pip install -r requirements-dev.txt
+pip install -r requirements/requirements-dev.txt
 ```
 
 ### 5. Configure Environment
 
 ```bash
 # Copy example configuration
-cp config/.env.example .env    # Linux/macOS
+cp backend/config/.env.example .env    # Linux/macOS
 # Copy-Item config/.env.example .env  # Windows PowerShell
 
 # Edit .env with your settings
@@ -148,7 +148,7 @@ cp config/.env.example .env    # Linux/macOS
 ### 6. Run Database Migrations
 
 ```bash
-alembic -c config/alembic.ini upgrade head
+alembic -c backend/config/alembic.ini upgrade head
 ```
 
 ### 7. Start the Server
@@ -430,11 +430,11 @@ git clone https://github.com/your-org/alfred.git
 cd alfred
 
 # Copy and configure environment
-cp config/.env.example .env
+cp backend/config/.env.example .env
 # Edit .env with your API keys
 
 # Start with Docker Compose
-cd docker && docker-compose up -d
+cd devops/docker && docker-compose up -d
 
 # Check logs
 docker-compose logs -f
@@ -444,7 +444,7 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t alfred -f docker/Dockerfile .
+docker build -t alfred -f devops/docker/Dockerfile .
 
 # Run container
 docker run -d \
@@ -472,13 +472,13 @@ python -m venv .venv
 source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1 on Windows
 
 # Install all dependencies (including dev tools)
-pip install -r requirements-dev.txt
+pip install -r requirements/requirements-dev.txt
 
 # Setup pre-commit hooks
 pre-commit install
 
 # Run tests to verify setup
-pytest tests/ -v
+pytest backend/tests/ -v
 
 # Start development server
 uvicorn app.main:app --reload
@@ -488,16 +488,16 @@ uvicorn app.main:app --reload
 
 ```bash
 # Run all tests
-pytest tests/ -v
+pytest backend/tests/ -v
 
 # Run with coverage
-pytest tests/ -v --cov=app --cov-report=html
+pytest backend/tests/ -v --cov=backend/app --cov-report=html
 
 # Run specific test file
-pytest tests/test_quota.py -v
+pytest backend/tests/test_quota.py -v
 
 # Run tests matching pattern
-pytest tests/ -v -k "test_vacation"
+pytest backend/tests/ -v -k "test_vacation"
 ```
 
 ### Code Quality Tools
@@ -511,10 +511,10 @@ isort app/ tests/
 ruff app/ tests/
 
 # Type check
-mypy app/
+mypy backend/app/
 
 # Run all checks
-black . && isort . && ruff . && mypy app/
+black . && isort . && ruff . && mypy backend/app/
 ```
 
 ---
@@ -534,7 +534,7 @@ source .venv/bin/activate  # Linux/macOS
 
 Then reinstall dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements/requirements.txt
 ```
 </details>
 
@@ -597,3 +597,4 @@ After installation:
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-org/alfred/issues)
 - 💬 **Questions**: [GitHub Discussions](https://github.com/your-org/alfred/discussions)
 - 👤 **Author**: [Sergey Bar](https://www.linkedin.com/in/sergeybar/)
+

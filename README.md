@@ -26,7 +26,7 @@ Alfred is a FastAPI-based proxy server that manages AI token quotas across an or
 ## ⚡ Quick Install
 
 ```bash
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && cp config/.env.example .env
+git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements/requirements.txt && cp backend/config/.env.example .env
 ```
 
 ## 🚀 Quick Start
@@ -36,7 +36,7 @@ git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv 
 nano .env
 
 # 2. Run migrations
-alembic -c config/alembic.ini upgrade head
+alembic -c backend/config/alembic.ini upgrade head
 
 # 3. Start server
 uvicorn app.main:app --reload
@@ -76,6 +76,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 | [Notifications](docs/NOTIFICATIONS.md) | Slack, Teams, Telegram setup |
 | [Dashboard](docs/DASHBOARD.md) | Admin UI customization |
 | [User Guide](docs/USER_GUIDE.md) | End-user documentation |
+| [Repository Structure](docs/REPO_STRUCTURE.md) | Repo layout and conventions |
 | [FAQ](docs/FAQ.md) | Common questions |
 | [Roadmap](docs/ROADMAP.md) | Product roadmap |
 | [Contributing](docs/CONTRIBUTING.md) | Contribution guidelines |
@@ -109,13 +110,13 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ## 🐳 Docker
 
 ```bash
-cd docker && docker-compose up -d
+cd devops/docker && docker-compose up -d
 ```
 
 ## 🧪 Testing
 
 ```bash
-pytest tests/ -v --cov=app
+pytest backend/tests/ -v --cov=backend/app
 ```
 
 ## 📄 License
@@ -134,4 +135,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Found a bug? Have a feature request? [Open an issue!](https://github.com/your-org/alfred/issues)*
+*Found a bug? Have a feature request? [Open an issue!](https://github.com/AlfredDev/alfred/issues)*
+

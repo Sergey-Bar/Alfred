@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useCallback } from 'react';
 import {
     CheckCircleIcon,
-    XCircleIcon,
     ExclamationTriangleIcon,
     InformationCircleIcon,
+    XCircleIcon,
     XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { createContext, useCallback, useContext, useState } from 'react';
 
 const ToastContext = createContext(null);
 

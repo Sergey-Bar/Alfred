@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import List, Optional
 import uuid
 
-from fastapi import FastAPI, HTTPException, Header, Depends, Request
+from fastapi import FastAPI, HTTPException, Header, Depends, Request, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -49,6 +49,7 @@ from .integrations import (
     emit_vacation_status_change, emit_token_transfer
 )
 from .dashboard import router as dashboard_router
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Initialize logging
 setup_logging(
@@ -145,6 +146,13 @@ app = FastAPI(
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None
 )
+
+# Prometheus instrumentation
+try:
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    logger.info("Prometheus instrumentation configured at /metrics")
+except Exception:
+    logger.exception("Failed to initialize Prometheus instrumentation")
 
 # Setup exception handlers
 setup_exception_handlers(app)
@@ -290,8 +298,12 @@ class TeamUpdate(BaseModel):
 
 
 class ApprovalRequestCreate(BaseModel):
-    """Create an approval request."""
-    requested_credits: Decimal
+    """Create an approval request.
+
+    Accept either `requested_credits` or `requested_amount` for compatibility with frontend.
+    """
+    requested_credits: Optional[Decimal] = None
+    requested_amount: Optional[Decimal] = None
     reason: str
     priority: Optional[ProjectPriority] = ProjectPriority.HIGH
 
@@ -680,11 +692,19 @@ async def update_user_status(
 
 @app.put("/v1/users/me/privacy")
 async def update_privacy_preference(
-    strict_privacy: bool,
+    mode: Optional[str] = Query(None, alias='mode'),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    """Update user's default privacy preference."""
+    """Update user's default privacy preference.
+
+    Accepts query param `mode` (e.g., 'strict' or 'normal') as used by the frontend.
+    """
+    if mode is None:
+        raise HTTPException(status_code=400, detail="mode query parameter is required")
+
+    strict_privacy = True if str(mode).lower() in ('strict', 'true', '1') else False
+
     user.strict_privacy_default = strict_privacy
     user.updated_at = datetime.utcnow()
     session.add(user)
@@ -698,10 +718,15 @@ async def update_privacy_preference(
 # -------------------------------------------------------------------
 
 class TokenTransferRequest(BaseModel):
-    """Request body for credit reallocation."""
-    recipient_email: str
+    """Request body for credit reallocation.
+
+    Supports either `recipient_email` or `to_user_id` (frontend uses `to_user_id`).
+    """
+    recipient_email: Optional[str] = None
+    to_user_id: Optional[str] = None
     amount: float
     message: Optional[str] = None
+    reason: Optional[str] = None
 
 
 class TokenTransferResponse(BaseModel):
@@ -739,10 +764,18 @@ async def transfer_tokens(
             detail=f"Insufficient quota. You have {float(user.available_quota):.2f} credits available"
         )
     
-    # Find recipient by email
-    recipient = session.exec(
-        select(User).where(User.email == transfer.recipient_email)
-    ).first()
+    # Find recipient by id (to_user_id) or email
+    recipient = None
+    if transfer.to_user_id:
+        try:
+            recipient = session.get(User, uuid.UUID(transfer.to_user_id))
+        except Exception:
+            recipient = None
+
+    if not recipient and transfer.recipient_email:
+        recipient = session.exec(
+            select(User).where(User.email == transfer.recipient_email)
+        ).first()
     
     if not recipient:
         raise HTTPException(status_code=404, detail="Recipient not found")
@@ -766,7 +799,7 @@ async def transfer_tokens(
         sender_id=user.id,
         recipient_id=recipient.id,
         amount=transfer_amount,
-        message=transfer.message,
+        message=transfer.message or transfer.reason,
         status="completed"
     )
     
@@ -787,7 +820,7 @@ async def transfer_tokens(
         recipient_name=recipient.name,
         recipient_email=recipient.email,
         amount=float(transfer_amount),
-        message=transfer.message,
+        message=transfer.message or transfer.reason,
         sender_remaining=float(user.available_quota),
         recipient_new_total=float(recipient.personal_quota)
     ))
@@ -797,7 +830,7 @@ async def transfer_tokens(
         sender_name=user.name,
         recipient_name=recipient.name,
         amount=float(transfer_amount),
-        message=transfer.message,
+        message=transfer.message or transfer.reason,
         sender_remaining_quota=float(user.available_quota),
         recipient_new_quota=float(recipient.personal_quota),
         timestamp=token_transfer.created_at.isoformat()
@@ -1083,9 +1116,14 @@ async def create_approval_request(
     """Create a quota approval request."""
     manager = ApprovalManager(session)
     
+    # Support `requested_credits` or `requested_amount` from frontend
+    requested = request_data.requested_credits or request_data.requested_amount
+    if requested is None:
+        raise HTTPException(status_code=400, detail="requested_credits or requested_amount is required")
+
     approval = manager.create_request(
         user=user,
-        requested_credits=request_data.requested_credits,
+        requested_credits=requested,
         reason=request_data.reason,
         priority=request_data.priority
     )
@@ -1148,6 +1186,7 @@ async def get_pending_approvals(
 async def approve_request(
     approval_id: str,
     approved_credits: Optional[Decimal] = None,
+    approved_amount: Optional[Decimal] = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
@@ -1155,10 +1194,12 @@ async def approve_request(
     manager = ApprovalManager(session)
     
     try:
+        # Allow query param `approved_amount` from frontend as alias
+        actual_approved = approved_amount or approved_credits
         approval = manager.approve(
             approval_id=approval_id,
             approver_id=str(user.id),
-            approved_credits=approved_credits
+            approved_credits=actual_approved
         )
         
         # Send notification to the requester
@@ -1183,7 +1224,7 @@ async def approve_request(
 @app.post("/v1/approvals/{approval_id}/reject")
 async def reject_request(
     approval_id: str,
-    reason: str,
+    reason: Optional[str] = Body(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
@@ -1201,7 +1242,7 @@ async def reject_request(
         manager.reject(
             approval_id=approval_id,
             rejector_id=str(user.id),
-            reason=reason
+            reason=reason or ''
         )
         
         # Send notification to the requester

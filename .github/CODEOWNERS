@@ -1,0 +1,14 @@
+# CODEOWNERS - map areas of the repo to responsible teams
+# Use GitHub usernames or team slugs
+
+# Default owners for the entire repo
+* @AlfredDev/maintainers
+
+# Area specific owners
+/docs/ @AlfredDev/docs-team
+/frontend/ @AlfredDev/frontend-team
+/backend/app/ @AlfredDev/backend-team
+/devops/k8s/ @AlfredDev/platform-team
+/devops/docker/ @AlfredDev/platform-team
+/devops/scripts/ @AlfredDev/devops-team
+/backend/tests/ @AlfredDev/qa-team

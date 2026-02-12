@@ -4,7 +4,14 @@ const API_BASE = '/v1';
 
 class ApiService {
     constructor() {
-        this.apiKey = localStorage.getItem('admin_api_key') || '';
+        // Safely access localStorage (may be undefined in some test environments)
+        try {
+            this.apiKey = (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function')
+                ? localStorage.getItem('admin_api_key') || ''
+                : '';
+        } catch (e) {
+            this.apiKey = '';
+        }
     }
 
     setApiKey(key) {

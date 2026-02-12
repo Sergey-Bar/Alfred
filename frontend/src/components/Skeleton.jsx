@@ -3,6 +3,8 @@
  * Use for loading states in cards, lists, and data displays
  */
 
+
+
 export function Skeleton({ className = '', variant = 'text', width, height }) {
     const baseClasses = 'animate-pulse bg-gray-200 dark:bg-gray-700 rounded';
 

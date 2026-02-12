@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alfred-ingress
+  namespace: alfred
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: staging.alfred.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alfred-api
+                port:
+                  number: 8000

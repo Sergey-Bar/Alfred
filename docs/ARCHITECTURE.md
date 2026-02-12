@@ -313,8 +313,9 @@ alfred/
 ├── docs/                   # Documentation
 ├── frontend/               # React admin dashboard
 ├── tests/                  # Test suite
-├── requirements.txt        # Production dependencies
-└── requirements-dev.txt    # Development dependencies
+├── requirements/           # Requirements folder
+│   ├── requirements.txt        # Production dependencies
+│   └── requirements-dev.txt    # Development dependencies
 ```
 
 ---

@@ -31,9 +31,9 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY backend/requirements/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r ./requirements.txt
 
 
 # ===== Production Stage =====
@@ -55,12 +55,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN useradd --create-home --shell /bin/bash appuser
 
 # Copy application code
-COPY --chown=appuser:appuser app app/
-COPY --chown=appuser:appuser alembic alembic/
-COPY --chown=appuser:appuser config config/
+COPY --chown=appuser:appuser backend/app app/
+COPY --chown=appuser:appuser backend/alembic alembic/
+COPY --chown=appuser:appuser backend/config config/
 
-# Copy built frontend
-COPY --from=frontend-builder --chown=appuser:appuser /frontend/../static static/
+# Copy built frontend (from frontend build stage)
+COPY --from=frontend-builder --chown=appuser:appuser /frontend/dist static/
 
 USER appuser
 
@@ -72,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run database migrations and start server
-CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000"]
+CMD ["sh", "-c", "alembic -c config/alembic.ini upgrade head && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000"]

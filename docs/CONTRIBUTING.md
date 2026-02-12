@@ -54,13 +54,13 @@ source .venv/bin/activate        # Linux/macOS
 .\.venv\Scripts\Activate.ps1     # Windows PowerShell
 
 # Install dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements/requirements-dev.txt
 
 # Copy environment config
-cp config/.env.example .env
+cp backend/config/.env.example .env
 
 # Run migrations
-alembic -c config/alembic.ini upgrade head
+alembic -c backend/config/alembic.ini upgrade head
 
 # Start development server
 uvicorn app.main:app --reload
@@ -115,12 +115,12 @@ isort app/ tests/
 **Lint code:**
 ```bash
 ruff app/ tests/
-mypy app/
+mypy backend/app/
 ```
 
 **Run all checks:**
 ```bash
-black . && isort . && ruff . && mypy app/
+black . && isort . && ruff . && mypy backend/app/
 ```
 
 ### JavaScript/TypeScript
@@ -154,19 +154,19 @@ pre-commit install
 
 ```bash
 # All tests
-pytest tests/ -v
+pytest backend/tests/ -v
 
 # With coverage
-pytest tests/ -v --cov=app --cov-report=html
+pytest backend/tests/ -v --cov=backend/app --cov-report=html
 
 # Specific test file
-pytest tests/test_quota.py -v
+pytest backend/tests/test_quota.py -v
 
 # Tests matching pattern
-pytest tests/ -v -k "test_vacation"
+pytest backend/tests/ -v -k "test_vacation"
 
 # Run in parallel
-pytest tests/ -v -n auto
+pytest backend/tests/ -v -n auto
 ```
 
 ### Test Structure
@@ -279,9 +279,9 @@ git push origin feature/amazing-feature
 
 ### PR Checklist
 
-- [ ] Tests pass locally (`pytest tests/ -v`)
+- [ ] Tests pass locally (`pytest backend/tests/ -v`)
 - [ ] Code is formatted (`black . && isort .`)
-- [ ] No lint errors (`ruff . && mypy app/`)
+- [ ] No lint errors (`ruff . && mypy backend/app/`)
 - [ ] Documentation updated (if needed)
 - [ ] Commit messages are clear
 
@@ -349,3 +349,4 @@ alfred/
 ---
 
 *Thank you for contributing to Alfred!*
+

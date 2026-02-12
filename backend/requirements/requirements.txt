@@ -27,3 +27,4 @@ httpx>=0.25.0,<1.0.0
 
 # Observability
 structlog>=23.0.0,<25.0.0      # Structured logging (optional enhancement)
+prometheus-fastapi-instrumentator>=6.0.0,<7.0.0

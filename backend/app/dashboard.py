@@ -517,7 +517,8 @@ async def get_approval_stats(
 async def get_transfer_stats(
     current_user: User = Depends(get_current_dashboard_user),
     session: Session = Depends(get_db_session),
-    days: int = Query(default=30, le=90)
+    days: int = Query(default=30, le=90),
+    limit: int = Query(default=50, le=200)
 ):
     """Get credit reallocation statistics."""
     cutoff = datetime.utcnow() - timedelta(days=days)
@@ -532,7 +533,7 @@ async def get_transfer_stats(
     
     # Format transfers
     transfer_list = []
-    for t in transfers[:20]:  # Last 20 transfers
+    for t in transfers[:limit]:
         sender = session.get(User, t.sender_id)
         recipient = session.get(User, t.recipient_id)
         transfer_list.append({

@@ -38,11 +38,11 @@ git clone https://github.com/your-org/alfred.git
 cd alfred
 
 # Configure environment
-cp config/.env.example .env
+cp backend/config/.env.example .env
 # Edit .env with your API keys and settings
 
 # Start with Docker Compose
-cd docker && docker-compose up -d
+cd devops/docker && docker-compose up -d
 
 # Check logs
 docker-compose logs -f
@@ -52,7 +52,7 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t alfred -f docker/Dockerfile .
+docker build -t alfred -f devops/docker/Dockerfile .
 
 # Run container
 docker run -d \
@@ -73,7 +73,7 @@ services:
   alfred:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: devops/docker/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -297,7 +297,7 @@ docker run -d \
 
 ```bash
 # With venv activated
-alembic -c config/alembic.ini upgrade head
+alembic -c backend/config/alembic.ini upgrade head
 ```
 
 ### Backup Strategy
@@ -476,3 +476,4 @@ Configure regional routing via DNS or load balancer.
 ---
 
 *See also: [Architecture](ARCHITECTURE.md) | [Security](SECURITY.md) | [Installation](Install.md)*
+
