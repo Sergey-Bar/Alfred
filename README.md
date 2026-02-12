@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/Logo.png" alt="Alfred Logo" width="200"/>
+  <img src="frontend/sidebar-big.png" alt="Alfred Logo" width="400"/>
 </p>
 
 # Alfred 🦇
