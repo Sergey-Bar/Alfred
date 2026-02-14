@@ -4,9 +4,8 @@ Revision ID: 003
 Revises: 002_add_token_transfers
 Create Date: 2024-01-15
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers
 revision = '003'

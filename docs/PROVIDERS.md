@@ -1,30 +1,5 @@
 # Supported LLM Providers
 
-Alfred supports 100+ LLM providers through LiteLLM integration.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Public APIs](#public-apis)
-- [Enterprise Cloud](#enterprise-cloud)
-- [Self-Hosted](#self-hosted)
-- [Configuration Examples](#configuration-examples)
-- [Pricing Reference](#pricing-reference)
-
----
-
-## Overview
-
-Alfred acts as a proxy gateway, routing requests to any supported LLM provider while maintaining unified quota management. All providers are accessed through the same OpenAI-compatible API.
-
-| Category | Providers | Use Case |
-|----------|-----------|----------|
-| **Public APIs** | OpenAI, Anthropic, Google | General purpose, latest models |
-| **Enterprise Cloud** | Azure, AWS Bedrock, Vertex AI | Data residency, enterprise contracts |
-| **Self-Hosted** | vLLM, TGI, Ollama | Cost control, privacy, customization |
-
----
-
 ## Public APIs
 
 ### OpenAI
@@ -32,9 +7,6 @@ Alfred acts as a proxy gateway, routing requests to any supported LLM provider w
 **Models:**
 - `gpt-4o` - Latest multimodal model
 - `gpt-4o-mini` - Fast, cost-effective
-- `gpt-4-turbo` - Extended context
-- `o1` / `o1-mini` - Reasoning models
-- `gpt-3.5-turbo` - Legacy, low cost
 
 **Configuration:**
 ```env
@@ -45,8 +17,6 @@ OPENAI_API_KEY=sk-...
 
 **Models:**
 - `claude-3-5-sonnet-20241022` - Best overall
-- `claude-3-5-haiku-20241022` - Fast, cheap
-- `claude-3-opus-20240229` - Most capable
 
 **Configuration:**
 ```env

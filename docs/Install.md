@@ -1,140 +1,23 @@
 # Alfred Installation Guide
 
-Complete setup instructions for new team members and contributors.
+## Installation
 
-## ⚡ One-Line Install
-
-**Get up and running in seconds:**
-
-### Linux/macOS
-```bash
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && source .venv/bin/activate && pip install -r dev/backend/requirements/requirements.txt && cp dev/backend/config/.env.example .env && echo "✅ Ready! Run: uvicorn app.main:app --reload"
-```
-
-### Windows (PowerShell)
-```powershell
-git clone https://github.com/your-org/alfred.git; cd alfred; python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r dev/backend/requirements/requirements.txt; Copy-Item dev/backend/config/.env.example .env; Write-Host "✅ Ready! Run: uvicorn app.main:app --reload"
-```
-
-### Windows (CMD)
-```cmd
-git clone https://github.com/your-org/alfred.git && cd alfred && python -m venv .venv && .venv\Scripts\activate.bat && pip install -r dev/backend/requirements/requirements.txt && copy dev/backend/config\.env.example .env && echo Ready! Run: uvicorn app.main:app --reload
-```
-
----
-
-## 📋 Prerequisites
-
-| Requirement | Version | Check Command | Required |
-|------------|---------|---------------|----------|
-| Python | 3.10+ | `python --version` | ✅ Yes |
-| pip | Latest | `pip --version` | ✅ Yes |
-| Git | Any | `git --version` | ✅ Yes |
-| PostgreSQL | 13+ | `psql --version` | ⚪ Optional |
-
-### Install Python 3.10+
-
-<details>
-<summary><b>Ubuntu/Debian</b></summary>
-
-```bash
-sudo apt update
-sudo apt install python3.10 python3.10-venv python3-pip
-```
-</details>
-
-<details>
-<summary><b>macOS (Homebrew)</b></summary>
-
-```bash
-brew install python@3.10
-```
-</details>
-
-<details>
-<summary><b>Windows (winget)</b></summary>
-
-```powershell
-winget install Python.Python.3.10
-```
-</details>
-
-<details>
-<summary><b>Windows (Chocolatey)</b></summary>
-
-```powershell
-choco install python --version=3.10.0
-```
-</details>
-
-### Install PostgreSQL (Optional - for Production)
-
-<details>
-<summary><b>Ubuntu/Debian</b></summary>
-
-```bash
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo -u postgres createuser --interactive
-sudo -u postgres createdb alfred
-```
-</details>
-
-<details>
-<summary><b>macOS</b></summary>
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-createdb alfred
-```
-</details>
-
-<details>
-<summary><b>Windows</b></summary>
-
-```powershell
-winget install PostgreSQL.PostgreSQL
-# Or download from: https://www.postgresql.org/download/windows/
-```
-</details>
-
----
-
-## 🚀 Step-by-Step Installation
-
-### 1. Clone the Repository
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/your-org/alfred.git
 cd alfred
 ```
 
-### 2. Create Virtual Environment
+### Step 2: Set Up Python Environment
 
 ```bash
 python -m venv .venv
-```
-
-### 3. Activate Virtual Environment
-
-| Platform | Command |
-|----------|---------|
-| Linux/macOS | `source .venv/bin/activate` |
-| Windows PowerShell | `.\.venv\Scripts\Activate.ps1` |
-| Windows CMD | `.\.venv\Scripts\activate.bat` |
-
-### 4. Install Dependencies
-
-```bash
-# Production dependencies
+source .venv/bin/activate
 pip install -r dev/backend/requirements/requirements.txt
-
-# Development dependencies (for contributors)
-pip install -r dev/backend/requirements/requirements-dev.txt
 ```
 
-### 5. Configure Environment
+### Step 3: Configure Environment
 
 ```bash
 # Copy example configuration
@@ -145,20 +28,20 @@ cp dev/backend/config/.env.example .env    # Linux/macOS
 # See Configuration section below
 ```
 
-### 6. Run Database Migrations
+### Step 4: Run Database Migrations
 
 ```bash
 alembic -c dev/backend/config/alembic.ini upgrade head
 ```
 
-### 7. Start the Server
+### Step 5: Start the Server
 
 ```bash
 # Development (with auto-reload)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 8. Verify Installation
+### Step 6: Verify Installation
 
 ```bash
 curl http://localhost:8000/health
@@ -167,7 +50,7 @@ curl http://localhost:8000/health
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Minimal Configuration (.env)
 

@@ -7,6 +7,7 @@ This is a minimal, well-documented stub — replace DB connection details with a
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+
 def compute_aggregates(db_url: str = None, days: int = 7):
     """Compute simple daily aggregates for the last `days` days.
 

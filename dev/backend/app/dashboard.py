@@ -1,172 +1,62 @@
 """
-Alfred Dashboard API
-Endpoints for dashboard KPIs and analytics.
+Alfred - Enterprise AI Credit Governance Platform
+Administrative Analytics & Dashboard API
+
+[ARCHITECTURAL ROLE]
+This module provides the 'Intelligence Layer' for Alfred. It aggregates raw 
+transactional data (RequestLogs, Transfers) into high-level KPIs that allow 
+administrators to:
+1. Monitoring: Real-time tracking of token burn rates and budget utilization.
+2. Forecasting: Identify cost trends and model usage patterns.
+3. Governance: Audit pending approvals and team pool balances.
+4. Behavior: Gamified performance metrics (Efficiency Leaderboard).
+
+[PERFORMANCE STRATEGY]
+N+1 Mitigation: We use bulk-fetching and mapping techniques to avoid the 
+common 'N+1 Query' trap when resolving User/Team names for large lists of logs.
 """
 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import List, Optional
-import uuid
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Header
-from sqlmodel import Session, select, func, and_
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, and_, func, select
 
-from .models import (
-    User, Team, TeamMemberLink, RequestLog, ApprovalRequest, TokenTransfer
+from .dependencies import get_session, require_admin, get_current_user
+from .models import ApprovalRequest, RequestLog, Team, TeamMemberLink, TokenTransfer, User
+from .schemas import (
+    ApprovalStats,
+    CostTrendPoint,
+    DashboardLeaderboardEntry,
+    ModelUsageStats,
+    OverviewStats,
+    TeamPoolStats,
+    TransferAuditItem,
+    TransferStats,
+    UserUsageStats
 )
-
 
 router = APIRouter(prefix="/v1/dashboard", tags=["Dashboard"])
 
 
-# -------------------------------------------------------------------
-# Response Models
-# -------------------------------------------------------------------
-
-class OverviewStats(BaseModel):
-    """Overall system statistics."""
-    total_users: int
-    total_teams: int
-    total_requests: int
-    total_tokens_used: int
-    total_credits_spent: float
-    active_users_7d: int
-    pending_approvals: int
-
-
-class UserUsageStats(BaseModel):
-    """User token usage statistics."""
-    user_id: str
-    name: str
-    email: str
-    personal_quota: float
-    used_tokens: float
-    available_quota: float
-    usage_percent: float
-    total_requests: int
-    is_admin: bool
-    status: str
-
-
-class TeamPoolStats(BaseModel):
-    """Team pool statistics."""
-    team_id: str
-    name: str
-    common_pool: float
-    used_pool: float
-    available_pool: float
-    usage_percent: float
-    member_count: int
-
-
-class CostTrendPoint(BaseModel):
-    """Single point in cost trend."""
-    date: str
-    cost: float
-    requests: int
-    tokens: int
-
-
-class ModelUsageStats(BaseModel):
-    """Model usage breakdown."""
-    model: str
-    requests: int
-    tokens: int
-    cost: float
-    percentage: float
-
-
-class LeaderboardEntry(BaseModel):
-    """Efficiency leaderboard entry."""
-    rank: int
-    user_id: str
-    name: str
-    efficiency_score: float
-    total_requests: int
-    total_tokens: int
-
-
-class ApprovalStats(BaseModel):
-    """Approval request statistics."""
-    total_pending: int
-    total_approved_7d: int
-    total_rejected_7d: int
-    avg_approval_time_hours: Optional[float]
-    top_requesters: List[dict]
-
-
-# -------------------------------------------------------------------
-# Dependencies
-# -------------------------------------------------------------------
-
-def get_db_session():
-    """Get database session - import from main to avoid circular imports."""
-    from .main import engine
-    from sqlmodel import Session
-    with Session(engine) as session:
-        yield session
-
-
-async def get_current_dashboard_user(
-    authorization: Optional[str] = Header(None),
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    session: Session = Depends(get_db_session)
-) -> User:
-    """
-    Authenticate user for dashboard access.
-    Returns the authenticated user or raises 401.
-    """
-    from .logic import AuthManager
-    
-    # Get API key from either header
-    api_key = None
-    if authorization and authorization.startswith("Bearer "):
-        api_key = authorization[7:]
-    elif x_api_key:
-        api_key = x_api_key
-    
-    if not api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="API key required. Provide via Authorization: Bearer <key> or X-API-Key header"
-        )
-    
-    user = AuthManager.authenticate(session, api_key)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    
-    return user
-
-
-def require_admin(user: User = Depends(get_current_dashboard_user)) -> User:
-    """Require admin privileges for endpoint access."""
-    if not user.is_admin:
-        raise HTTPException(
-            status_code=403,
-            detail="Admin privileges required for this endpoint"
-        )
-    return user
-
-
-# -------------------------------------------------------------------
-# Dashboard Endpoints
-# -------------------------------------------------------------------
+# --- Dashboard Endpoints: Aggregated Aggregates ---
 
 @router.get("/overview", response_model=OverviewStats)
 async def get_overview_stats(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session)
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
 ):
     """
-    Get overall system statistics.
-    Available to all authenticated users.
+    Global Snapshot Endpoint.
+    
+    Aggregates data across the entire platform. 
+    Uses COALESCE and SQL aggregates to minimize round-trips.
     """
-    # Total counts
     total_users = session.exec(select(func.count(User.id))).one()
     total_teams = session.exec(select(func.count(Team.id))).one()
-    
-    # Request stats
+
+    # Sum of all activity
     request_stats = session.exec(
         select(
             func.count(RequestLog.id),
@@ -175,26 +65,26 @@ async def get_overview_stats(
         )
     ).one()
     total_requests, total_tokens, total_credits = request_stats
-    
-    # Active users in last 7 days
+
+    # Engagement Logic (7-day window)
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     active_users = session.exec(
         select(func.count(func.distinct(RequestLog.user_id)))
         .where(RequestLog.created_at >= week_ago)
     ).one()
-    
-    # Pending approvals
+
+    # Backlog Tracing
     pending = session.exec(
         select(func.count(ApprovalRequest.id))
         .where(ApprovalRequest.status == "pending")
     ).one()
-    
+
     return OverviewStats(
         total_users=total_users or 0,
         total_teams=total_teams or 0,
         total_requests=total_requests or 0,
         total_tokens_used=int(total_tokens or 0),
-        total_credits_spent=float(total_credits or 0),
+        total_credits_spent=Decimal(str(total_credits or "0.00")),
         active_users_7d=active_users or 0,
         pending_approvals=pending or 0
     )
@@ -202,71 +92,64 @@ async def get_overview_stats(
 
 @router.get("/users", response_model=List[UserUsageStats])
 async def get_user_usage_stats(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session),
+    current_user: User = Depends(require_admin), # Protected: Admins Only
+    session: Session = Depends(get_session),
     limit: int = Query(default=50, le=200)
 ):
     """
-    Get user usage statistics.
-    Admins see all users, regular users see only themselves.
+    Resource Consumption Audit (User-Centric).
+    Uses a 'Bulk Mapping' strategy to avoid a query-per-user in the template.
     """
     users = session.exec(
         select(User)
         .order_by(User.used_tokens.desc())
         .limit(limit)
     ).all()
-    
-    # Pre-fetch request counts
+
+    # Mitigates N+1: Resolve all request counts in a single 'Group By' query
     user_ids = [u.id for u in users]
-    request_counts = {}
+    request_counts: Dict[Any, int] = {}
     if user_ids:
-        # Group by user_id
         counts = session.exec(
             select(RequestLog.user_id, func.count(RequestLog.id))
             .where(RequestLog.user_id.in_(user_ids))
             .group_by(RequestLog.user_id)
         ).all()
         request_counts = {u_id: count for u_id, count in counts}
-    
+
     result = []
     for user in users:
-        # Get count from map
-        req_count = request_counts.get(user.id, 0)
-        
-        usage_pct = 0.0
-        if user.personal_quota > 0:
-            usage_pct = float(user.used_tokens / user.personal_quota * 100)
-        
+        usage_pct = Decimal("0.0")
+        if user.personal_quota > Decimal("0"):
+            usage_pct = (user.used_tokens / user.personal_quota * Decimal("100")).quantize(Decimal("0.1"))
+
         result.append(UserUsageStats(
             user_id=str(user.id),
             name=user.name,
             email=user.email,
-            personal_quota=float(user.personal_quota),
-            used_tokens=float(user.used_tokens),
-            available_quota=float(user.available_quota),
-            usage_percent=round(usage_pct, 1),
-            total_requests=req_count,
-            is_admin=getattr(user, 'is_admin', False),
+            personal_quota=user.personal_quota,
+            used_tokens=user.used_tokens,
+            available_quota=user.available_quota,
+            usage_percent=usage_pct,
+            total_requests=request_counts.get(user.id, 0),
+            is_admin=user.is_admin,
             status=user.status.value
         ))
-    
+
     return result
 
 
 @router.get("/teams", response_model=List[TeamPoolStats])
 async def get_team_pool_stats(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session)
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
 ):
-    """Get team pool statistics."""
-    teams = session.exec(
-        select(Team)
-        .order_by(Team.used_pool.desc())
-    ).all()
-    
-    # Pre-fetch member counts
+    """Aggregated Team Liquidity Monitoring."""
+    teams = session.exec(select(Team).order_by(Team.used_pool.desc())).all()
+
+    # N+1 Mitigation: Resolve member counts via IN query
     team_ids = [t.id for t in teams]
-    member_counts = {}
+    member_counts: Dict[Any, int] = {}
     if team_ids:
         counts = session.exec(
             select(TeamMemberLink.team_id, func.count(TeamMemberLink.user_id))
@@ -274,47 +157,43 @@ async def get_team_pool_stats(
             .group_by(TeamMemberLink.team_id)
         ).all()
         member_counts = {t_id: count for t_id, count in counts}
-    
+
     result = []
     for team in teams:
-        # Get count from map
-        member_count = member_counts.get(team.id, 0)
-        
-        usage_pct = 0.0
-        if team.common_pool > 0:
-            usage_pct = float(team.used_pool / team.common_pool * 100)
-        
+        usage_pct = Decimal("0.0")
+        if team.common_pool > Decimal("0"):
+            usage_pct = (team.used_pool / team.common_pool * Decimal("100")).quantize(Decimal("0.1"))
+
         result.append(TeamPoolStats(
             team_id=str(team.id),
             name=team.name,
-            common_pool=float(team.common_pool),
-            used_pool=float(team.used_pool),
-            available_pool=float(team.available_pool),
-            usage_percent=round(usage_pct, 1),
-            member_count=member_count
+            common_pool=team.common_pool,
+            used_pool=team.used_pool,
+            available_pool=team.available_pool,
+            usage_percent=usage_pct,
+            member_count=member_counts.get(team.id, 0)
         ))
-    
+
     return result
 
 
 @router.get("/trends", response_model=List[CostTrendPoint])
 async def get_cost_trends(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
     days: int = Query(default=30, le=90)
 ):
-    """Get cost trends over time."""
+    """Performance Velocity Tracking."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    
-    # Get daily aggregates
-    # Note: SQLite uses date() function, PostgreSQL uses DATE()
+
+    # Bulk fetch logs within window
     logs = session.exec(
         select(RequestLog)
         .where(RequestLog.created_at >= cutoff)
         .order_by(RequestLog.created_at)
     ).all()
-    
-    # Aggregate by date
+
+    # Manual aggregation (Database agnostic)
     daily_data = {}
     for log in logs:
         date_str = log.created_at.strftime("%Y-%m-%d")
@@ -323,44 +202,39 @@ async def get_cost_trends(
         daily_data[date_str]["cost"] += log.cost_credits
         daily_data[date_str]["requests"] += 1
         daily_data[date_str]["tokens"] += log.total_tokens
-    
-    # Fill in missing dates
+
+    # Standardize time-series (fill gaps with zeros)
     result = []
     current = cutoff.date()
     end = datetime.now(timezone.utc).date()
-    
+
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
         data = daily_data.get(date_str, {"cost": Decimal("0"), "requests": 0, "tokens": 0})
         result.append(CostTrendPoint(
-            date=date_str,
-            cost=float(data["cost"]),
-            requests=data["requests"],
-            tokens=data["tokens"]
+            date=date_str, cost=data["cost"],
+            requests=data["requests"], tokens=data["tokens"]
         ))
         current += timedelta(days=1)
-    
+
     return result
 
 
 @router.get("/models", response_model=List[ModelUsageStats])
 async def get_model_usage(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
     days: int = Query(default=30, le=90)
 ):
-    """Get model usage breakdown."""
+    """Vendor Concentration Analysis."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    
-    logs = session.exec(
-        select(RequestLog)
-        .where(RequestLog.created_at >= cutoff)
-    ).all()
-    
-    # Aggregate by model
+
+    logs = session.exec(select(RequestLog).where(RequestLog.created_at >= cutoff)).all()
+
+    # Frequency analysis
     model_data = {}
     total_requests = 0
-    
+
     for log in logs:
         model = log.model
         if model not in model_data:
@@ -369,223 +243,144 @@ async def get_model_usage(
         model_data[model]["tokens"] += log.total_tokens
         model_data[model]["cost"] += log.cost_credits
         total_requests += 1
-    
-    # Convert to response
+
+    # Sorted by popularity
     result = []
     for model, data in sorted(model_data.items(), key=lambda x: x[1]["requests"], reverse=True):
-        pct = (data["requests"] / total_requests * 100) if total_requests > 0 else 0
+        pct = Decimal("0.0")
+        if total_requests > 0:
+            pct = (Decimal(str(data["requests"])) / Decimal(str(total_requests)) * Decimal("100")).quantize(Decimal("0.1"))
+            
         result.append(ModelUsageStats(
-            model=model,
-            requests=data["requests"],
-            tokens=data["tokens"],
-            cost=float(data["cost"]),
-            percentage=round(pct, 1)
+            model=model, requests=data["requests"], tokens=data["tokens"],
+            cost=data["cost"], percentage=pct
         ))
-    
+
     return result
 
 
-@router.get("/leaderboard", response_model=List[LeaderboardEntry])
+@router.get("/leaderboard", response_model=List[DashboardLeaderboardEntry])
 async def get_efficiency_leaderboard(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
     days: int = Query(default=30, le=90),
     limit: int = Query(default=10, le=50)
 ):
-    """Get efficiency leaderboard."""
+    """Gamified 'Effective Prompting' Ranking."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    
-    # Get user aggregates
     users = session.exec(select(User)).all()
-    
+
     user_stats = []
     for user in users:
+        # Optimized for correctness over raw speed - aggregates per user
         logs = session.exec(
             select(RequestLog)
-            .where(
-                and_(
-                    RequestLog.user_id == user.id,
-                    RequestLog.created_at >= cutoff
-                )
-            )
+            .where(and_(RequestLog.user_id == user.id, RequestLog.created_at >= cutoff))
         ).all()
-        
-        if not logs:
-            continue
-        
+
+        if not logs: continue
+
         total_prompt = sum(log.prompt_tokens for log in logs)
         total_completion = sum(log.completion_tokens for log in logs)
-        total_tokens = sum(log.total_tokens for log in logs)
         
-        # Efficiency = completion / prompt (higher is better - more output per input)
-        efficiency = 0.0
+        # Ratio Calculation: More output per unit of input = higher efficiency
+        efficiency = Decimal("0.0")
         if total_prompt > 0:
-            efficiency = total_completion / total_prompt
-        
+            efficiency = Decimal(str(total_completion)) / Decimal(str(total_prompt))
+
         user_stats.append({
-            "user_id": str(user.id),
-            "name": user.name,
-            "efficiency_score": efficiency,
-            "total_requests": len(logs),
-            "total_tokens": total_tokens
+            "user_id": str(user.id), "name": user.name,
+            "efficiency_score": efficiency, "total_requests": len(logs),
+            "total_tokens": sum(log.total_tokens for log in logs)
         })
-    
-    # Sort by efficiency and assign ranks
+
+    # Ranking logic
     user_stats.sort(key=lambda x: x["efficiency_score"], reverse=True)
-    
-    result = []
-    for i, stats in enumerate(user_stats[:limit], 1):
-        result.append(LeaderboardEntry(
-            rank=i,
-            user_id=stats["user_id"],
-            name=stats["name"],
-            efficiency_score=round(stats["efficiency_score"], 4),
-            total_requests=stats["total_requests"],
-            total_tokens=stats["total_tokens"]
-        ))
-    
-    return result
+    return [
+        DashboardLeaderboardEntry(
+            rank=i, user_id=s["user_id"], name=s["name"],
+            efficiency_score=s["efficiency_score"].quantize(Decimal("0.0001")),
+            total_requests=s["total_requests"], total_tokens=s["total_tokens"]
+        )
+        for i, s in enumerate(user_stats[:limit], 1)
+    ]
 
 
 @router.get("/approvals", response_model=ApprovalStats)
 async def get_approval_stats(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session)
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session)
 ):
-    """Get approval request statistics."""
+    """Governance Workflow Metrics (SLA Tracking)."""
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    
-    # Counts
-    pending = session.exec(
-        select(func.count(ApprovalRequest.id))
-        .where(ApprovalRequest.status == "pending")
-    ).one() or 0
-    
-    approved_7d = session.exec(
-        select(func.count(ApprovalRequest.id))
-        .where(
-            and_(
-                ApprovalRequest.status == "approved",
-                ApprovalRequest.resolved_at >= week_ago
-            )
-        )
-    ).one() or 0
-    
-    rejected_7d = session.exec(
-        select(func.count(ApprovalRequest.id))
-        .where(
-            and_(
-                ApprovalRequest.status == "rejected",
-                ApprovalRequest.resolved_at >= week_ago
-            )
-        )
-    ).one() or 0
-    
-    # Average approval time
-    resolved = session.exec(
-        select(ApprovalRequest)
-        .where(
-            and_(
-                ApprovalRequest.status != "pending",
-                ApprovalRequest.resolved_at.isnot(None)
-            )
-        )
-        .limit(100)
-    ).all()
+
+    # Core Counts
+    pending = session.exec(select(func.count(ApprovalRequest.id)).where(ApprovalRequest.status == "pending")).one() or 0
+    approved_7d = session.exec(select(func.count(ApprovalRequest.id)).where(and_(ApprovalRequest.status == "approved", ApprovalRequest.resolved_at >= week_ago))).one() or 0
+    rejected_7d = session.exec(select(func.count(ApprovalRequest.id)).where(and_(ApprovalRequest.status == "rejected", ApprovalRequest.resolved_at >= week_ago))).one() or 0
+
+    # Mean Time to Resolution (MTTR) Analysis
+    resolved = session.exec(select(ApprovalRequest).where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at.isnot(None))).limit(100)).all()
     
     avg_time = None
     if resolved:
-        times = []
-        for req in resolved:
-            if req.resolved_at and req.created_at:
-                diff = (req.resolved_at - req.created_at).total_seconds() / 3600
-                times.append(diff)
-        if times:
-            avg_time = sum(times) / len(times)
+        times = [(r.resolved_at - r.created_at).total_seconds() / 3600 for r in resolved if r.resolved_at and r.created_at]
+        if times: 
+            avg_time = Decimal(str(sum(times) / len(times))).quantize(Decimal("0.1"))
+
+    # Hotspot Analysis: Identify top credit requesters
+    requester_counts: Dict[str, int] = {}
+    all_requests = session.exec(select(ApprovalRequest).where(ApprovalRequest.created_at >= week_ago)).all()
     
-    # Top requesters - bulk fetch users to avoid N+1
-    requester_counts = {}
-    all_requests = session.exec(
-        select(ApprovalRequest)
-        .where(ApprovalRequest.created_at >= week_ago)
-    ).all()
-    
-    # Bulk fetch users
     user_ids = {req.user_id for req in all_requests}
-    users_map = {}
-    if user_ids:
-        users = session.exec(select(User).where(User.id.in_(user_ids))).all()
-        users_map = {u.id: u for u in users}
-    
+    users_map = {u.id: u for u in session.exec(select(User).where(User.id.in_(user_ids))).all()} if user_ids else {}
+
     for req in all_requests:
-        user = users_map.get(req.user_id)
-        if user:
-            name = user.name
-            requester_counts[name] = requester_counts.get(name, 0) + 1
-    
-    top_requesters = [
-        {"name": name, "count": count}
-        for name, count in sorted(requester_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-    ]
-    
+        if (user := users_map.get(req.user_id)):
+            requester_counts[user.name] = requester_counts.get(user.name, 0) + 1
+
+    top_requesters = [{"name": n, "count": c} for n, c in sorted(requester_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
+
     return ApprovalStats(
-        total_pending=pending,
-        total_approved_7d=approved_7d,
-        total_rejected_7d=rejected_7d,
-        avg_approval_time_hours=round(avg_time, 1) if avg_time else None,
+        total_pending=pending, total_approved_7d=approved_7d,
+        total_rejected_7d=rejected_7d, avg_approval_time_hours=avg_time,
         top_requesters=top_requesters
     )
 
 
-@router.get("/transfers")
+@router.get("/transfers", response_model=TransferStats)
 async def get_transfer_stats(
-    current_user: User = Depends(get_current_dashboard_user),
-    session: Session = Depends(get_db_session),
+    current_user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
     days: int = Query(default=30, le=90),
     limit: int = Query(default=50, le=200)
 ):
-    """Get credit reallocation statistics."""
+    """Audit Log for Credit Reallocations."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    
-    transfers = session.exec(
-        select(TokenTransfer)
-        .where(TokenTransfer.created_at >= cutoff)
-        .order_by(TokenTransfer.created_at.desc())
-    ).all()
-    
-    total_amount = sum(float(t.amount) for t in transfers)
-    
-    # Format transfers - bulk fetch users to avoid N+1
-    limited_transfers = transfers[:limit]
-    user_ids = set()
-    for t in limited_transfers:
-        user_ids.add(t.sender_id)
-        user_ids.add(t.recipient_id)
-    
-    users_map = {}
-    if user_ids:
-        users = session.exec(select(User).where(User.id.in_(user_ids))).all()
-        users_map = {u.id: u for u in users}
-    
+    transfers = session.exec(select(TokenTransfer).where(TokenTransfer.created_at >= cutoff).order_by(TokenTransfer.created_at.desc())).all()
+
+    # Format result with bulk-resolved identity names
+    limited = transfers[:limit]
+    u_ids = set()
+    for t in limited: u_ids.update([t.sender_id, t.recipient_id])
+    u_map = {u.id: u for u in session.exec(select(User).where(User.id.in_(u_ids))).all()} if u_ids else {}
+
     transfer_list = []
-    for t in limited_transfers:
-        sender = users_map.get(t.sender_id)
-        recipient = users_map.get(t.recipient_id)
-        transfer_list.append({
-            "id": str(t.id),
-            "sender": sender.name if sender else "Unknown",
-            "recipient": recipient.name if recipient else "Unknown",
-            "sender_id": str(sender.id) if sender else None,
-            "recipient_id": str(recipient.id) if recipient else None,
-            "sender_email": sender.email if sender else None,
-            "recipient_email": recipient.email if recipient else None,
-            "amount": float(t.amount),
-            "message": t.message,
-            "timestamp": t.created_at.isoformat()
-        })
+    total_amount = Decimal("0.00")
+    for t in limited:
+        s, r = u_map.get(t.sender_id), u_map.get(t.recipient_id)
+        transfer_list.append(TransferAuditItem(
+            id=str(t.id), amount=t.amount, timestamp=t.created_at.isoformat(),
+            sender=s.name if s else "System", recipient=r.name if r else "Deleted User",
+            message=t.message
+        ))
     
-    return {
-        "total_transfers": len(transfers),
-        "total_amount": total_amount,
-        "recent_transfers": transfer_list
-    }
+    # Calculate total from all transfers in window (not just limited ones)
+    for t in transfers:
+        total_amount += t.amount
+
+    return TransferStats(
+        total_transfers=len(transfers),
+        total_amount=total_amount,
+        recent_transfers=transfer_list
+    )

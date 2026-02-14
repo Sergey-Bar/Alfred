@@ -1,28 +1,6 @@
 # Alfred API Reference
 
-Complete API documentation for Alfred AI Credit Governance Platform.
-
-## Table of Contents
-
-- [Authentication](#authentication)
-- [Chat Completions](#chat-completions)
-- [User Management](#user-management)
-- [Team Management](#team-management)
-- [Credit Reallocation](#credit-reallocation)
-- [Approvals](#approvals)
-- [Liquidity Pool](#liquidity-pool)
-- [Analytics](#analytics)
-- [SCIM Provisioning](#scim-20-provisioning)
-- [Admin Operations](#admin-operations)
-- [Webhooks](#webhooks)
-- [Error Handling](#error-handling)
-- [Rate Limits](#rate-limits)
-
----
-
 ## Authentication
-
-All API requests require authentication via API key or JWT token.
 
 ### API Key Authentication
 
@@ -40,8 +18,6 @@ curl -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
      http://localhost:8000/v1/users/me
 ```
 
----
-
 ## Chat Completions
 
 ### POST /v1/chat/completions
@@ -52,16 +28,19 @@ OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 ```json
 {
   "model": "gpt-4o",
-  "messages": [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "Explain quantum computing."}
-  ],
-  "max_tokens": 1000,
   "temperature": 0.7
 }
 ```
 
 **Headers:**
+```json
+{
+  "Authorization": "Bearer token",
+  "X-Privacy-Mode": "strict",
+  "X-Project-ID": "PROJ-2026-AI",
+  "X-Priority": "critical"
+}
+```
 
 | Header | Required | Description |
 |--------|----------|-------------|
@@ -75,32 +54,17 @@ OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 {
   "id": "chatcmpl-abc123",
   "object": "chat.completion",
-  "created": 1707753600,
-  "model": "gpt-4o",
+  "created": 1677657600,
   "choices": [
     {
-      "index": 0,
       "message": {
         "role": "assistant",
-        "content": "Quantum computing is..."
-      },
-      "finish_reason": "stop"
+        "content": "Hello! How can I assist you today?"
+      }
     }
-  ],
-  "usage": {
-    "prompt_tokens": 25,
-    "completion_tokens": 150,
-    "total_tokens": 175
-  },
-  "alfred_usage": {
-    "credits_charged": 0.525,
-    "remaining_balance": 45000,
-    "cost_usd": 0.00525
-  }
+  ]
 }
 ```
-
----
 
 ## User Management
 
@@ -180,8 +144,6 @@ Update user quota (admin only).
 }
 ```
 
----
-
 ## Team Management
 
 ### POST /v1/admin/teams
@@ -203,8 +165,6 @@ Add user to team (admin only).
 ### GET /v1/teams/my-teams
 
 Get teams the current user belongs to.
-
----
 
 ## Credit Reallocation
 
@@ -266,8 +226,6 @@ Get transfer history.
 }
 ```
 
----
-
 ## Approvals
 
 ### POST /v1/approvals
@@ -300,8 +258,6 @@ Reject a request (admin only).
   "reason": "Budget constraints"
 }
 ```
-
----
 
 ## Liquidity Pool
 
@@ -370,8 +326,6 @@ Trigger manual rollover (admin only).
   "new_reserve_balance": 3750000
 }
 ```
-
----
 
 ## Analytics
 
@@ -447,8 +401,6 @@ Get efficiency leaderboard.
 }
 ```
 
----
-
 ## SCIM 2.0 Provisioning
 
 For automated user/team provisioning from identity providers.
@@ -497,8 +449,6 @@ Provision team via SCIM.
 }
 ```
 
----
-
 ## Admin Operations
 
 ### POST /v1/admin/sync/ldap
@@ -521,8 +471,6 @@ Trigger LDAP sync (admin only).
 ### POST /v1/admin/sync/hris
 
 Trigger HR system sync (admin only).
-
----
 
 ## Webhooks
 
@@ -571,8 +519,6 @@ Register a webhook endpoint.
 }
 ```
 
----
-
 ## Error Handling
 
 All errors follow a consistent format:
@@ -604,8 +550,6 @@ All errors follow a consistent format:
 | `UNAUTHORIZED` | 401 | Invalid or missing API key |
 | `FORBIDDEN` | 403 | Insufficient permissions |
 | `NOT_FOUND` | 404 | Resource not found |
-
----
 
 ## Rate Limits
 

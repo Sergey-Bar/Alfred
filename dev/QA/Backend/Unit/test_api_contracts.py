@@ -5,7 +5,6 @@ These tests assert that the API returns the expected field names and basic types
 so frontend and other clients can rely on stable contracts.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 

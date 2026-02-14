@@ -1,0 +1,121 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Projects\Alfred
+configfile: pyproject.toml
+plugins: anyio-4.12.1, base-url-2.1.0, playwright-0.7.2
+collecting ... collected 11 items
+
+dev/QA/Backend/Unit/test_api.py::TestHealthEndpoint::test_health_check PASSED [  9%]
+dev/QA/Backend/Unit/test_api.py::TestRootEndpoint::test_root FAILED      [ 18%]
+dev/QA/Backend/Unit/test_api.py::TestRootEndpoint::test_root_spa_mode SKIPPED [ 27%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_create_user FAILED [ 36%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_create_user_duplicate_email PASSED [ 45%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_get_current_user_no_auth PASSED [ 54%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_get_current_user_invalid_key PASSED [ 63%]
+dev/QA/Backend/Unit/test_api.py::TestChatCompletions::test_chat_completions_no_auth PASSED [ 72%]
+dev/QA/Backend/Unit/test_api.py::TestTeamEndpoints::test_create_team FAILED [ 81%]
+dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard PASSED [ 90%]
+dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard_invalid_period FAILED [100%]
+
+================================== FAILURES ===================================
+_________________________ TestRootEndpoint.test_root __________________________
+dev\QA\Backend\Unit\test_api.py:36: in test_root
+    assert data["name"] == "Alfred"
+           ^^^^^^^^^^^^
+E   KeyError: 'name'
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T12:38:01.999563+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T12:38:02.001795+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T12:38:02.003861+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T12:38:02.005648+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "GET / 200 (0.44ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "6ee3aac9-60d0-49ba-a84f-86db7eae6377", "extra": {"method": "GET", "path": "/", "status_code": 200, "duration_ms": 0.44}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 GET / 200 (0.44ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T12:38:02.199460+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+_____________________ TestUserEndpoints.test_create_user ______________________
+dev\QA\Backend\Unit\test_api.py:64: in test_create_user
+    assert "api_key" in data
+E   AssertionError: assert 'api_key' in {'id': '270ec924-a332-4da1-9be9-c117d739dbc7', 'email': 'newuser@example.com', 'name': 'New User', 'status': 'active', 'personal_quota': '5000.00', 'used_tokens': '0.00', 'available_quota': '5000.00', 'default_priority': 'normal', 'preferences': {}}
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T12:38:02.220695+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T12:38:02.221304+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T12:38:02.222878+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T12:38:02.238528+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "POST /v1/admin/users 200 (10.34ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "c29457fc-fe25-4378-a734-1c4bc19a0229", "extra": {"method": "POST", "path": "/v1/admin/users", "status_code": 200, "duration_ms": 10.34}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 POST /v1/admin/users 200 (10.34ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T12:38:02.242558+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+_____________________ TestTeamEndpoints.test_create_team ______________________
+dev\QA\Backend\Unit\test_api.py:136: in test_create_team
+    assert data["common_pool"] == 50000
+E   AssertionError: assert '50000.00' == 50000
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T12:38:02.361048+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T12:38:02.361821+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T12:38:02.363470+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T12:38:02.373075+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "POST /v1/admin/teams 200 (6.10ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "f7652a50-7819-4544-811e-2804f35a3244", "extra": {"method": "POST", "path": "/v1/admin/teams", "status_code": 200, "duration_ms": 6.1}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 POST /v1/admin/teams 200 (6.10ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T12:38:02.376723+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+_____________ TestLeaderboard.test_get_leaderboard_invalid_period _____________
+dev\QA\Backend\Unit\test_api.py:151: in test_get_leaderboard_invalid_period
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T12:38:02.414134+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T12:38:02.414738+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T12:38:02.416296+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T12:38:02.420140+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "GET /v1/leaderboard 200 (2.72ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "7de1f8f9-eaf6-4376-b881-32957c7a7e74", "extra": {"method": "GET", "path": "/v1/leaderboard", "status_code": 200, "duration_ms": 2.72}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 GET /v1/leaderboard 200 (2.72ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T12:38:02.423176+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+============================== warnings summary ===============================
+..\..\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+dev/QA/Backend/Unit/test_api.py: 15 warnings
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED dev/QA/Backend/Unit/test_api.py::TestRootEndpoint::test_root - KeyError: 'name'
+FAILED dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_create_user - AssertionError: assert 'api_key' in {'id': '270ec924-a332-4da1-9be9-c117d739dbc7', 'email': 'newuser@example.com', 'name': 'New User', 'status': 'active', 'personal_quota': '5000.00', 'used_tokens': '0.00', 'available_quota': '5000.00', 'default_priority': 'normal', 'preferences': {}}
+FAILED dev/QA/Backend/Unit/test_api.py::TestTeamEndpoints::test_create_team - AssertionError: assert '50000.00' == 50000
+FAILED dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard_invalid_period - assert 200 == 400
+ +  where 200 = <Response [200 OK]>.status_code
+============= 4 failed, 6 passed, 1 skipped, 16 warnings in 3.01s =============

@@ -1,66 +1,98 @@
-"""Application constants and configuration values"""
+"""
+Alfred - Enterprise AI Credit Governance Platform
+System Constants & Operational Thresholds
+
+[ARCHITECTURAL ROLE]
+Centralizes hard-coded values and business logic boundaries. Using a centralized
+constants module prevents 'Magic Number' anti-patterns and ensures consistency 
+across the logic, middleware, and API layers.
+
+[DESIGN PRINCIPLE]
+Constants are grouped by functional domain (Quota, API, Finance) to improve 
+discoverability and maintainability.
+"""
 
 from decimal import Decimal
 from enum import Enum
 
 
 class QuotaLimits(Enum):
-    """Quota-related limits and thresholds"""
+    """
+    Business Logic Safeguards.
     
-    # Transfer limits
+    Defines the financial boundaries of the platform. These values drive the
+    automated decision-making in the QuotaManager.
+    """
+
+    # Liquidity Transfer Constraints
     MAX_TRANSFER_AMOUNT = Decimal("100000.00")
     MIN_TRANSFER_AMOUNT = Decimal("1.00")
-    
-    # MFA thresholds
+
+    # Risk-Based Authentication Thresholds
+    # Transfers above this amount trigger multi-factor verification.
     MFA_REQUIRED_THRESHOLD = Decimal("10000.00")
-    
-    # Approval thresholds
+
+    # Governance Escalation
+    # Automated allocation stops at this point; human review is mandatory.
     APPROVAL_REQUIRED_THRESHOLD = Decimal("5000.00")
-    
-    # Vacation mode
+
+    # Elastic Pool Parameters
     MAX_VACATION_SHARE_PERCENTAGE = Decimal("25.00")
     DEFAULT_VACATION_SHARE_PERCENTAGE = Decimal("10.00")
 
 
 class APILimits:
-    """API request limits"""
+    """
+    Inbound Traffic & Performance Constraints.
     
-    # Rate limiting
+    Ensures the reliability of the Gateway by preventing resource exhaustion
+    and malformed payload processing.
+    """
+
+    # Traffic Engineering Defaults
     DEFAULT_RATE_LIMIT_REQUESTS = 100
     DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60
-    
-    # Pagination
+
+    # UI & API Pagination
     MAX_PAGE_SIZE = 100
     DEFAULT_PAGE_SIZE = 50
-    
-    # Message limits
+
+    # Payload Density Limits
     MAX_MESSAGE_LENGTH = 50000
     MAX_MESSAGES_PER_REQUEST = 100
-    
-    # Request timeouts (seconds)
+
+    # Lifecycle Timeouts (Seconds)
+    # Prevents 'Hanging Requests' from tying up worker threads.
     LLM_REQUEST_TIMEOUT = 30
     DATABASE_QUERY_TIMEOUT = 10
 
 
 class CreditConversion:
-    """Credit calculation constants"""
+    """
+    Financial Quantization Parameters.
     
-    # 1 USD = 100 Org-Credits
+    Defines the relationship between external vendor cost (USD)
+    and internal organizational value (Org-Credits).
+    """
+
+    # The Exchange Rate: 1 USD = 100 Internal Credits
     USD_TO_CREDITS = Decimal("100.00")
-    
-    # Minimum billable amount
+
+    # The 'Micro-Billing' floor
     MIN_BILLABLE_AMOUNT = Decimal("0.01")
 
 
-# API Key configuration
+# --- Canonical System Strings ---
+
+# Cryptographic Token Formatting
 API_KEY_PREFIX = "tp-"
 API_KEY_LENGTH = 32
 
-# Privacy modes
+# Observability Modes
 PRIVACY_MODE_NORMAL = "normal"
 PRIVACY_MODE_STRICT = "strict"
 
-# User statuses
+# Actor Lifecycle States
 USER_STATUS_ACTIVE = "active"
 USER_STATUS_VACATION = "on_vacation"
 USER_STATUS_SUSPENDED = "suspended"

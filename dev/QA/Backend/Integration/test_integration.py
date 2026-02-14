@@ -2,16 +2,14 @@
 Integration tests for the complete request flow.
 """
 
-import pytest
-from decimal import Decimal
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
 
 class TestChatCompletionFlow:
     """Integration tests for chat completion endpoint."""
-    
+
     def test_complete_request_flow_with_quota(self, test_client: TestClient, admin_api_key):
         """Test a complete request flow with quota checking."""
         # Create a user first
@@ -25,7 +23,7 @@ class TestChatCompletionFlow:
         , headers=admin_api_key)
         assert response.status_code == 200
         api_key = response.json()["api_key"]
-        
+
         # Make a chat completion request (mocked LLM response)
         with patch("app.logic.LLMProxy.forward_request", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = {
@@ -44,7 +42,7 @@ class TestChatCompletionFlow:
                     "total_tokens": 15
                 }
             }
-            
+
             response = test_client.post(
                 "/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
@@ -53,13 +51,13 @@ class TestChatCompletionFlow:
                     "messages": [{"role": "user", "content": "Hello"}]
                 }
             )
-            
+
             # Should succeed
             assert response.status_code == 200
             data = response.json()
             assert "choices" in data
             assert data["choices"][0]["message"]["content"] == "Hello!"
-    
+
     def test_quota_exceeded_returns_403(self, test_client: TestClient, admin_api_key):
         """Test that exceeding quota returns 403 with approval info."""
         # Create user with very low quota
@@ -74,7 +72,7 @@ class TestChatCompletionFlow:
         )
         assert response.status_code == 200
         api_key = response.json()["api_key"]
-        
+
         # Attempt request that exceeds quota
         response = test_client.post(
             "/v1/chat/completions",
@@ -84,7 +82,7 @@ class TestChatCompletionFlow:
                 "messages": [{"role": "user", "content": "Hello " * 100}]  # Large message
             }
         )
-        
+
         assert response.status_code == 403
         data = response.json()
         assert data["code"] == "quota_exceeded"
@@ -93,7 +91,7 @@ class TestChatCompletionFlow:
 
 class TestApprovalWorkflow:
     """Tests for the approval workflow."""
-    
+
     def test_create_approval_request(self, test_client: TestClient, admin_api_key):
         """Test creating an approval request."""
         # Create a user
@@ -105,7 +103,7 @@ class TestApprovalWorkflow:
             }
         , headers=admin_api_key)
         api_key = response.json()["api_key"]
-        
+
         # Submit approval request
         response = test_client.post(
             "/v1/approvals",
@@ -115,17 +113,17 @@ class TestApprovalWorkflow:
                 "reason": "Need more credits for project X"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
         assert data["status"] == "pending"
-        assert data["requested_credits"] == 500
+        assert float(data["requested_credits"]) == 500
 
 
 class TestPrivacyMode:
     """Tests for privacy mode functionality."""
-    
+
     def test_strict_privacy_header(self, test_client: TestClient, admin_api_key):
         """Test strict privacy mode via header."""
         # Create user
@@ -138,7 +136,7 @@ class TestPrivacyMode:
             }
         , headers=admin_api_key)
         api_key = response.json()["api_key"]
-        
+
         with patch("app.logic.LLMProxy.forward_request", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = {
                 "id": "chatcmpl-test",
@@ -152,7 +150,7 @@ class TestPrivacyMode:
                 }],
                 "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
             }
-            
+
             # Request with strict privacy mode
             response = test_client.post(
                 "/v1/chat/completions",
@@ -165,13 +163,13 @@ class TestPrivacyMode:
                     "messages": [{"role": "user", "content": "Secret message"}]
                 }
             )
-            
+
             assert response.status_code == 200
 
 
 class TestTeamManagement:
     """Tests for team management functionality."""
-    
+
     def test_add_user_to_team(self, test_client: TestClient, admin_api_key):
         """Test adding a user to a team."""
         # Create team
@@ -185,7 +183,7 @@ class TestTeamManagement:
         , headers=admin_api_key)
         assert response.status_code == 200
         team_id = response.json()["id"]
-        
+
         # Create user
         response = test_client.post(
             "/v1/admin/users",
@@ -195,14 +193,14 @@ class TestTeamManagement:
             }
         , headers=admin_api_key)
         api_key = response.json()["api_key"]
-        
+
         # Get user ID
         response = test_client.get(
             "/v1/users/me",
             headers={"Authorization": f"Bearer {api_key}"}
         )
         user_id = response.json()["id"]
-        
+
         # Add user to team
         response = test_client.post(
             f"/v1/admin/teams/{team_id}/members/{user_id}",
@@ -213,7 +211,7 @@ class TestTeamManagement:
 
 class TestErrorResponses:
     """Tests for consistent error response format."""
-    
+
     def test_validation_error_format(self, test_client: TestClient, admin_api_key):
         """Test validation error response format."""
         response = test_client.post(
@@ -224,18 +222,18 @@ class TestErrorResponses:
             },
             headers=admin_api_key
         )
-        
+
         assert response.status_code == 422
         data = response.json()
         assert "error" in data or "detail" in data
-    
+
     def test_not_found_error_format(self, test_client: TestClient):
         """Test not found error response format."""
         response = test_client.get("/v1/teams/nonexistent-team-id")
-        
+
         # Should return 404 or similar
         assert response.status_code in [404, 422]
-    
+
     def test_rate_limit_response_format(self, test_client: TestClient):
         """Test rate limit error response format."""
         # This test verifies the format when rate limited

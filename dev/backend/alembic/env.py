@@ -3,23 +3,18 @@ Alembic environment configuration for Alfred.
 Handles database migrations with SQLModel models.
 """
 
-from logging.config import fileConfig
 import os
 import sys
+from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlmodel import SQLModel
-from app.models import (
-    User, Team, TeamMemberLink, RequestLog, 
-    LeaderboardEntry, OrgSettings, ApprovalRequest
-)
 from app.config import settings
+from sqlmodel import SQLModel
 
 # Alembic Config object
 config = context.config
@@ -72,10 +67,10 @@ def run_migrations_online() -> None:
     connect_args = {}
     if "sqlite" in settings.database_url:
         connect_args = {"check_same_thread": False}
-    
+
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = settings.database_url
-    
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

@@ -1,0 +1,57 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Projects\Alfred
+configfile: pyproject.toml
+plugins: anyio-4.12.1, base-url-2.1.0, playwright-0.7.2
+collecting ... collected 11 items
+
+dev/QA/Backend/Unit/test_api.py::TestHealthEndpoint::test_health_check PASSED [  9%]
+dev/QA/Backend/Unit/test_api.py::TestRootEndpoint::test_root PASSED      [ 18%]
+dev/QA/Backend/Unit/test_api.py::TestRootEndpoint::test_root_spa_mode SKIPPED [ 27%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_create_user PASSED [ 36%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_create_user_duplicate_email PASSED [ 45%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_get_current_user_no_auth PASSED [ 54%]
+dev/QA/Backend/Unit/test_api.py::TestUserEndpoints::test_get_current_user_invalid_key PASSED [ 63%]
+dev/QA/Backend/Unit/test_api.py::TestChatCompletions::test_chat_completions_no_auth PASSED [ 72%]
+dev/QA/Backend/Unit/test_api.py::TestTeamEndpoints::test_create_team PASSED [ 81%]
+dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard PASSED [ 90%]
+dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard_invalid_period FAILED [100%]
+
+================================== FAILURES ===================================
+_____________ TestLeaderboard.test_get_leaderboard_invalid_period _____________
+dev\QA\Backend\Unit\test_api.py:151: in test_get_leaderboard_invalid_period
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T14:37:58.384310+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T14:37:58.384846+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T14:37:58.387422+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T14:37:58.392487+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "GET /v1/leaderboard 200 (3.39ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "52ebcf79-8e0a-480f-bc2e-d93844b8ff45", "extra": {"method": "GET", "path": "/v1/leaderboard", "status_code": 200, "duration_ms": 3.39}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 GET /v1/leaderboard 200 (3.39ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T14:37:58.620913+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+============================== warnings summary ===============================
+..\..\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+dev/QA/Backend/Unit/test_api.py: 15 warnings
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED dev/QA/Backend/Unit/test_api.py::TestLeaderboard::test_get_leaderboard_invalid_period - assert 200 == 400
+ +  where 200 = <Response [200 OK]>.status_code
+============= 1 failed, 9 passed, 1 skipped, 16 warnings in 3.20s =============

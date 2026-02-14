@@ -122,6 +122,16 @@ docker-compose up -d
 
 ## Quick Start
 
+### Example Workflow
+
+1. **Log in**: Use your API key to authenticate.
+2. **Allocate Credits**: Admins can allocate credits to teams.
+3. **Monitor Usage**: Use the dashboard to track usage in real-time.
+
+### Visual Example
+
+![Dashboard Screenshot](../images/dashboard.png)
+
 ### 1. Create Your First Admin User
 
 ```bash

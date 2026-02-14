@@ -2,13 +2,13 @@
 Pytest configuration and fixtures for Alfred tests.
 """
 
-import os
 import sys
-from pathlib import Path
-import pytest
 from decimal import Decimal
-from sqlmodel import Session, SQLModel, create_engine
+from pathlib import Path
+
+import pytest
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 # Add backend directory to Python path so 'app' module can be imported
 backend_dir = Path(__file__).parent.parent.parent / "backend"
@@ -46,11 +46,11 @@ def session(engine):
 @pytest.fixture
 def test_user(session):
     """Create a test user."""
-    from app.models import User
     from app.logic import AuthManager
-    
+    from app.models import User
+
     _, api_key_hash = AuthManager.generate_api_key()
-    
+
     user = User(
         email="test@example.com",
         name="Test User",
@@ -67,9 +67,10 @@ def test_user(session):
 @pytest.fixture
 def admin_api_key(session):
     """Create an admin user and return auth headers for tests."""
+    from decimal import Decimal
+
     from app.logic import AuthManager
     from app.models import User
-    from decimal import Decimal
 
     api_key, api_key_hash = AuthManager.generate_api_key()
 
@@ -90,7 +91,7 @@ def admin_api_key(session):
 def test_team(session):
     """Create a test team."""
     from app.models import Team
-    
+
     team = Team(
         name="Test Team",
         description="A test team",
@@ -106,28 +107,28 @@ def test_team(session):
 @pytest.fixture(scope="function")
 def test_client(engine, monkeypatch):
     """Create FastAPI test client with isolated database."""
+    import app.main as main_module
     from fastapi.testclient import TestClient
     from sqlmodel import Session
-    import app.main as main_module
-    
+
     # Store original engine
     original_engine = main_module.engine
-    
+
     # Patch the engine in main module BEFORE starting the app
     main_module.engine = engine
-    
+
     # Override the session dependency to use our test engine
     def get_test_session():
         with Session(engine) as session:
             yield session
-    
+
     main_module.app.dependency_overrides[main_module.get_session] = get_test_session
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("ENVIRONMENT", "test")
-    
+
     with TestClient(main_module.app) as client:
         yield client
-    
+
     # Cleanup
     main_module.app.dependency_overrides.clear()
     main_module.engine = original_engine

@@ -1,12 +1,24 @@
 """
-Alfred Custom Exceptions and Error Handlers
-Provides consistent error responses across the API.
+Alfred Error Management & Standardized Response Framework
+
+[ARCHITECTURAL ROLE]
+This module provides the global exception handling infrastructure for the Alfred 
+platform. It ensures that all errors—whether predicted (custom exceptions) or 
+unhandled (runtime crashes)—are transformed into a standardized, observable, 
+and machine-readable JSON format compatible with enterprise API standards.
+
+[KEY FEATURES]
+1. Unified DTO: Every error returns an 'ErrorResponse' with a unique Request-ID.
+2. Observability: Automatically logs exception context, stack traces, and 
+   metadata to the structured logging subsystem.
+3. Resilience: Prevents leaking internal stack traces to end-users in production.
 """
 
 from typing import Any, Dict, Optional
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .logging_config import get_logger, request_id_var
@@ -15,12 +27,17 @@ logger = get_logger(__name__)
 
 
 # -------------------------------------------------------------------
-# Custom Exceptions
+# Core Exception Hierarchy
 # -------------------------------------------------------------------
 
 class AlfredException(Exception):
-    """Base exception for all Alfred errors."""
+    """
+    Primary Platform Exception.
     
+    All business-logic exceptions should inherit from this class to ensure 
+    they are correctly intercepted by the 'alfred_exception_handler'.
+    """
+
     def __init__(
         self,
         message: str,
@@ -36,11 +53,17 @@ class AlfredException(Exception):
 
 
 class QuotaExceededException(AlfredException):
-    """Raised when user quota is exceeded."""
+    """
+    Financial Guardrail Violation.
     
+    Raised when the QuotaManager determines the user has insufficient 
+    credits for a requested operation. Includes JIT instructions for 
+    the approval workflow.
+    """
+
     def __init__(
         self,
-        message: str = "Quota exceeded",
+        message: str = "Org-Quota Exceeded: Insufficient credits available.",
         quota_remaining: float = 0,
         approval_instructions: Optional[Dict[str, Any]] = None
     ):
@@ -56,9 +79,9 @@ class QuotaExceededException(AlfredException):
 
 
 class AuthenticationException(AlfredException):
-    """Raised for authentication failures."""
-    
-    def __init__(self, message: str = "Authentication required"):
+    """Identity Verification Failure (Invalid API Key or SSO Token)."""
+
+    def __init__(self, message: str = "Identity Verification Required"):
         super().__init__(
             message=message,
             code="authentication_required",
@@ -67,9 +90,9 @@ class AuthenticationException(AlfredException):
 
 
 class AuthorizationException(AlfredException):
-    """Raised for authorization failures."""
-    
-    def __init__(self, message: str = "Permission denied"):
+    """RBAC Violation (User exists but lacks required permissions)."""
+
+    def __init__(self, message: str = "Access Denied: Insufficient Permissions"):
         super().__init__(
             message=message,
             code="permission_denied",
@@ -78,8 +101,8 @@ class AuthorizationException(AlfredException):
 
 
 class ResourceNotFoundException(AlfredException):
-    """Raised when a requested resource is not found."""
-    
+    """Entity Lookup Failure (Missing User, Team, or TeamLink)."""
+
     def __init__(self, resource_type: str, resource_id: str):
         super().__init__(
             message=f"{resource_type} not found: {resource_id}",
@@ -90,8 +113,8 @@ class ResourceNotFoundException(AlfredException):
 
 
 class ValidationException(AlfredException):
-    """Raised for validation errors."""
-    
+    """Input Sanity Check Failure (Malformed email, etc)."""
+
     def __init__(self, message: str, field: Optional[str] = None):
         super().__init__(
             message=message,
@@ -102,11 +125,11 @@ class ValidationException(AlfredException):
 
 
 class RateLimitException(AlfredException):
-    """Raised when rate limit is exceeded."""
-    
+    """Traffic Control Intervention."""
+
     def __init__(self, retry_after: int):
         super().__init__(
-            message=f"Rate limit exceeded. Retry after {retry_after} seconds.",
+            message=f"Traffic Control: Rate limit exceeded. Retry in {retry_after}s.",
             code="rate_limit_exceeded",
             status_code=429,
             details={"retry_after": retry_after}
@@ -114,11 +137,11 @@ class RateLimitException(AlfredException):
 
 
 class LLMProviderException(AlfredException):
-    """Raised for LLM provider errors."""
-    
+    """Upstream Vendor Failure (OpenAI/Anthropic/AWS/Azure 5xx)."""
+
     def __init__(self, provider: str, message: str, original_error: Optional[str] = None):
         super().__init__(
-            message=f"LLM provider error ({provider}): {message}",
+            message=f"Upstream Provider Error [{provider}]: {message}",
             code="llm_provider_error",
             status_code=502,
             details={
@@ -129,8 +152,8 @@ class LLMProviderException(AlfredException):
 
 
 class ConfigurationException(AlfredException):
-    """Raised for configuration errors."""
-    
+    """Platform Misconfiguration (Missing Vault ENV, etc)."""
+
     def __init__(self, message: str):
         super().__init__(
             message=message,
@@ -140,11 +163,16 @@ class ConfigurationException(AlfredException):
 
 
 # -------------------------------------------------------------------
-# Error Response Models
+# Unified Response Models
 # -------------------------------------------------------------------
 
 class ErrorResponse(BaseModel):
-    """Standard error response model."""
+    """
+    Standardized Error Payload.
+    
+    This schema is guaranteed for all non-2xx responses.
+    The 'request_id' is critical for cross-referencing logs in production.
+    """
     error: str
     code: str
     message: str
@@ -153,26 +181,26 @@ class ErrorResponse(BaseModel):
 
 
 # -------------------------------------------------------------------
-# Exception Handlers
+# Global Middleware Interceptors
 # -------------------------------------------------------------------
 
 async def alfred_exception_handler(
     request: Request,
     exc: AlfredException
 ) -> JSONResponse:
-    """Handle custom Alfred exceptions."""
+    """Interceptor for platform-aware business logic errors."""
     request_id = request_id_var.get()
-    
+
     logger.error(
-        f"AlfredException: {exc.message}",
+        f"Domain-Logic Error: {exc.message}",
         extra_data={
-            "code": exc.code,
-            "status_code": exc.status_code,
+            "app_code": exc.code,
+            "status": exc.status_code,
             "details": exc.details,
-            "path": request.url.path
+            "endpoint": request.url.path
         }
     )
-    
+
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
@@ -189,35 +217,24 @@ async def http_exception_handler(
     request: Request,
     exc: HTTPException
 ) -> JSONResponse:
-    """Handle FastAPI HTTPExceptions."""
+    """Interceptor for FastAPI native HTTP exceptions."""
     request_id = request_id_var.get()
-    
-    # Map common status codes to error codes
+
+    # Normalize standard HTTP codes to platform-specific error keys
     code_map = {
-        400: "bad_request",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "not_found",
-        405: "method_not_allowed",
-        409: "conflict",
-        422: "unprocessable_entity",
-        429: "rate_limit_exceeded",
-        500: "internal_error",
-        502: "bad_gateway",
-        503: "service_unavailable",
+        400: "bad_request", 401: "unauthorized", 403: "forbidden",
+        404: "not_found", 405: "method_not_allowed", 422: "unprocessable_entity",
+        429: "rate_limit_exceeded", 500: "internal_error", 502: "bad_gateway"
     }
-    
-    code = code_map.get(exc.status_code, "error")
+
+    code = code_map.get(exc.status_code, "unknown_error")
     message = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-    
+
     logger.warning(
-        f"HTTPException: {message}",
-        extra_data={
-            "status_code": exc.status_code,
-            "path": request.url.path
-        }
+        f"Framework HTTP Exception: {message}",
+        extra_data={"status": exc.status_code, "path": request.url.path}
     )
-    
+
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
@@ -233,33 +250,26 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError
 ) -> JSONResponse:
-    """Handle Pydantic validation errors."""
+    """Interceptor for Pydantic schema validation failures."""
     request_id = request_id_var.get()
-    
-    # Extract validation errors
-    errors = []
-    for error in exc.errors():
-        field = ".".join(str(loc) for loc in error["loc"])
-        errors.append({
-            "field": field,
-            "message": error["msg"],
-            "type": error["type"]
-        })
-    
+
+    # Transform internal Pydantic error list into a flattened, user-friendly format
+    errors = [
+        {"field": ".".join(str(loc) for loc in e["loc"]), "msg": e["msg"], "type": e["type"]}
+        for e in exc.errors()
+    ]
+
     logger.warning(
-        f"Validation error: {len(errors)} errors",
-        extra_data={
-            "errors": errors,
-            "path": request.url.path
-        }
+        "Schema Validation Failed",
+        extra_data={"validation_errors": errors, "path": request.url.path}
     )
-    
+
     return JSONResponse(
         status_code=422,
         content=ErrorResponse(
             error="validation_error",
             code="validation_error",
-            message="Request validation failed",
+            message="The request payload contained invalid data.",
             request_id=request_id,
             details={"errors": errors}
         ).model_dump(exclude_none=True)
@@ -270,31 +280,33 @@ async def generic_exception_handler(
     request: Request,
     exc: Exception
 ) -> JSONResponse:
-    """Handle unexpected exceptions."""
+    """
+    Standard Catch-All Handler (Safety Net).
+    
+    Ensures that unexpected Python crashes do not expose internal 
+    logic or secrets in the response body.
+    """
     request_id = request_id_var.get()
-    
+
     logger.error(
-        f"Unhandled exception: {exc}",
-        exc_info=True,
-        extra_data={
-            "exception_type": type(exc).__name__,
-            "path": request.url.path
-        }
+        f"Unhandled Platform Crash: {str(exc)}",
+        exc_info=True, # Critical: Captures the stack trace for Sentry/CloudWatch
+        extra_data={"err_type": type(exc).__name__, "path": request.url.path}
     )
-    
+
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
-            error="internal_error",
+            error="internal_server_error",
             code="internal_error",
-            message="An unexpected error occurred. Please try again later.",
+            message="An unexpected platform error occurred. Our engineering team has been notified.",
             request_id=request_id
         ).model_dump(exclude_none=True)
     )
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
-    """Register all exception handlers with the FastAPI app."""
+    """Wire up the global exception handling stack to the FastAPI instance."""
     app.add_exception_handler(AlfredException, alfred_exception_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)

@@ -1,0 +1,29 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Projects\Alfred
+configfile: pyproject.toml
+plugins: anyio-4.12.1, base-url-2.1.0, playwright-0.7.2
+collecting ... collected 8 items
+
+dev/QA/Backend/Integration/test_integration.py::TestChatCompletionFlow::test_complete_request_flow_with_quota PASSED [ 12%]
+dev/QA/Backend/Integration/test_integration.py::TestChatCompletionFlow::test_quota_exceeded_returns_403 PASSED [ 25%]
+dev/QA/Backend/Integration/test_integration.py::TestApprovalWorkflow::test_create_approval_request PASSED [ 37%]
+dev/QA/Backend/Integration/test_integration.py::TestPrivacyMode::test_strict_privacy_header PASSED [ 50%]
+dev/QA/Backend/Integration/test_integration.py::TestTeamManagement::test_add_user_to_team PASSED [ 62%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_validation_error_format PASSED [ 75%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_not_found_error_format PASSED [ 87%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_rate_limit_response_format PASSED [100%]
+
+============================== warnings summary ===============================
+..\..\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+dev/QA/Backend/Integration/test_integration.py: 15 warnings
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 8 passed, 16 warnings in 2.64s ========================

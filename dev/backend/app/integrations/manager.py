@@ -5,15 +5,13 @@ Central coordinator for all notification providers with pub/sub event system.
 
 import asyncio
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set
-from functools import wraps
+from typing import Callable, Dict, List, Optional, Set
 
-from .base import NotificationProvider, NotificationEvent, EventType, NotificationResult
-from .slack import SlackNotifier, create_slack_notifier
-from .teams import TeamsNotifier, create_teams_notifier
-from .telegram import TelegramNotifier, create_telegram_notifier
-from .whatsapp import WhatsAppNotifier, create_whatsapp_notifier
-
+from .base import EventType, NotificationEvent, NotificationProvider, NotificationResult
+from .slack import create_slack_notifier
+from .teams import create_teams_notifier
+from .telegram import create_telegram_notifier
+from .whatsapp import create_whatsapp_notifier
 
 # Type alias for event handlers
 EventHandler = Callable[[NotificationEvent], None]
@@ -48,7 +46,7 @@ class NotificationManager:
             user_name="John Doe"
         ))
     """
-    
+
     def __init__(self):
         self._providers: List[NotificationProvider] = []
         self._subscribers: Dict[EventType, List[EventHandler]] = defaultdict(list)
@@ -57,17 +55,17 @@ class NotificationManager:
         self._enabled = True
         self._failed_events: List[NotificationEvent] = []  # For retry logic
         self._max_retry_queue = 100
-    
+
     @property
     def providers(self) -> List[NotificationProvider]:
         """Get list of registered providers."""
         return self._providers.copy()
-    
+
     @property
     def configured_providers(self) -> List[NotificationProvider]:
         """Get list of configured (ready to use) providers."""
         return [p for p in self._providers if p.is_configured]
-    
+
     def add_provider(
         self,
         provider: NotificationProvider,
@@ -84,7 +82,7 @@ class NotificationManager:
         self._providers.append(provider)
         if event_filter:
             self._event_filters[provider.name] = event_filter
-    
+
     def remove_provider(self, provider_name: str) -> bool:
         """
         Remove a provider by name.
@@ -98,7 +96,7 @@ class NotificationManager:
                 self._event_filters.pop(provider_name, None)
                 return True
         return False
-    
+
     def _should_notify_provider(
         self,
         provider: NotificationProvider,
@@ -108,14 +106,14 @@ class NotificationManager:
         # Check provider-level support
         if not provider.supports_event(event.event_type):
             return False
-        
+
         # Check event filter
         if provider.name in self._event_filters:
             if event.event_type not in self._event_filters[provider.name]:
                 return False
-        
+
         return True
-    
+
     def on(self, *event_types: EventType) -> Callable:
         """
         Decorator to subscribe to specific event types.
@@ -134,7 +132,7 @@ class NotificationManager:
                     self._subscribers[event_type].append(handler)
             return handler
         return decorator
-    
+
     def subscribe(
         self,
         handler: EventHandler,
@@ -152,7 +150,7 @@ class NotificationManager:
         else:
             for event_type in event_types:
                 self._subscribers[event_type].append(handler)
-    
+
     def unsubscribe(
         self,
         handler: EventHandler,
@@ -175,7 +173,7 @@ class NotificationManager:
             for event_type in event_types:
                 if handler in self._subscribers[event_type]:
                     self._subscribers[event_type].remove(handler)
-    
+
     def _notify_subscribers(self, event: NotificationEvent) -> None:
         """Call all subscribed handlers for an event."""
         # Global subscribers
@@ -184,14 +182,14 @@ class NotificationManager:
                 handler(event)
             except Exception:
                 pass  # Don't let one handler break others
-        
+
         # Event-specific subscribers
         for handler in self._subscribers.get(event.event_type, []):
             try:
                 handler(event)
             except Exception:
                 pass
-    
+
     async def emit(
         self,
         event: NotificationEvent,
@@ -210,22 +208,22 @@ class NotificationManager:
         """
         if not self._enabled:
             return {}
-        
+
         results = {}
-        
+
         # Notify local subscribers first (sync)
         self._notify_subscribers(event)
-        
+
         # Filter providers
         target_providers = self.configured_providers
         if providers:
             target_providers = [p for p in target_providers if p.name in providers]
-        
+
         # Send to each provider
         for provider in target_providers:
             if not self._should_notify_provider(provider, event):
                 continue
-            
+
             try:
                 success = await provider.send(event)
                 results[provider.name] = NotificationResult(
@@ -241,14 +239,14 @@ class NotificationManager:
                     success=False,
                     error=str(e)
                 )
-        
+
         # Track failed events for potential retry
         failed_providers = [name for name, result in results.items() if not result.success]
         if failed_providers and len(self._failed_events) < self._max_retry_queue:
             self._failed_events.append(event)
-        
+
         return results
-    
+
     async def emit_batch(
         self,
         events: List[NotificationEvent],
@@ -265,13 +263,13 @@ class NotificationManager:
             Dict mapping event_id to Dict mapping provider name to result
         """
         all_results = {}
-        
+
         for event in events:
             results = await self.emit(event, providers)
             all_results[event.event_id] = results
-        
+
         return all_results
-    
+
     async def retry_failed(self) -> int:
         """
         Retry sending failed events.
@@ -281,26 +279,26 @@ class NotificationManager:
         """
         if not self._failed_events:
             return 0
-        
+
         events_to_retry = self._failed_events.copy()
         self._failed_events.clear()
-        
+
         success_count = 0
         for event in events_to_retry:
             results = await self.emit(event)
             if all(r.success for r in results.values()):
                 success_count += 1
-        
+
         return success_count
-    
+
     def enable(self) -> None:
         """Enable notifications."""
         self._enabled = True
-    
+
     def disable(self) -> None:
         """Disable notifications (useful for testing)."""
         self._enabled = False
-    
+
     async def close(self) -> None:
         """Close all provider connections."""
         for provider in self._providers:
@@ -358,7 +356,7 @@ def setup_notifications(
         Configured NotificationManager instance
     """
     manager = get_notification_manager()
-    
+
     # Setup Slack
     slack_notifier = create_slack_notifier(
         webhook_url=slack_webhook_url,
@@ -367,7 +365,7 @@ def setup_notifications(
     )
     if slack_notifier:
         manager.add_provider(slack_notifier)
-    
+
     # Setup Teams
     teams_notifier = create_teams_notifier(
         webhook_url=teams_webhook_url,
@@ -375,7 +373,7 @@ def setup_notifications(
     )
     if teams_notifier:
         manager.add_provider(teams_notifier)
-    
+
     # Setup Telegram
     telegram_notifier = create_telegram_notifier(
         bot_token=telegram_bot_token,
@@ -384,7 +382,7 @@ def setup_notifications(
     )
     if telegram_notifier:
         manager.add_provider(telegram_notifier)
-    
+
     # Setup WhatsApp
     whatsapp_notifier = create_whatsapp_notifier(
         phone_number_id=whatsapp_phone_number_id,
@@ -395,7 +393,7 @@ def setup_notifications(
     )
     if whatsapp_notifier:
         manager.add_provider(whatsapp_notifier)
-    
+
     return manager
 
 
@@ -411,7 +409,7 @@ async def emit_quota_warning(
 ) -> Dict[str, NotificationResult]:
     """Emit a quota warning notification."""
     manager = get_notification_manager()
-    
+
     event = NotificationEvent(
         event_type=EventType.QUOTA_WARNING,
         title="Quota Warning",
@@ -426,7 +424,7 @@ async def emit_quota_warning(
             "percentage_used": f"{percentage_used:.1f}%"
         }
     )
-    
+
     return await manager.emit(event)
 
 
@@ -439,7 +437,7 @@ async def emit_quota_exceeded(
 ) -> Dict[str, NotificationResult]:
     """Emit a quota exceeded notification."""
     manager = get_notification_manager()
-    
+
     event = NotificationEvent(
         event_type=EventType.QUOTA_EXCEEDED,
         title="Quota Exceeded",
@@ -454,7 +452,7 @@ async def emit_quota_exceeded(
             "shortfall": f"{(requested_credits - available_credits):.2f}"
         }
     )
-    
+
     return await manager.emit(event)
 
 
@@ -468,7 +466,7 @@ async def emit_approval_requested(
 ) -> Dict[str, NotificationResult]:
     """Emit an approval request notification."""
     manager = get_notification_manager()
-    
+
     event = NotificationEvent(
         event_type=EventType.APPROVAL_REQUESTED,
         title="Approval Request",
@@ -483,7 +481,7 @@ async def emit_approval_requested(
             "reason": reason
         }
     )
-    
+
     return await manager.emit(event)
 
 
@@ -498,11 +496,11 @@ async def emit_approval_resolved(
 ) -> Dict[str, NotificationResult]:
     """Emit an approval resolution notification."""
     manager = get_notification_manager()
-    
+
     event_type = EventType.APPROVAL_APPROVED if approved else EventType.APPROVAL_REJECTED
     status = "approved" if approved else "rejected"
     severity = "info" if approved else "warning"
-    
+
     event = NotificationEvent(
         event_type=event_type,
         title=f"Approval {status.title()}",
@@ -518,7 +516,7 @@ async def emit_approval_resolved(
             **({"rejection_reason": reason} if reason and not approved else {})
         }
     )
-    
+
     return await manager.emit(event)
 
 
@@ -531,10 +529,10 @@ async def emit_vacation_status_change(
 ) -> Dict[str, NotificationResult]:
     """Emit a vacation status change notification."""
     manager = get_notification_manager()
-    
+
     event_type = EventType.USER_VACATION_START if on_vacation else EventType.USER_VACATION_END
     action = "started vacation" if on_vacation else "returned from vacation"
-    
+
     event = NotificationEvent(
         event_type=event_type,
         title="Vacation Status Update",
@@ -549,7 +547,7 @@ async def emit_vacation_status_change(
             "vacation_sharing": "enabled" if on_vacation else "disabled"
         }
     )
-    
+
     return await manager.emit(event)
 
 
@@ -574,7 +572,7 @@ async def emit_token_transfer(
     """
     manager = get_notification_manager()
     results = {}
-    
+
     # Notification for sender
     sent_event = NotificationEvent(
         event_type=EventType.TOKEN_TRANSFER_SENT,
@@ -596,7 +594,7 @@ async def emit_token_transfer(
             } if message else {})
         }
     )
-    
+
     # Notification for recipient
     received_event = NotificationEvent(
         event_type=EventType.TOKEN_TRANSFER_RECEIVED,
@@ -618,12 +616,12 @@ async def emit_token_transfer(
             } if message else {})
         }
     )
-    
+
     # Emit both events
     sent_results = await manager.emit(sent_event)
     received_results = await manager.emit(received_event)
-    
+
     results.update({f"sent_{k}": v for k, v in sent_results.items()})
     results.update({f"received_{k}": v for k, v in received_results.items()})
-    
+
     return results

@@ -4,6 +4,7 @@ import Layout from './components/LayoutNew';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { UserProvider } from './context/UserContext';
+import { WebSocketProvider } from './context/WebSocketContext';
 import api from './services/api';
 
 // Lazy load pages for better performance
@@ -50,28 +51,30 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <UserProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={
-                isAuthenticated ? <Navigate to="/" replace /> : <Suspense fallback={<PageLoader />}><Login onLogin={handleLogin} /></Suspense>
-              } />
-              <Route path="/" element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Layout onLogout={handleLogout} />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                <Route path="users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
-                <Route path="teams" element={<Suspense fallback={<PageLoader />}><Teams /></Suspense>} />
-                <Route path="transfers" element={<Suspense fallback={<PageLoader />}><Transfers /></Suspense>} />
-                <Route path="approvals" element={<Suspense fallback={<PageLoader />}><Approvals /></Suspense>} />
-                <Route path="integrations" element={<Suspense fallback={<PageLoader />}><Integrations /></Suspense>} />
-                <Route path="guide" element={<Suspense fallback={<PageLoader />}><UserGuide /></Suspense>} />
-                <Route path="profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
-                <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
+          <WebSocketProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={
+                  isAuthenticated ? <Navigate to="/" replace /> : <Suspense fallback={<PageLoader />}><Login onLogin={handleLogin} /></Suspense>
+                } />
+                <Route path="/" element={
+                  <ProtectedRoute isAuthenticated={isAuthenticated}>
+                    <Layout onLogout={handleLogout} />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+                  <Route path="users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
+                  <Route path="teams" element={<Suspense fallback={<PageLoader />}><Teams /></Suspense>} />
+                  <Route path="transfers" element={<Suspense fallback={<PageLoader />}><Transfers /></Suspense>} />
+                  <Route path="approvals" element={<Suspense fallback={<PageLoader />}><Approvals /></Suspense>} />
+                  <Route path="integrations" element={<Suspense fallback={<PageLoader />}><Integrations /></Suspense>} />
+                  <Route path="guide" element={<Suspense fallback={<PageLoader />}><UserGuide /></Suspense>} />
+                  <Route path="profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
+                  <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </WebSocketProvider>
         </UserProvider>
       </ToastProvider>
     </ThemeProvider>

@@ -148,11 +148,10 @@ export default function Users() {
             </div>
 
             {error && (
-                <div className="mb-4 p-3 bg-yellow-50 text-yellow-700 rounded-lg text-sm flex items-center justify-between">
+                <div className="mb-4 p-3 bg-orange-50 text-orange-700 border border-orange-300 rounded-lg text-sm flex items-center justify-between">
                     <div>API error: {error}. Demo data not used.</div>
                     <div className="flex items-center space-x-2">
                         <button onClick={() => { setError(null); fetchUsers(); }} className="btn btn-primary">Retry</button>
-                        <a href="mailto:support@example.com" className="btn btn-secondary">Contact Support</a>
                     </div>
                 </div>
             )}

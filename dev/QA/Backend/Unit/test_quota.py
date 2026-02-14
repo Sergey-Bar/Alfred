@@ -2,16 +2,15 @@
 Tests for quota management logic.
 """
 
-import pytest
 from decimal import Decimal
 
-from app.models import User, Team, TeamMemberLink, UserStatus, ProjectPriority
-from app.logic import QuotaManager, CreditCalculator, EfficiencyScorer
+from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
+from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
 
 
 class TestCreditCalculator:
     """Tests for credit calculation."""
-    
+
     def test_calculate_cost_gpt4(self):
         """Test cost calculation for GPT-4."""
         cost = CreditCalculator.calculate_cost(
@@ -22,7 +21,7 @@ class TestCreditCalculator:
         # Should be positive and reasonable
         assert cost > Decimal("0")
         assert cost < Decimal("100")  # Sanity check
-    
+
     def test_calculate_cost_gpt35(self):
         """Test cost calculation for GPT-3.5."""
         cost = CreditCalculator.calculate_cost(
@@ -37,7 +36,7 @@ class TestCreditCalculator:
             completion_tokens=500
         )
         assert cost < gpt4_cost
-    
+
     def test_estimate_cost(self):
         """Test cost estimation."""
         estimate = CreditCalculator.estimate_cost("gpt-4", 1000)
@@ -46,68 +45,68 @@ class TestCreditCalculator:
 
 class TestQuotaManager:
     """Tests for quota management."""
-    
+
     def test_check_quota_personal_available(self, session, test_user):
         """Test quota check when personal quota is available."""
         manager = QuotaManager(session)
-        
+
         result = manager.check_quota(
             user=test_user,
             estimated_cost=Decimal("10.00"),
             priority=ProjectPriority.NORMAL
         )
-        
+
         assert result.allowed is True
         assert result.source == "personal"
-    
+
     def test_check_quota_personal_exceeded(self, session, test_user):
         """Test quota check when personal quota is exceeded."""
         # Use up all quota
         test_user.used_tokens = test_user.personal_quota
         session.add(test_user)
         session.commit()
-        
+
         manager = QuotaManager(session)
-        
+
         result = manager.check_quota(
             user=test_user,
             estimated_cost=Decimal("10.00"),
             priority=ProjectPriority.NORMAL
         )
-        
+
         assert result.allowed is False
         assert result.requires_approval is True
         assert "approval" in result.message.lower() or "exceeded" in result.message.lower()
-    
+
     def test_check_quota_critical_bypass(self, session, test_user, test_team):
         """Test critical priority bypass to team pool."""
         # Add user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
         session.add(link)
         session.commit()
-        
+
         # Exhaust personal quota
         test_user.used_tokens = test_user.personal_quota
         session.add(test_user)
         session.commit()
-        
+
         manager = QuotaManager(session)
-        
+
         result = manager.check_quota(
             user=test_user,
             estimated_cost=Decimal("10.00"),
             priority=ProjectPriority.CRITICAL
         )
-        
+
         assert result.allowed is True
         assert result.source == "priority_bypass"
-    
+
     def test_check_quota_vacation_sharing(self, session, test_user, test_team):
         """Test vacation sharing when team members are on vacation."""
         # Create another user on vacation
         from app.logic import AuthManager
         _, hash2 = AuthManager.generate_api_key()
-        
+
         vacation_user = User(
             email="vacation@example.com",
             name="Vacation User",
@@ -117,44 +116,44 @@ class TestQuotaManager:
         )
         session.add(vacation_user)
         session.commit()
-        
+
         # Add both users to team
         link1 = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
         link2 = TeamMemberLink(team_id=test_team.id, user_id=vacation_user.id)
         session.add(link1)
         session.add(link2)
         session.commit()
-        
+
         # Exhaust test_user personal quota
         test_user.used_tokens = test_user.personal_quota
         session.add(test_user)
         session.commit()
-        
+
         manager = QuotaManager(session)
-        
+
         result = manager.check_quota(
             user=test_user,
             estimated_cost=Decimal("10.00"),
             priority=ProjectPriority.NORMAL
         )
-        
+
         assert result.allowed is True
         assert result.source == "vacation_share"
-    
+
     def test_deduct_quota_personal(self, session, test_user):
         """Test deducting from personal quota."""
         initial_used = test_user.used_tokens
-        
+
         manager = QuotaManager(session)
         manager.deduct_quota(test_user, Decimal("50.00"), "personal")
-        
+
         session.refresh(test_user)
         assert test_user.used_tokens == initial_used + Decimal("50.00")
 
 
 class TestEfficiencyScorer:
     """Tests for efficiency scoring."""
-    
+
     def test_calculate_efficiency_score(self):
         """Test efficiency score calculation."""
         score = EfficiencyScorer.calculate_efficiency_score(
@@ -162,7 +161,7 @@ class TestEfficiencyScorer:
             completion_tokens=50
         )
         assert score == Decimal("0.5000")
-    
+
     def test_calculate_efficiency_score_zero_prompt(self):
         """Test efficiency with zero prompt tokens."""
         score = EfficiencyScorer.calculate_efficiency_score(
@@ -170,7 +169,7 @@ class TestEfficiencyScorer:
             completion_tokens=50
         )
         assert score == Decimal("0.00")
-    
+
     def test_calculate_efficiency_high_ratio(self):
         """Test high efficiency ratio."""
         score = EfficiencyScorer.calculate_efficiency_score(

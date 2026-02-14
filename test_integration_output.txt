@@ -1,0 +1,54 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Projects\Alfred
+configfile: pyproject.toml
+plugins: anyio-4.12.1, base-url-2.1.0, playwright-0.7.2
+collecting ... collected 8 items
+
+dev/QA/Backend/Integration/test_integration.py::TestChatCompletionFlow::test_complete_request_flow_with_quota PASSED [ 12%]
+dev/QA/Backend/Integration/test_integration.py::TestChatCompletionFlow::test_quota_exceeded_returns_403 PASSED [ 25%]
+dev/QA/Backend/Integration/test_integration.py::TestApprovalWorkflow::test_create_approval_request FAILED [ 37%]
+dev/QA/Backend/Integration/test_integration.py::TestPrivacyMode::test_strict_privacy_header PASSED [ 50%]
+dev/QA/Backend/Integration/test_integration.py::TestTeamManagement::test_add_user_to_team PASSED [ 62%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_validation_error_format PASSED [ 75%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_not_found_error_format PASSED [ 87%]
+dev/QA/Backend/Integration/test_integration.py::TestErrorResponses::test_rate_limit_response_format PASSED [100%]
+
+================================== FAILURES ===================================
+______________ TestApprovalWorkflow.test_create_approval_request ______________
+dev\QA\Backend\Integration\test_integration.py:121: in test_create_approval_request
+    assert data["requested_credits"] == 500
+E   AssertionError: assert '500.00' == 500
+---------------------------- Captured stdout setup ----------------------------
+{"timestamp": "2026-02-14T14:11:56.193724+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Initialization", "module": "logging_config", "function": "_log_with_extra", "line": 144, "extra": {"v": "1.0.0", "tier": "development", "mode": "DEV"}}
+{"timestamp": "2026-02-14T14:11:56.194269+00:00Z", "level": "INFO", "logger": "app.main", "message": "Sandbox Environment: Local tables synchronized.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+{"timestamp": "2026-02-14T14:11:56.195659+00:00Z", "level": "INFO", "logger": "app.main", "message": "Governance: Global Organization settings seeded.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+----------------------------- Captured log setup ------------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Initialization
+INFO     app.main:logging_config.py:144 Sandbox Environment: Local tables synchronized.
+INFO     app.main:logging_config.py:144 Governance: Global Organization settings seeded.
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2026-02-14T14:11:56.204690+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "POST /v1/admin/users 200 (6.25ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "ed243ac5-63a4-4038-9580-b90ef19f930c", "extra": {"method": "POST", "path": "/v1/admin/users", "status_code": 200, "duration_ms": 6.25}}
+{"timestamp": "2026-02-14T14:11:56.213994+00:00Z", "level": "INFO", "logger": "app.middleware", "message": "POST /v1/approvals 200 (7.14ms)", "module": "logging_config", "function": "_log_with_extra", "line": 144, "request_id": "43ce6e07-8587-4487-8dc4-53a7fe87fd8b", "extra": {"method": "POST", "path": "/v1/approvals", "status_code": 200, "duration_ms": 7.14}}
+------------------------------ Captured log call ------------------------------
+INFO     app.middleware:logging_config.py:144 POST /v1/admin/users 200 (6.25ms)
+INFO     app.middleware:logging_config.py:144 POST /v1/approvals 200 (7.14ms)
+-------------------------- Captured stdout teardown ---------------------------
+{"timestamp": "2026-02-14T14:11:56.378956+00:00Z", "level": "INFO", "logger": "app.main", "message": "Alfred Core Shutdown: All subsystems released.", "module": "logging_config", "function": "_log_with_extra", "line": 144}
+---------------------------- Captured log teardown ----------------------------
+INFO     app.main:logging_config.py:144 Alfred Core Shutdown: All subsystems released.
+============================== warnings summary ===============================
+..\..\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+dev/QA/Backend/Integration/test_integration.py: 15 warnings
+  C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED dev/QA/Backend/Integration/test_integration.py::TestApprovalWorkflow::test_create_approval_request - AssertionError: assert '500.00' == 500
+================== 1 failed, 7 passed, 16 warnings in 5.70s ===================

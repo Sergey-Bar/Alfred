@@ -1,87 +1,128 @@
-"""Security utilities for input validation and sanitization"""
+"""
+Alfred - Enterprise AI Credit Governance Platform
+Input Hardening & Security Guardrails
+
+[ARCHITECTURAL ROLE]
+This module serves as the primary defense-in-depth layer for inbound data. 
+It performs structural validation, semantic sniffing for prompt injection, 
+and financial sanity checks.
+
+[SECURITY THREAT MODELS]
+1. Prompt Injection: Prevent users from overriding system instructions (DAN, ignore previous).
+2. Resource Exhaustion: Capping message lengths to prevent OOM/Budget drain.
+3. Financial Manipulation: Validating credit amounts to prevent floating-point exploits.
+4. XSS/Injection: Scanning for HTML/Script tags in text payloads.
+"""
 
 import re
 from typing import List
+
 from fastapi import HTTPException
 
 from .models import ChatMessage
 
 
 class InputValidator:
-    """Validate and sanitize user inputs to prevent injection attacks"""
+    """
+    Unified Input Gatekeeper.
     
-    # Patterns that could indicate prompt injection attempts
+    Implements a set of static validators designed to identify and block
+    malicious payloads before they reach the LLM or the Database.
+    """
+
+    # --- Heuristic Signatures for Prompt Injection & Attacks ---
+    # These regexes identify common 'jailbreak' techniques and web attack vectors.
     SUSPICIOUS_PATTERNS = [
-        r'ignore\s+(previous|all)\s+instructions',
-        r'system\s*:\s*you\s+are\s+now',
-        r'<\s*script[^>]*>',
-        r'javascript\s*:',
-        r'\b(union|select|insert|update|delete|drop)\s+',
-        r'<\s*iframe',
-        r'on(load|error|click)\s*=',
+        r'ignore\s+(previous|all)\s+instructions', # System Override Attempts
+        r'system\s*:\s*you\s+are\s+now',           # Roleplay Forced Change
+        r'<\s*script[^>]*>',                       # Classic XSS
+        r'javascript\s*:',                         # Proto-XSS
+        r'\b(union|select|insert|update|delete|drop)\s+', # SQLi Keywords
+        r'<\s*iframe',                             # Clickjacking Prep
+        r'on(load|error|click)\s*=',               # Event Handler Injection
     ]
-    
-    MAX_MESSAGE_LENGTH = 50000  # ~12k tokens for GPT-4
-    MAX_MESSAGES_PER_REQUEST = 100
-    
+
+    # Operational Constraints
+    MAX_MESSAGE_LENGTH = 50000        # Safety cap (~12k tokens)
+    MAX_MESSAGES_PER_REQUEST = 100    # Prevent 'Context Stuffing' attacks
+
     @classmethod
     def validate_chat_messages(cls, messages: List[ChatMessage]) -> None:
         """
-        Validate chat messages for security issues.
+        Deep Inspector for Chat Payloads.
         
-        Raises:
-            HTTPException: If validation fails
+        Performs structural and semantic analysis on the entire message history.
+        
+        Logic:
+        - Must contain at least one message.
+        - Must not exceed strict length/count caps.
+        - Must follow OpenAI-standard Role-Value structure.
+        - Scans for injection signatures (Warning Level - logs for audit).
         """
         if not messages:
-            raise HTTPException(400, "Messages list cannot be empty")
-        
+            raise HTTPException(400, "Inbound payload must contain at least one message.")
+
         if len(messages) > cls.MAX_MESSAGES_PER_REQUEST:
             raise HTTPException(
                 400,
-                f"Too many messages. Maximum: {cls.MAX_MESSAGES_PER_REQUEST}"
+                f"Protocol Violation: Context history exceeds limit of {cls.MAX_MESSAGES_PER_REQUEST}."
             )
-        
+
         for idx, msg in enumerate(messages):
-            # Validate message structure
+            # Schema Integrity
             if not msg.role or not msg.content:
-                raise HTTPException(400, f"Message {idx}: role and content required")
-            
-            # Validate role
+                raise HTTPException(400, f"Malformed Message at Index {idx}: Role/Content missing.")
+
+            # White-listed Role Verification
             if msg.role not in ['system', 'user', 'assistant']:
-                raise HTTPException(400, f"Message {idx}: invalid role '{msg.role}'")
-            
-            # Validate content length
+                raise HTTPException(400, f"Auth Error at Index {idx}: Unsupported role '{msg.role}'.")
+
+            # Length Contraint (Protection against payload bombing)
             if len(msg.content) > cls.MAX_MESSAGE_LENGTH:
                 raise HTTPException(
-                    400,
-                    f"Message {idx}: content exceeds {cls.MAX_MESSAGE_LENGTH} characters"
-                )
-            
-            # Check for suspicious patterns (warning only, don't block)
-            for pattern in cls.SUSPICIOUS_PATTERNS:
-                if re.search(pattern, msg.content, re.IGNORECASE):
-                    # Log suspicious content but allow request
-                    # (could be legitimate use case)
-                    from .logging_config import get_logger
-                    logger = get_logger(__name__)
-                    logger.warning(
-                        f"Suspicious pattern detected in message",
-                        extra_data={
-                            "pattern": pattern,
-                            "message_index": idx,
-                            "role": msg.role
-                        }
-                    )
-    
+                400,
+                f"Data Overflow at Index {idx}: Content exceeds {cls.MAX_MESSAGE_LENGTH} characters."
+            )
+
+            # --- Pattern Sniffing ---
+            # [BUG-014 FIX] Added setting-based control and pattern hashing to 
+            # protect sensitive content signatures in logs.
+            from .config import settings
+            if settings.log_suspicious_patterns:
+                for pattern in cls.SUSPICIOUS_PATTERNS:
+                    if re.search(pattern, msg.content, re.IGNORECASE):
+                        from .logging_config import get_logger
+                        logger = get_logger(__name__)
+                        
+                        # Use a hash of the pattern to identify the rule triggered 
+                        # without logging the actual signature string.
+                        import hashlib
+                        pattern_id = hashlib.sha256(pattern.encode()).hexdigest()[:12]
+                        
+                        logger.warning(
+                            "Security Event: Suspicious Sequence Detected",
+                            extra={
+                                "threat_id": f"pattern_{pattern_id}",
+                                "msg_idx": idx,
+                                "msg_role": msg.role
+                            }
+                        )
+
     @classmethod
     def validate_credit_amount(cls, amount: float, max_amount: float = 1_000_000) -> None:
-        """Validate credit transfer amounts"""
+        """
+        Financial Integrity Guard.
+        
+        Prevents overflow/underflow attacks and rounding exploits in the 
+        credit reallocation system.
+        """
         if amount <= 0:
-            raise HTTPException(400, "Amount must be positive")
-        
+            raise HTTPException(400, "Financial Logic: Reallocation amount must be > 0.")
+
         if amount > max_amount:
-            raise HTTPException(400, f"Amount exceeds maximum ({max_amount})")
-        
-        # Check for unusual precision (potential manipulation)
+            raise HTTPException(400, f"Policy Violation: Transfer exceeds organizational cap of {max_amount}.")
+
+        # Precision Hardening
+        # Prevents 'Salami Slicing' attacks where fractional credits are manipulated.
         if len(str(amount).split('.')[-1]) > 2:
-            raise HTTPException(400, "Amount cannot have more than 2 decimal places")
+            raise HTTPException(400, "Constraint: Credit precision halted at 2 decimal places.")

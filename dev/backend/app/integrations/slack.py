@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from .base import NotificationProvider, NotificationEvent, EventType, NotificationResult
+from .base import EventType, NotificationEvent, NotificationProvider
 
 
 class SlackNotifier(NotificationProvider):
@@ -26,7 +26,7 @@ class SlackNotifier(NotificationProvider):
         SLACK_WEBHOOK_URL_ALERTS: Webhook for critical alerts (optional)
         SLACK_BOT_TOKEN: Bot token for advanced features (optional)
     """
-    
+
     # Severity to emoji mapping
     SEVERITY_EMOJI = {
         "info": ":information_source:",
@@ -34,7 +34,7 @@ class SlackNotifier(NotificationProvider):
         "error": ":x:",
         "critical": ":rotating_light:",
     }
-    
+
     # Event type to color mapping (for attachment sidebar)
     EVENT_COLORS = {
         EventType.QUOTA_WARNING: "#FFA500",      # Orange
@@ -53,7 +53,7 @@ class SlackNotifier(NotificationProvider):
         EventType.SYSTEM_ERROR: "#FF0000",       # Red
         EventType.HIGH_LATENCY: "#FFA500",       # Orange
     }
-    
+
     def __init__(
         self,
         webhook_url: Optional[str] = None,
@@ -78,37 +78,37 @@ class SlackNotifier(NotificationProvider):
         self.default_channel = default_channel
         self.timeout = timeout
         self._client: Optional[httpx.AsyncClient] = None
-    
+
     @property
     def name(self) -> str:
         return "slack"
-    
+
     @property
     def is_configured(self) -> bool:
         return bool(self.webhook_url or self.bot_token)
-    
+
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=self.timeout)
         return self._client
-    
+
     async def close(self) -> None:
         """Close HTTP client."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
-    
+
     def _get_webhook_for_event(self, event: NotificationEvent) -> Optional[str]:
         """Determine which webhook to use based on event severity."""
         if event.severity in ("error", "critical") and self.alerts_webhook_url:
             return self.alerts_webhook_url
         return self.webhook_url
-    
+
     def _build_blocks(self, event: NotificationEvent) -> List[Dict[str, Any]]:
         """Build Slack Block Kit blocks for rich formatting."""
         emoji = self.SEVERITY_EMOJI.get(event.severity, ":bell:")
         color = self.EVENT_COLORS.get(event.event_type, "#808080")
-        
+
         blocks = [
             {
                 "type": "header",
@@ -126,33 +126,33 @@ class SlackNotifier(NotificationProvider):
                 }
             }
         ]
-        
+
         # Add context fields
         context_elements = []
-        
+
         if event.user_name:
             context_elements.append({
                 "type": "mrkdwn",
                 "text": f":bust_in_silhouette: *User:* {event.user_name}"
             })
-        
+
         if event.team_name:
             context_elements.append({
                 "type": "mrkdwn",
                 "text": f":busts_in_silhouette: *Team:* {event.team_name}"
             })
-        
+
         context_elements.append({
             "type": "mrkdwn",
             "text": f":clock1: {event.timestamp.strftime('%Y-%m-%d %H:%M UTC')}"
         })
-        
+
         if context_elements:
             blocks.append({
                 "type": "context",
                 "elements": context_elements
             })
-        
+
         # Add data fields if present
         if event.data:
             fields = []
@@ -161,7 +161,7 @@ class SlackNotifier(NotificationProvider):
                     "type": "mrkdwn",
                     "text": f"*{key.replace('_', ' ').title()}:*\n{value}"
                 })
-            
+
             # Split fields into groups of 2 for side-by-side display
             for i in range(0, len(fields), 2):
                 section_fields = fields[i:i+2]
@@ -169,17 +169,17 @@ class SlackNotifier(NotificationProvider):
                     "type": "section",
                     "fields": section_fields
                 })
-        
+
         # Add divider at the end
         blocks.append({"type": "divider"})
-        
+
         return blocks
-    
+
     def _build_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build the Slack webhook payload."""
         blocks = self._build_blocks(event)
         color = self.EVENT_COLORS.get(event.event_type, "#808080")
-        
+
         payload = {
             "text": f"{event.title}: {event.message}",  # Fallback for notifications
             "blocks": blocks,
@@ -191,54 +191,54 @@ class SlackNotifier(NotificationProvider):
                 }
             ]
         }
-        
+
         return payload
-    
+
     async def send(self, event: NotificationEvent) -> bool:
         """Send a notification to Slack."""
         if not self.is_configured:
             return False
-        
+
         webhook_url = self._get_webhook_for_event(event)
         if not webhook_url:
             return False
-        
+
         try:
             client = await self._get_client()
             payload = self._build_payload(event)
-            
+
             response = await client.post(webhook_url, json=payload)
-            
+
             return response.status_code == 200
-            
-        except Exception as e:
+
+        except Exception:
             # Log error but don't raise - notifications shouldn't break main flow
             return False
-    
+
     async def send_batch(self, events: List[NotificationEvent]) -> Dict[str, bool]:
         """Send multiple notifications to Slack."""
         results = {}
-        
+
         # Send sequentially to respect rate limits
         for event in events:
             results[event.event_id] = await self.send(event)
             await asyncio.sleep(0.1)  # Small delay to avoid rate limiting
-        
+
         return results
-    
+
     def format_message(self, event: NotificationEvent) -> str:
         """Format message with Slack mrkdwn syntax."""
         lines = [
             f"*{event.title}*",
             event.message,
         ]
-        
+
         if event.user_name:
             lines.append(f"User: {event.user_name}")
-        
+
         if event.team_name:
             lines.append(f"Team: {event.team_name}")
-        
+
         return "\n".join(lines)
 
 
@@ -255,7 +255,7 @@ def create_slack_notifier(
     """
     if not any([webhook_url, bot_token]):
         return None
-    
+
     return SlackNotifier(
         webhook_url=webhook_url,
         alerts_webhook_url=alerts_webhook_url,

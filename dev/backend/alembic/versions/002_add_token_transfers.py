@@ -6,10 +6,9 @@ Create Date: 2026-02-11 16:00:00.000000
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '002_add_token_transfers'
@@ -33,7 +32,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['recipient_id'], ['users.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create indexes for efficient querying
     op.create_index(
         op.f('ix_token_transfers_sender_id'),

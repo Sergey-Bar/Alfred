@@ -1,43 +1,62 @@
 """
-Alfred Structured Logging Configuration
-Provides structured logging with JSON output for production and readable output for development.
+Alfred - Enterprise AI Credit Governance Platform
+Observability & Structured Logging Framework
+
+[ARCHITECTURAL ROLE]
+This module defines the logging DNA of the platform. It provides:
+1. Tracing Context: Automatic propagation of Request/User IDs via ContextVars.
+2. Structured Data: JSON-formatted output for ELK/Datadog ingestion.
+3. Security Hardening: Automated PII masking (email, keys) at the formatting layer.
+4. Developer Experience: Human-readable, color-coded output for local development.
+
+[LOGGING STRATEGY]
+We use 'Structured Aggregation'. Instead of flat strings, we log machine-readable
+objects that allow for complex querying and performance bottleneck analysis
+across distributed traces.
 """
 
+import json
 import logging
 import sys
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-import json
-from contextvars import ContextVar
 
-# Context variables for request tracking
+# --- Global Context Tracing ---
+# ContextVars ensure that request/user identifiers are accessible to every function
+# deep in the call stack without having to pass them explicitly.
 request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
 user_id_var: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 
 
 class JSONFormatter(logging.Formatter):
-    """JSON log formatter for structured logging in production."""
+    """
+    Production-Grade Structured Formatter.
     
+    Converts Python log records into standardized JSON blobs. 
+    Implements recursive PII masking to ensure compliance with GDPR/SOC2.
+    """
+
     def __init__(self, mask_pii: bool = True):
         super().__init__()
         self.mask_pii = mask_pii
-        self._pii_fields = {"email", "api_key", "password", "token", "authorization"}
-    
+        # Sensitive keys that must never appear in raw logs
+        self._pii_fields = {"email", "api_key", "password", "token", "authorization", "secret"}
+
     def _mask_value(self, key: str, value: Any) -> Any:
-        """Mask sensitive values."""
+        """Sanitizes sensitive data while preserving debug utility (shows first 4 chars)."""
         if not self.mask_pii:
             return value
-        
+
         key_lower = key.lower()
-        for pii_field in self._pii_fields:
-            if pii_field in key_lower:
-                if isinstance(value, str) and len(value) > 4:
-                    return f"{value[:4]}***"
-                return "***"
+        if any(pii in key_lower for pii in self._pii_fields):
+            if isinstance(value, str) and len(value) > 4:
+                return f"{value[:4]}***"
+            return "***"
         return value
-    
+
     def _mask_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
-        """Recursively mask sensitive values in a dictionary."""
+        """Deep-walking masking algorithm for complex nested 'extra' data objects."""
         result = {}
         for key, value in d.items():
             if isinstance(value, dict):
@@ -45,9 +64,9 @@ class JSONFormatter(logging.Formatter):
             else:
                 result[key] = self._mask_value(key, value)
         return result
-    
+
     def format(self, record: logging.LogRecord) -> str:
-        """Format log record as JSON."""
+        """Transformation: LogRecord -> JSON String."""
         log_data = {
             "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "level": record.levelname,
@@ -57,203 +76,143 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
-        
-        # Add context variables
-        request_id = request_id_var.get()
-        if request_id:
-            log_data["request_id"] = request_id
-        
-        user_id = user_id_var.get()
-        if user_id:
-            log_data["user_id"] = user_id
-        
-        # Add extra fields
+
+        # Inject Cross-Cutting Context (Correlation IDs)
+        if (req_id := request_id_var.get()): log_data["request_id"] = req_id
+        if (usr_id := user_id_var.get()): log_data["user_id"] = usr_id
+
+        # Merge Structured 'Extra' Metadata
         if hasattr(record, "extra_data"):
             extra = self._mask_dict(record.extra_data) if isinstance(record.extra_data, dict) else record.extra_data
             log_data["extra"] = extra
-        
-        # Add exception info if present
+
+        # Precise Exception Reporting
         if record.exc_info:
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
                 "message": str(record.exc_info[1]) if record.exc_info[1] else None,
                 "traceback": self.formatException(record.exc_info)
             }
-        
+
         return json.dumps(log_data, default=str)
 
 
 class DevelopmentFormatter(logging.Formatter):
-    """Readable log formatter for development."""
-    
+    """
+    Console Beautifier.
+    Used during development to provide high-visibility, color-coded output.
+    """
+
     COLORS = {
-        "DEBUG": "\033[36m",     # Cyan
-        "INFO": "\033[32m",      # Green
-        "WARNING": "\033[33m",   # Yellow
-        "ERROR": "\033[31m",     # Red
-        "CRITICAL": "\033[35m",  # Magenta
+        "DEBUG": "\033[36m", "INFO": "\033[32m", "WARNING": "\033[33m",
+        "ERROR": "\033[31m", "CRITICAL": "\033[35m",
     }
     RESET = "\033[0m"
-    
+
     def format(self, record: logging.LogRecord) -> str:
-        """Format log record for development."""
         color = self.COLORS.get(record.levelname, "")
-        reset = self.RESET
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         
-        # Build base message
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        parts = [
-            f"{color}[{timestamp}]{reset}",
-            f"{color}[{record.levelname}]{reset}",
-            f"[{record.name}]",
-            record.getMessage()
-        ]
-        
-        # Add context if available
-        request_id = request_id_var.get()
-        if request_id:
-            parts.insert(2, f"[req:{request_id[:8]}]")
-        
-        message = " ".join(parts)
-        
-        # Add extra data if present
+        # Identity Badge: Show first 8 chars of request ID for easy tracking
+        req_ctx = f"[req:{rid[:8]}] " if (rid := request_id_var.get()) else ""
+
+        message = (
+            f"{color}[{timestamp}] [{record.levelname}]{self.RESET} "
+            f"[{record.name}] {req_ctx}{record.getMessage()}"
+        )
+
         if hasattr(record, "extra_data") and record.extra_data:
-            message += f"\n  Extra: {record.extra_data}"
-        
-        # Add exception info if present
+            message += f"\n  {color}▸ Data:{self.RESET} {record.extra_data}"
+
         if record.exc_info:
             message += f"\n{self.formatException(record.exc_info)}"
-        
+
         return message
 
 
 class StructuredLogger(logging.Logger):
-    """Extended logger with structured logging support."""
-    
-    def _log_with_extra(
-        self,
-        level: int,
-        msg: str,
-        args: tuple,
-        extra_data: Optional[Dict[str, Any]] = None,
-        **kwargs
-    ) -> None:
-        """Log with extra structured data."""
+    """
+    Enhanced Logger API.
+    Provides standard logging methods with a first-class `extra_data` argument.
+    """
+
+    def _log_with_extra(self, level: int, msg: str, args: tuple, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         if extra_data:
-            # Create a new LogRecord with extra_data attribute
             extra = kwargs.get("extra", {})
             extra["extra_data"] = extra_data
             kwargs["extra"] = extra
-        
         super()._log(level, msg, args, **kwargs)
-    
+
     def debug(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.DEBUG, msg, args, extra_data, **kwargs)
-    
+
     def info(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.INFO, msg, args, extra_data, **kwargs)
-    
+
     def warning(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.WARNING, msg, args, extra_data, **kwargs)
-    
+
     def error(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.ERROR, msg, args, extra_data, **kwargs)
-    
+
     def critical(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.CRITICAL, msg, args, extra_data, **kwargs)
 
 
-# Register custom logger class
+# Inject custom implementation into logging system
 logging.setLoggerClass(StructuredLogger)
 
 
-def setup_logging(
-    log_level: str = "INFO",
-    log_format: str = "json",
-    mask_pii: bool = True,
-    log_file: Optional[str] = None
-) -> logging.Logger:
+def setup_logging(log_level: str = "INFO", log_format: str = "json", mask_pii: bool = True, log_file: Optional[str] = None) -> logging.Logger:
     """
-    Configure structured logging for the application.
+    Bootstrap the logging subsystem.
     
-    Args:
-        log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_format: Output format - "json" for production, "text" for development
-        mask_pii: Whether to mask PII in log output
-        log_file: Optional file path for log output
-    
-    Returns:
-        Configured root logger
+    Initializes the root logger with handlers and formatters based on the 
+    current Environment setting.
     """
-    # Get root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level.upper()))
-    
-    # Remove existing handlers
     root_logger.handlers.clear()
-    
-    # Choose formatter based on format setting
+
+    # Formatter Selection
     if log_format.lower() == "json":
         formatter = JSONFormatter(mask_pii=mask_pii)
     else:
         formatter = DevelopmentFormatter()
-    
-    # Console handler
+
+    # STDOUT Configuration (Standard for K8s/Docker)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
-    
-    # File handler if specified
+
     if log_file:
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(JSONFormatter(mask_pii=mask_pii))  # Always JSON for files
+        file_handler.setFormatter(JSONFormatter(mask_pii=mask_pii))
         root_logger.addHandler(file_handler)
-    
-    # Reduce noise from third-party libraries
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    
+
+    # Noise Reduction: Muting overly chatty frameworks
+    for chatty in ["uvicorn.access", "sqlalchemy.engine", "httpx", "httpcore"]:
+        logging.getLogger(chatty).setLevel(logging.WARNING)
+
     return root_logger
 
 
 def get_logger(name: str) -> StructuredLogger:
-    """
-    Get a structured logger instance.
-    
-    Args:
-        name: Logger name (typically __name__)
-    
-    Returns:
-        StructuredLogger instance
-    """
+    """Standard access point for retrieving a configured StructuredLogger."""
     return logging.getLogger(name)
 
 
-# Convenience function for request logging
-def log_request(
-    logger: logging.Logger,
-    method: str,
-    path: str,
-    status_code: int,
-    duration_ms: float,
-    user_id: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None
-) -> None:
-    """Log an HTTP request with structured data."""
+def log_request(logger: logging.Logger, method: str, path: str, status_code: int, duration_ms: float, 
+                user_id: Optional[str] = None, extra: Optional[Dict[str, Any]] = None) -> None:
+    """
+    Lifecycle Logger.
+    Logs standard HTTP metadata for every processed endpoint.
+    """
     data = {
-        "method": method,
-        "path": path,
-        "status_code": status_code,
+        "method": method, "path": path, "status_code": status_code,
         "duration_ms": round(duration_ms, 2),
     }
-    if user_id:
-        data["user_id"] = user_id
-    if extra:
-        data.update(extra)
-    
-    logger.info(
-        f"{method} {path} {status_code} ({duration_ms:.2f}ms)",
-        extra_data=data
-    )
+    if user_id: data["user_id"] = user_id
+    if extra: data.update(extra)
+
+    logger.info(f"{method} {path} {status_code} ({duration_ms:.2f}ms)", extra_data=data)

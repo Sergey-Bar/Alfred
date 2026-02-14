@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from .base import NotificationProvider, NotificationEvent, EventType
+from .base import EventType, NotificationEvent, NotificationProvider
 
 
 class TeamsNotifier(NotificationProvider):
@@ -25,7 +25,7 @@ class TeamsNotifier(NotificationProvider):
         TEAMS_WEBHOOK_URL: Default webhook URL
         TEAMS_WEBHOOK_URL_ALERTS: Webhook for critical alerts (optional)
     """
-    
+
     # Severity to color mapping (Adaptive Card accent colors)
     SEVERITY_COLORS = {
         "info": "accent",      # Blue
@@ -33,7 +33,7 @@ class TeamsNotifier(NotificationProvider):
         "error": "attention",  # Red
         "critical": "attention", # Red
     }
-    
+
     # Event type to theme color (hex for MessageCard fallback)
     EVENT_COLORS = {
         EventType.QUOTA_WARNING: "FFA500",
@@ -52,7 +52,7 @@ class TeamsNotifier(NotificationProvider):
         EventType.SYSTEM_ERROR: "FF0000",
         EventType.HIGH_LATENCY: "FFA500",
     }
-    
+
     # Event type icons (emoji for display)
     EVENT_ICONS = {
         EventType.QUOTA_WARNING: "⚠️",
@@ -71,7 +71,7 @@ class TeamsNotifier(NotificationProvider):
         EventType.SYSTEM_ERROR: "🔴",
         EventType.HIGH_LATENCY: "🐢",
     }
-    
+
     def __init__(
         self,
         webhook_url: Optional[str] = None,
@@ -90,37 +90,37 @@ class TeamsNotifier(NotificationProvider):
         self.alerts_webhook_url = alerts_webhook_url
         self.timeout = timeout
         self._client: Optional[httpx.AsyncClient] = None
-    
+
     @property
     def name(self) -> str:
         return "teams"
-    
+
     @property
     def is_configured(self) -> bool:
         return bool(self.webhook_url)
-    
+
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=self.timeout)
         return self._client
-    
+
     async def close(self) -> None:
         """Close HTTP client."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
-    
+
     def _get_webhook_for_event(self, event: NotificationEvent) -> Optional[str]:
         """Determine which webhook to use based on event severity."""
         if event.severity in ("error", "critical") and self.alerts_webhook_url:
             return self.alerts_webhook_url
         return self.webhook_url
-    
+
     def _build_adaptive_card(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build an Adaptive Card for Teams."""
         icon = self.EVENT_ICONS.get(event.event_type, "📢")
         color = self.SEVERITY_COLORS.get(event.severity, "accent")
-        
+
         # Build the card body
         body = [
             {
@@ -138,45 +138,45 @@ class TeamsNotifier(NotificationProvider):
                 "spacing": "medium"
             }
         ]
-        
+
         # Add a fact set for metadata
         facts = []
-        
+
         if event.user_name:
             facts.append({
                 "title": "User",
                 "value": event.user_name
             })
-        
+
         if event.user_email:
             facts.append({
                 "title": "Email",
                 "value": event.user_email
             })
-        
+
         if event.team_name:
             facts.append({
                 "title": "Team",
                 "value": event.team_name
             })
-        
+
         facts.append({
             "title": "Time",
             "value": event.timestamp.strftime("%Y-%m-%d %H:%M UTC")
         })
-        
+
         facts.append({
             "title": "Severity",
             "value": event.severity.upper()
         })
-        
+
         if facts:
             body.append({
                 "type": "FactSet",
                 "facts": facts,
                 "spacing": "medium"
             })
-        
+
         # Add additional data if present
         if event.data:
             data_facts = []
@@ -185,7 +185,7 @@ class TeamsNotifier(NotificationProvider):
                     "title": key.replace("_", " ").title(),
                     "value": str(value)
                 })
-            
+
             if data_facts:
                 body.append({
                     "type": "TextBlock",
@@ -197,7 +197,7 @@ class TeamsNotifier(NotificationProvider):
                     "type": "FactSet",
                     "facts": data_facts
                 })
-        
+
         # Add footer
         body.append({
             "type": "TextBlock",
@@ -207,7 +207,7 @@ class TeamsNotifier(NotificationProvider):
             "spacing": "large",
             "horizontalAlignment": "right"
         })
-        
+
         # Build the adaptive card
         adaptive_card = {
             "type": "AdaptiveCard",
@@ -218,14 +218,14 @@ class TeamsNotifier(NotificationProvider):
                 "width": "Full"
             }
         }
-        
+
         return adaptive_card
-    
+
     def _build_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build the Teams webhook payload with Adaptive Card."""
         adaptive_card = self._build_adaptive_card(event)
         theme_color = self.EVENT_COLORS.get(event.event_type, "0078D7")
-        
+
         # Teams webhook expects this wrapper format
         payload = {
             "type": "message",
@@ -237,14 +237,14 @@ class TeamsNotifier(NotificationProvider):
                 }
             ]
         }
-        
+
         return payload
-    
+
     def _build_legacy_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build a legacy MessageCard payload (fallback for older connectors)."""
         theme_color = self.EVENT_COLORS.get(event.event_type, "0078D7")
         icon = self.EVENT_ICONS.get(event.event_type, "📢")
-        
+
         sections = [
             {
                 "activityTitle": f"{icon} {event.title}",
@@ -253,31 +253,31 @@ class TeamsNotifier(NotificationProvider):
                 "facts": []
             }
         ]
-        
+
         if event.user_name:
             sections[0]["facts"].append({
                 "name": "User",
                 "value": event.user_name
             })
-        
+
         if event.team_name:
             sections[0]["facts"].append({
                 "name": "Team",
                 "value": event.team_name
             })
-        
+
         sections[0]["facts"].append({
             "name": "Severity",
             "value": event.severity.upper()
         })
-        
+
         # Add data as facts
         for key, value in list(event.data.items())[:5]:
             sections[0]["facts"].append({
                 "name": key.replace("_", " ").title(),
                 "value": str(value)
             })
-        
+
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
@@ -285,51 +285,51 @@ class TeamsNotifier(NotificationProvider):
             "summary": event.title,
             "sections": sections
         }
-        
+
         return payload
-    
+
     async def send(self, event: NotificationEvent) -> bool:
         """Send a notification to Teams."""
         if not self.is_configured:
             return False
-        
+
         webhook_url = self._get_webhook_for_event(event)
         if not webhook_url:
             return False
-        
+
         try:
             client = await self._get_client()
             payload = self._build_payload(event)
-            
+
             response = await client.post(webhook_url, json=payload)
-            
+
             # Teams returns 200 OK on success, sometimes with empty body
             if response.status_code == 200:
                 return True
-            
+
             # If Adaptive Card fails, try legacy MessageCard
             if response.status_code in (400, 415):
                 legacy_payload = self._build_legacy_payload(event)
                 fallback_response = await client.post(webhook_url, json=legacy_payload)
                 return fallback_response.status_code == 200
-            
+
             return False
-            
-        except Exception as e:
+
+        except Exception:
             # Log error but don't raise - notifications shouldn't break main flow
             return False
-    
+
     async def send_batch(self, events: List[NotificationEvent]) -> Dict[str, bool]:
         """Send multiple notifications to Teams."""
         results = {}
-        
+
         # Send sequentially to avoid overwhelming the webhook
         for event in events:
             results[event.event_id] = await self.send(event)
             await asyncio.sleep(0.2)  # Teams has stricter rate limits
-        
+
         return results
-    
+
     def format_message(self, event: NotificationEvent) -> str:
         """Format message for Teams (Markdown-like syntax)."""
         icon = self.EVENT_ICONS.get(event.event_type, "📢")
@@ -339,15 +339,15 @@ class TeamsNotifier(NotificationProvider):
             event.message,
             "",
         ]
-        
+
         if event.user_name:
             lines.append(f"**User:** {event.user_name}")
-        
+
         if event.team_name:
             lines.append(f"**Team:** {event.team_name}")
-        
+
         lines.append(f"**Time:** {event.timestamp.strftime('%Y-%m-%d %H:%M UTC')}")
-        
+
         return "\n".join(lines)
 
 
@@ -363,7 +363,7 @@ def create_teams_notifier(
     """
     if not webhook_url:
         return None
-    
+
     return TeamsNotifier(
         webhook_url=webhook_url,
         alerts_webhook_url=alerts_webhook_url,

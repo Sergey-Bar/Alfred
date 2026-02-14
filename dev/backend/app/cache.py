@@ -1,9 +1,24 @@
-"""Caching layer using Redis for performance optimization"""
+"""
+Alfred - Enterprise AI Credit Governance Platform
+High-Performance Caching Subsystem
+
+[ARCHITECTURAL ROLE]
+This module provides a critical latency-reduction layer between the API and 
+the persistent storage (Database). It utilizes Redis for distributed caching,
+allowing the platform to scale horizontally while maintaining consistent 
+performance for high-frequency operations like quota checks and leaderboard reads.
+
+[DESIGN PRINCIPLE]
+Graceful Degradation: If Redis is unavailable or uninstalled, the system 
+automatically falls back to 'Direct-to-DB' mode, ensuring operational 
+continuity even in a degraded environment.
+"""
 
 import json
-from typing import Optional, Any, Callable
 from functools import wraps
+from typing import Any, Callable, Optional
 
+# Conditionally import redis to support environments where it is optional
 try:
     import redis
 except ImportError:
@@ -16,9 +31,18 @@ logger = get_logger(__name__)
 
 
 class CacheManager:
-    """Redis-based caching for expensive operations"""
+    """
+    Stateful Cache Coordinator.
     
+    Handles connection lifecycle, serialization/deserialization of complex objects,
+    and provides a unified interface for key-value storage operations.
+    """
+
     def __init__(self):
+        """
+        Bootstrap the Redist connection with aggressive timeouts.
+        Aggressive timeouts ensure that a slow cache doesn't block critical request paths.
+        """
         if settings.redis_enabled and redis:
             try:
                 self.redis = redis.Redis(
@@ -26,109 +50,120 @@ class CacheManager:
                     port=settings.redis_port,
                     db=settings.redis_db,
                     decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_timeout=5
+                    socket_connect_timeout=2, # Fast fail on connect
+                    socket_timeout=2          # Fast fail on command
                 )
-                # Test connection
+                # Heartbeat verification
                 self.redis.ping()
-                logger.info(f"Redis cache connected: {settings.redis_host}:{settings.redis_port}")
+                logger.info(f"Performance Optimization: Redis Cache Active @ {settings.redis_host}:{settings.redis_port}")
             except Exception as e:
-                logger.warning(f"Redis connection failed: {e}. Caching disabled.")
+                logger.warning(f"Cache Degradation: Redis connection failed ({e}). Reverting to Database-Only mode.")
                 self.redis = None
         else:
             self.redis = None
             if settings.redis_enabled and not redis:
-                logger.warning("Redis enabled but redis package not installed. Run: pip install redis")
+                logger.error("Configuration Conflict: Redis enabled but 'redis-py' package missing.")
             else:
-                logger.info("Redis cache disabled")
-    
+                logger.info("Operational Mode: Caching Disabled (Direct-to-DB).")
+
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache"""
+        """
+        Lookup with automatic JSON hydration.
+        Returns None on miss or cache-failure.
+        """
         if not self.redis:
             return None
-        
+
         try:
             value = self.redis.get(key)
             if value:
                 return json.loads(value)
         except Exception as e:
-            logger.warning(f"Cache get failed: {e}")
-        
+            logger.warning(f"Cache Interruption (GET): {e}")
+
         return None
-    
+
     def set(self, key: str, value: Any, ttl: int = 300) -> bool:
-        """Set value in cache with TTL in seconds"""
+        """
+        Persistent set with mandatory TTL (Default 5 mins).
+        We enforce TTL to prevent the cache from becoming a 'Stale Ghost' of the DB.
+        """
         if not self.redis:
             return False
-        
+
         try:
             serialized = json.dumps(value)
             self.redis.setex(key, ttl, serialized)
             return True
         except Exception as e:
-            logger.warning(f"Cache set failed: {e}")
+            logger.warning(f"Cache Interruption (SET): {e}")
             return False
-    
+
     def delete(self, key: str) -> bool:
-        """Delete key from cache"""
+        """Atomic key invalidation."""
         if not self.redis:
             return False
-        
+
         try:
             self.redis.delete(key)
             return True
         except Exception as e:
-            logger.warning(f"Cache delete failed: {e}")
+            logger.warning(f"Cache Interruption (DELETE): {e}")
             return False
-    
+
     def invalidate_pattern(self, pattern: str) -> int:
-        """Delete all keys matching pattern"""
+        """
+        Mass Invalidation via Pattern Matching.
+        Useful for clearing all caches related to a specific user or team 
+        when their permissions change.
+        """
         if not self.redis:
             return 0
-        
+
         try:
             keys = self.redis.keys(pattern)
             if keys:
                 return self.redis.delete(*keys)
         except Exception as e:
-            logger.warning(f"Cache invalidation failed: {e}")
-        
+            logger.warning(f"Cache Interruption (INVALIDATE): {e}")
+
         return 0
 
 
-# Global cache instance
+# Singleton instance for application-wide use
 cache = CacheManager()
 
 
 def cached(ttl: int = 300, key_prefix: str = ""):
     """
-    Decorator to cache function results.
+    High-Order Memoization Decorator.
     
-    Usage:
-        @cached(ttl=60, key_prefix="user_quota")
-        def get_user_quota(user_id: str):
-            return expensive_database_query(user_id)
+    Automates the 'Cache-Aside' pattern for repository methods.
+    
+    Note: Ensure that decorated function arguments are serializable (strings/ints).
     """
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Generate cache key from function name and arguments
-            cache_key = f"{key_prefix}:{func.__name__}:{args}:{kwargs}"
-            
-            # Try to get from cache
+            # Compute a Deterministic Key based on function signature and arguments
+            # Logic: prefix:func_name:normalized_args
+            cache_key = f"alfred:{key_prefix}:{func.__name__}:{hash(str(args)+str(kwargs))}"
+
+            # 1. Attempt Retrieval (Fast Path)
             cached_value = cache.get(cache_key)
             if cached_value is not None:
-                logger.debug(f"Cache hit: {cache_key}")
+                logger.debug(f"⚡ Cache Hit: {cache_key}")
                 return cached_value
-            
-            # Cache miss - call function
-            logger.debug(f"Cache miss: {cache_key}")
+
+            # 2. Source of Truth (Slow Path)
+            logger.debug(f"🕳️ Cache Miss: {cache_key}")
             result = func(*args, **kwargs)
-            
-            # Store in cache
+
+            # 3. Asynchronously Populate Cache
+            # (In this sync implementation, we wait, but failures are swallowed)
             cache.set(cache_key, result, ttl)
-            
+
             return result
-        
+
         return wrapper
     return decorator

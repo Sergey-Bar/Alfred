@@ -4,10 +4,9 @@ Revision ID: 005
 Revises: 004
 Create Date: 2026-02-12 13:00:00.000000
 """
-from alembic import op
 import sqlalchemy as sa
 import sqlmodel
-
+from alembic import op
 
 # revision identifiers
 revision = '005'

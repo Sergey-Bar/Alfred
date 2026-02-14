@@ -1,5 +1,4 @@
 import {
-    ArrowDownTrayIcon,
     BellIcon,
     CheckCircleIcon,
     Cog6ToothIcon,
@@ -91,20 +90,10 @@ export default function Settings() {
         }
     };
 
-    const handleExportData = () => {
-        const data = {
-            user: user,
-            settings: settings,
-            exportedAt: new Date().toISOString(),
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `alfred-settings-${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
+
+    // API Key reveal/hide
+    const [showApiKey, setShowApiKey] = useState(false);
+    const apiKey = api.getApiKey();
 
     const ToggleSwitch = ({ enabled, onToggle }) => (
         <button
@@ -267,27 +256,24 @@ export default function Settings() {
                     <h2 className="text-lg font-semibold text-white">Data & Security</h2>
                 </div>
 
-                <SettingRow
-                    icon={ArrowDownTrayIcon}
-                    label="Export Settings"
-                    description="Download your settings as a JSON file"
-                >
-                    <button
-                        onClick={handleExportData}
-                        className="px-4 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                    >
-                        Export
-                    </button>
-                </SettingRow>
+
 
                 <SettingRow
                     icon={KeyIcon}
                     label="API Key"
                     description="Your current session API key"
                 >
-                    <code className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded font-mono">
-                        ••••••••••••
-                    </code>
+                    <div className="flex items-center space-x-2">
+                        <code className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded font-mono">
+                            {showApiKey ? (apiKey || 'Not set') : '•••••••••••'}
+                        </code>
+                        <button
+                            onClick={() => setShowApiKey(v => !v)}
+                            className="text-xs px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-white border border-gray-500"
+                        >
+                            {showApiKey ? 'Hide' : 'Show'}
+                        </button>
+                    </div>
                 </SettingRow>
             </div>
 

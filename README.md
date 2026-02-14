@@ -24,6 +24,23 @@ Alfred is a FastAPI-based proxy server that manages AI token quotas across an or
 - **🏦 Liquidity Pool** - Rollover unused credits instead of expiring
 - **🔧 VS Code Extension** - Manage tokens directly from your editor
 
+## 🛠️ Project Governance
+
+### Project Lead
+- Sergey Bar is the sole project lead and approves all changes.
+
+### AI Usage Policy
+- Any AI-generated code, documentation, or configuration must include a comment specifying:
+  - **Model Name**: e.g., GPT-4.1, GPT-5.1-Codex
+  - **Logic/Reasoning**: Why the change was made
+  - **Root Cause**: What problem it solves
+  - **Context**: For future improvements
+- Manual edits by Sergey Bar do not require this comment.
+
+### Contribution Policy
+- Only Sergey Bar can approve and merge changes to the main branch.
+- External contributions require explicit review and approval.
+
 ## ⚡ Quick Install
 
 ```bash
@@ -48,133 +65,13 @@ curl http://localhost:8000/health
 
 **Dashboard**: http://localhost:8000 | **API Docs**: http://localhost:8000/docs
 
-## 📖 Make a Request
-
-```bash
-# Create a user
-curl -X POST http://localhost:8000/v1/admin/users \
-  -H "Content-Type: application/json" \
-  -d '{"email": "dev@company.com", "name": "Developer", "personal_quota": 100000}'
-
-# Use the API key from response
-curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer tp-your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}'
-```
-
-## � VS Code Extension
-
-Alfred now comes with a **VS Code extension** for seamless token management directly in your editor!
-
-### Features
-- **📊 Real-time Quota Display** - View token balance in status bar
-- **💸 Token Transfers** - Send tokens to colleagues with validation
-- **📜 Transfer History** - Track all your token transactions
-- **🔄 Auto-refresh** - Configurable automatic quota updates
-- **🚀 Quick Dashboard Access** - One-click access to web dashboard
-
-### Installation
-
-```bash
-# From the extension directory
-cd extension
-npm install
-npm run compile
-
-# Install in VS Code
-# 1. Press F5 to open Extension Development Host
-# OR
-# 2. Package and install: vsce package && code --install-extension alfred-token-manager-0.0.1.vsix
-```
-
-### Configuration
-
-1. Open VS Code Settings (`Ctrl+,` or `Cmd+,`)
-2. Search for "Alfred"
-3. Configure:
-   - `alfred.serverUrl` - Your Alfred server URL (default: `http://localhost:8000`)
-   - `alfred.apiKey` - Your Alfred API key (starts with `tp-`)
-   - `alfred.refreshInterval` - Auto-refresh interval in seconds (default: 60)
-   - `alfred.showInStatusBar` - Show quota in status bar (default: true)
-
-### Commands
-
-Access via Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
-- `Alfred: Show Token Quota` - Display detailed quota information
-- `Alfred: Transfer Tokens` - Transfer tokens to another user
-- `Alfred: Refresh Quota` - Manually refresh your quota
-- `Alfred: View Transfer History` - View recent transfers
-- `Alfred: Open Dashboard` - Open Alfred web dashboard
-
-📖 **Full extension documentation**: [extension/README.md](extension/README.md)
-
-## �📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Installation](docs/install.md) | Detailed setup instructions |
-| [API Reference](docs/api.md) | Complete API documentation |
-| [Architecture](docs/architecture.md) | System design and data flow |
-| [Providers](docs/providers.md) | Supported LLM providers |
-| [Enterprise](docs/enterprise.md) | SSO, LDAP, HRIS, Liquidity Pool |
-| [Security](docs/security.md) | Guardrails, auditing, compliance |
-| [Deployment](docs/deployment.md) | Docker, Kubernetes, production |
-| [Notifications](docs/notifications.md) | Slack, Teams, Telegram setup |
-| [User Guide](docs/user_guide.md) | End-user documentation |
-| [Contributing](docs/contributing.md) | Contribution guidelines |
-
-## 🏗️ Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         ALFRED                               │
-├─────────────────────────────────────────────────────────────┤
-│  ┌────────────┐   ┌────────────┐   ┌────────────────────┐  │
-│  │  FastAPI   │──▶│   Quota    │──▶│  LiteLLM Proxy     │  │
-│  │  Gateway   │   │  Manager   │   │  (100+ providers)  │  │
-│  └────────────┘   └────────────┘   └────────────────────┘  │
-│        │                │                    │              │
-│        ▼                ▼                    ▼              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  PostgreSQL: Users │ Teams │ Quotas │ Transactions  │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 🔌 Supported Providers
-
-| Category | Providers |
-|----------|-----------|
-| **Public APIs** | OpenAI (GPT-4o, o1), Anthropic (Claude 3.5), Google (Gemini) |
-| **Enterprise Cloud** | Azure OpenAI, AWS Bedrock, Google Vertex AI |
-| **Self-Hosted** | vLLM (Llama 3.1), TGI (Mixtral), Ollama |
-
-## 🐳 Docker
-
-```bash
-cd dev/devops/docker && docker-compose up -d
-```
-
-## 🧪 Testing
-
-```bash
-pytest dev/QA/Backend/ -v --cov=dev/backend/app\n```
-```
-
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ## 👤 Author
 
-**Project Lead:** [![LinkedIn](https://img.shields.io/badge/Sergey_Bar-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sergeybar/)
-
-## 🙏 Acknowledgments
-
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [SQLModel](https://sqlmodel.tiangolo.com/) - SQL databases with Pydantic
-- [LiteLLM](https://github.com/BerriAI/litellm) - Unified LLM API
+**Project Lead:** Sergey Bar
 
 ---
 

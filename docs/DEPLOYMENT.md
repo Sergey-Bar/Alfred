@@ -207,6 +207,12 @@ spec:
               number: 80
 ```
 
+**Troubleshooting Tips:**
+- **Issue**: Pods stuck in `CrashLoopBackOff`.
+  **Solution**: Check logs using `kubectl logs <pod-name>`.
+- **Issue**: Service not accessible.
+  **Solution**: Verify Ingress configuration and DNS settings.
+
 ---
 
 ## Production Checklist

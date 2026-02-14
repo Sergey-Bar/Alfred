@@ -140,8 +140,11 @@ jobs:
         run: |
           npx wait-on http://localhost:5173 --timeout 30000
           npx wait-on http://localhost:8000/health --timeout 30000 || echo "Backend health check skipped"
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run Python E2E tests
+        run: |
+          pip install pytest-playwright playwright
+          playwright install chromium
+          pytest dev/QA/E2E_Python -v
         env:
           BASE_URL: http://localhost:5173
       - name: Upload test results

@@ -66,6 +66,9 @@ BILLING_CYCLE_DAY=1             # Monthly reset on 1st
 - `POST /v1/liquidity/request` - Request from reserve
 - `POST /v1/admin/liquidity/rollover` - Manual rollover trigger
 
+**Example Use Case:**
+- A large enterprise with multiple departments uses the liquidity pool to ensure unused credits are not wasted. At the end of each month, unused credits are rolled over into a reserve pool.
+
 ---
 
 ### Token-aware Guardrails
@@ -99,6 +102,9 @@ LOOP_DETECTION_THRESHOLD=3
 ANOMALY_DETECTION_ENABLED=true
 ANOMALY_ALERT_THRESHOLD=3.0
 ```
+
+**Example Use Case:**
+- A team working on sensitive data uses token-aware guardrails to prevent excessive token usage and ensure compliance with security policies.
 
 ---
 

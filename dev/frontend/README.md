@@ -155,3 +155,47 @@ When deployed, FastAPI serves the built frontend:
 The backend detects if `static/index.html` exists and switches between:
 - **SPA Mode**: Serves React app at `/`, APIs at `/v1/`
 - **API Mode**: Returns JSON info at `/`, APIs at `/v1/`
+
+# Frontend Visual Regression Testing
+
+## Visual Regression Testing Implementation
+
+### 1. Playwright Screenshot Comparison
+- Add Playwright screenshot assertions to E2E tests:
+  ```js
+  // Example in a Playwright test
+  await page.goto('/dashboard');
+  expect(await page.screenshot()).toMatchSnapshot('dashboard.png');
+  ```
+- Store baseline images in `frontend/playwright/tests/__screenshots__`.
+- Review diffs in CI and update baselines as needed.
+
+### 2. Storybook + Chromatic (Recommended)
+- Install and configure Storybook for all major components:
+  ```sh
+  npx storybook init
+  ```
+- Add Chromatic for automated visual testing:
+  ```sh
+  npx chromatic --project-token=<your-token>
+  ```
+- Each PR triggers a Chromatic build and visual diff check.
+- Review and approve/reject UI changes in the Chromatic dashboard.
+
+### 3. CI Integration
+- Add Playwright and Chromatic steps to your CI pipeline (GitHub Actions example):
+  ```yaml
+  - name: Run Playwright E2E Tests
+    run: npx playwright test
+  - name: Publish to Chromatic
+    run: npx chromatic --project-token=${{ secrets.CHROMATIC_TOKEN }}
+  ```
+- Fail the build on unapproved visual diffs.
+
+### 4. Documentation & Review
+- Document the process for updating and reviewing visual baselines in the frontend README.
+- Require visual review for all major UI changes as part of the PR process.
+
+---
+
+For more details, see the Playwright and Chromatic documentation.

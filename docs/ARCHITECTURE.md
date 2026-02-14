@@ -1,18 +1,5 @@
 # Alfred Architecture
 
-Technical architecture overview for Alfred AI Credit Governance Platform.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Three-Layer Architecture](#three-layer-architecture)
-- [Architecture Diagram](#architecture-diagram)
-- [The Balancer Logic](#the-balancer-logic)
-- [Credit Normalizer](#credit-normalizer)
-- [Implementation Approaches](#implementation-approaches)
-
----
-
 ## Overview
 
 Alfred implements a **three-layer architecture** designed for enterprise-grade AI governance:
@@ -20,49 +7,6 @@ Alfred implements a **three-layer architecture** designed for enterprise-grade A
 1. **Proxy Gateway** (The Gatekeeper) - Request interception and quota enforcement
 2. **Ledger System** (The Bank) - Credit ownership and transaction tracking
 3. **SDK/Authentication** (The Passport) - User identity and key management
-
----
-
-## Three-Layer Architecture
-
-### Layer 1: Proxy Gateway (The Gatekeeper)
-
-```
-User/Application → Alfred Proxy → LLM Provider (OpenAI, Azure, Bedrock, etc.)
-```
-
-Instead of calling AI providers directly, applications call Alfred's OpenAI-compatible endpoint. Alfred:
-
-- **Intercepts** requests and counts tokens in the prompt
-- **Verifies** user quota before forwarding to the provider
-- **Logs** usage and calculates costs in real-time
-
-### Layer 2: Ledger System (The Bank)
-
-```
-PostgreSQL/SQLite → Users │ Teams │ Quotas │ Transactions │ Audit Log
-```
-
-A database tracks the "ownership" of credits via atomic transactions:
-
-- **User quotas**: Individual credit balances debited on each request
-- **Team pools**: Shared budgets for departments/projects
-- **Transfer log**: Audit trail for all credit reallocations
-- **Real-time sync**: Permissions updated immediately on the Proxy Layer
-
-### Layer 3: SDK/Authentication (The Passport)
-
-```
-Alfred API Key (tp-xxx...) → Identifies user → Applies quota rules
-```
-
-Enterprise developers use Alfred API keys instead of direct provider keys:
-
-- Single authentication layer for all providers
-- Centralized key management (rotate without app changes)
-- User identity tied to usage tracking
-
----
 
 ## Architecture Diagram
 
@@ -98,6 +42,11 @@ Enterprise developers use Alfred API keys instead of direct provider keys:
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Real-World Use Cases
+
+- **Scenario 1**: A company with multiple departments uses Alfred to allocate AI credits efficiently.
+- **Scenario 2**: Developers integrate Alfred's SDK to manage API keys securely.
 
 ---
 

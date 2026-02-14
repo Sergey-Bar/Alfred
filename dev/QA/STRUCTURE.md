@@ -37,7 +37,7 @@ Alfred/
 │   │   │   └── README.md                # Explains frontend test location (⭐ NEW)
 │   │   │   # Note: Actual tests remain in dev/frontend/src/__tests__/
 │   │   │
-│   │   ├── E2E/                         # ⭐ End-to-End Tests (Playwright)
+│   │   ├── E2E/                         # ⭐ End-to-End Tests (Playwright JS)
 │   │   │   ├── login.spec.js            # 4 scenarios
 │   │   │   ├── dashboard.spec.js        # 4 scenarios
 │   │   │   ├── transfers.spec.js        # 5 scenarios
@@ -47,6 +47,18 @@ Alfred/
 │   │   │   ├── profile.spec.js          # 4 scenarios
 │   │   │   ├── integrations.spec.js     # 5 scenarios
 │   │   │   └── smoke.spec.js            # 6 scenarios
+│   │   │
+│   │   ├── E2E_Python/                  # ⭐ Python E2E Tests (Pytest-Playwright) (⭐ NEW)
+│   │   │   ├── conftest.py              # Fixtures and configuration
+│   │   │   ├── test_smoke.py            # Smoke tests
+│   │   │   ├── test_login.py            # Login flow
+│   │   │   ├── test_dashboard.py        # Dashboard logic
+│   │   │   ├── test_transfers.py        # Transfers
+│   │   │   ├── test_approvals.py        # Approvals
+│   │   │   ├── test_users.py            # User management
+│   │   │   ├── test_teams.py            # Team management
+│   │   │   ├── test_profile.py          # User profile
+│   │   │   └── test_integrations.py     # Integrations
 │   │   │
 │   │   └── results/                     # Test Results & Artifacts (gitignored)
 │   │       ├── .gitkeep

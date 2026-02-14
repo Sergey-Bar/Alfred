@@ -3,6 +3,7 @@ Tests for API endpoints.
 """
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -13,7 +14,7 @@ _spa_mode = os.path.exists(_static_dir) and os.path.exists(os.path.join(_static_
 
 class TestHealthEndpoint:
     """Tests for health check endpoint."""
-    
+
     def test_health_check(self, test_client: TestClient):
         """Test health endpoint returns healthy status."""
         response = test_client.get("/health")
@@ -25,7 +26,7 @@ class TestHealthEndpoint:
 
 class TestRootEndpoint:
     """Tests for root endpoint."""
-    
+
     @pytest.mark.skipif(_spa_mode, reason="Root returns HTML when SPA is deployed")
     def test_root(self, test_client: TestClient):
         """Test root endpoint returns API info."""
@@ -34,7 +35,7 @@ class TestRootEndpoint:
         data = response.json()
         assert data["name"] == "Alfred"
         assert "version" in data
-    
+
     def test_root_spa_mode(self, test_client: TestClient):
         """Test root endpoint returns HTML when SPA is deployed."""
         if not _spa_mode:
@@ -46,7 +47,7 @@ class TestRootEndpoint:
 
 class TestUserEndpoints:
     """Tests for user management endpoints."""
-    
+
     def test_create_user(self, test_client: TestClient, admin_api_key):
         """Test user creation returns API key."""
         response = test_client.post(
@@ -62,7 +63,7 @@ class TestUserEndpoints:
         data = response.json()
         assert "api_key" in data
         assert data["api_key"].startswith("tp-")
-    
+
     def test_create_user_duplicate_email(self, test_client: TestClient, admin_api_key):
         """Test duplicate email returns error."""
         # Create first user
@@ -74,7 +75,7 @@ class TestUserEndpoints:
             },
             headers=admin_api_key
         )
-        
+
         # Try to create duplicate
         response = test_client.post(
             "/v1/admin/users",
@@ -85,12 +86,12 @@ class TestUserEndpoints:
             headers=admin_api_key
         )
         assert response.status_code == 400
-    
+
     def test_get_current_user_no_auth(self, test_client: TestClient):
         """Test getting user without auth returns 401."""
         response = test_client.get("/v1/users/me")
         assert response.status_code == 401
-    
+
     def test_get_current_user_invalid_key(self, test_client: TestClient):
         """Test getting user with invalid key returns 401."""
         response = test_client.get(
@@ -102,7 +103,7 @@ class TestUserEndpoints:
 
 class TestChatCompletions:
     """Tests for chat completions endpoint."""
-    
+
     def test_chat_completions_no_auth(self, test_client: TestClient):
         """Test chat completions without auth returns 401."""
         response = test_client.post(
@@ -117,7 +118,7 @@ class TestChatCompletions:
 
 class TestTeamEndpoints:
     """Tests for team management endpoints."""
-    
+
     def test_create_team(self, test_client: TestClient, admin_api_key):
         """Test team creation."""
         response = test_client.post(
@@ -132,18 +133,18 @@ class TestTeamEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Engineering Team"
-        assert data["common_pool"] == 50000
+        assert float(data["common_pool"]) == 50000
 
 
 class TestLeaderboard:
     """Tests for leaderboard endpoint."""
-    
+
     def test_get_leaderboard(self, test_client: TestClient):
         """Test getting leaderboard."""
         response = test_client.get("/v1/leaderboard?period=daily")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
-    
+
     def test_get_leaderboard_invalid_period(self, test_client: TestClient):
         """Test invalid period returns error."""
         response = test_client.get("/v1/leaderboard?period=invalid")
