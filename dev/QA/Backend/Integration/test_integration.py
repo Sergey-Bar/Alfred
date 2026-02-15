@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Integration tests for end-to-end request flow, including user creation, quota checks, and chat completion with mocked LLM responses.
+# Why: Ensures all major backend flows work together and regressions are caught across components.
+# Root Cause: Integration bugs can occur even if unit tests pass, due to real-world interactions.
+# Context: Run in CI for every PR. Future: add more flows, error cases, and multi-user scenarios.
+# Model Suitability: Integration test logic is standard; GPT-4.1 is sufficient.
 """
 Integration tests for the complete request flow.
 """

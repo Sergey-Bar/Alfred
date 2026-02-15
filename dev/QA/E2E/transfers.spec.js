@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for credit transfer UI using Playwright. Covers listing, creation, validation, and filtering of transfers.
+// Why: Ensures transfer flows work in real browser and regressions are caught before release.
+// Root Cause: Transfer bugs can block or misroute credits, impacting users and teams.
+// Context: Run in CI for every PR. Future: add error cases and edge scenarios.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Credit Transfers', () => {

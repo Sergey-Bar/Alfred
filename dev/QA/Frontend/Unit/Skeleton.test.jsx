@@ -1,4 +1,3 @@
-import { render } from '@testing-library/react'
 import { Skeleton, SkeletonCard, SkeletonTable } from '../components/Skeleton'
 
 
@@ -19,3 +18,11 @@ test('SkeletonTable renders rows and columns', () => {
     // verify that grid style for header is applied
     expect(container.querySelectorAll('div').length).toBeGreaterThan(0)
 })
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: Tests Skeleton, SkeletonCard, and SkeletonTable render expected DOM structure for loading states.
+// Why: Ensures loading skeletons render correctly for user feedback during data fetches.
+// Root Cause: Broken skeletons degrade perceived performance and UX.
+// Context: Run in CI for every PR. Future: add visual regression and accessibility checks.
+// Model Suitability: Skeleton test logic is standard; GPT-4.1 is sufficient.

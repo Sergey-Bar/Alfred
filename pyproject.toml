@@ -1,3 +1,10 @@
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Project metadata, build system, and tool config for Alfred Python backend. Defines dependencies, authors, and formatting/linting rules.
+# Why: Ensures reproducible builds, dependency management, and code style enforcement.
+# Root Cause: Missing or inconsistent config leads to build failures and style drift.
+# Context: Used by pip, setuptools, Black, isort, and mypy. Future: add test/coverage tools.
+# Model Suitability: Project config logic is standard; GPT-4.1 is sufficient.
 [project]
 name = "alfred"
 version = "1.0.0"

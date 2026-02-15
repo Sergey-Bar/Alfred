@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for user profile UI using Playwright. Covers profile display, update, password change, and notification preferences.
+// Why: Ensures profile management works in real browser and regressions are caught before release.
+// Root Cause: Profile bugs can block users from updating info or settings.
+// Context: Run in CI for every PR. Future: add avatar upload and error cases.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('User Profile', () => {

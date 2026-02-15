@@ -1,12 +1,12 @@
-"""Security tests for authentication and authorization
 
-[AI GENERATED]
-Model: Antigravity (Gemini 2.5 Pro)
-Logic: Updated XSS test to correctly verify sanitization by fetching the user profile, 
-      as the creation endpoint returns ApiKeyResponse without user details.
-Root Cause: Incorrect expectation of API response structure in security tests.
-Context: Ensures security guardrails are correctly tested.
-"""
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests authentication and security guardrails (auth required, invalid keys, rate limiting, SQLi, XSS) for backend endpoints.
+# Why: Ensures security controls are enforced and common attacks are blocked.
+# Root Cause: Missing or broken security checks can lead to data leaks or compromise.
+# Context: Run in CI for every PR. Future: add more attack vectors and permission checks.
+# Model Suitability: Security test logic is standard; GPT-4.1 is sufficient.
+"""Security tests for authentication and authorization
 
 from fastapi.testclient import TestClient
 

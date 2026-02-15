@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for approval request UI using Playwright. Covers listing, creation, filtering, and admin approval flows.
+// Why: Ensures approval flows work in real browser and regressions are caught before release.
+// Root Cause: Approval bugs can block quota increases and user requests.
+// Context: Run in CI for every PR. Future: add error cases and multi-role scenarios.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Approval Requests', () => {

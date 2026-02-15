@@ -11,8 +11,10 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 # Add backend directory to Python path so 'app' module can be imported
-backend_dir = Path(__file__).parent.parent.parent / "backend"
-sys.path.insert(0, str(backend_dir))
+src_backend_dir = Path(__file__).parent.parent.parent / "src" / "backend"
+print(f"[DEBUG] src_backend_dir: {src_backend_dir}")
+sys.path.insert(0, str(src_backend_dir))
+print(f"[DEBUG] sys.path: {sys.path}")
 
 # Use SQLite in-memory for tests (truly in-memory - no file)
 TEST_DATABASE_URL = "sqlite:///:memory:"

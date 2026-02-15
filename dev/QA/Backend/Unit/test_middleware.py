@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests FastAPI middleware (rate limiting) for correct enforcement, headers, and blocking logic using TestClient and patching settings.
+# Why: Ensures middleware enforces limits and behaves as expected under different configurations.
+# Root Cause: Broken middleware can allow abuse or block legitimate users.
+# Context: Run in CI for every PR. Future: add tests for logging, error handling, and edge cases.
+# Model Suitability: Middleware test logic is standard; GPT-4.1 is sufficient.
 """
 Tests for middleware components.
 """

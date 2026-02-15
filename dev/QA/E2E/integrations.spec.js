@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for integrations UI using Playwright. Covers listing, configuration, testing, and toggling integrations.
+// Why: Ensures integration flows work in real browser and regressions are caught before release.
+// Root Cause: Integration bugs can block notifications and external workflows.
+// Context: Run in CI for every PR. Future: add more providers and error cases.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Integrations', () => {

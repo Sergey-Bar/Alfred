@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: CI workflow for linting, testing, and building backend and frontend on push/PR. Runs Python and Node jobs, sets up DB, and enforces code quality.
+# Why: Ensures code quality, test coverage, and build health for every change.
+# Root Cause: Manual or inconsistent CI leads to regressions and broken deploys.
+# Context: Runs on GitHub Actions for every PR and push. Future: add deploy, coverage, and security scan steps.
+# Model Suitability: CI workflow logic is standard; GPT-4.1 is sufficient.
 name: CI
 
 on:

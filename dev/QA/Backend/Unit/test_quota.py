@@ -1,9 +1,20 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests credit calculation, quota checks, and efficiency scoring for Alfred's quota management logic.
+# Why: Ensures quota enforcement, cost calculation, and scoring are correct and regressions are caught.
+# Root Cause: Incorrect quota logic can lead to overuse, billing errors, or user lockouts.
+# Context: Run in CI for every PR. Future: expand to cover edge cases and error handling.
+# Model Suitability: Quota logic test is standard; GPT-4.1 is sufficient.
 """
 Tests for quota management logic.
 """
 
 from decimal import Decimal
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
 from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
 from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
 

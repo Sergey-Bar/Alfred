@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for team management UI using Playwright. Covers listing, creation, details, and member management.
+// Why: Ensures team flows work in real browser and regressions are caught before release.
+// Root Cause: Team management bugs can block collaboration or cause data issues.
+// Context: Run in CI for every PR. Future: add permission checks and error cases.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Team Management', () => {

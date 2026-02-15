@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E smoke tests for basic app health using Playwright. Covers landing, load time, console errors, meta tags, and 404 handling.
+// Why: Ensures app loads and basic routes work in real browser before deeper tests run.
+// Root Cause: Broken deploys or regressions can break all user access.
+// Context: Run in CI for every PR. Future: add more routes and error checks.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Smoke Tests', () => {

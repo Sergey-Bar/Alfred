@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests core API endpoints (health, root, user management) using FastAPI TestClient and Pytest. Handles SPA/static mode and asserts correct API responses.
+# Why: Ensures API contract, health, and user flows are reliable and regressions are caught early.
+# Root Cause: Unverified endpoints can break silently, impacting users and integrations.
+# Context: Run in CI for every PR. Future: expand coverage for error cases and edge conditions.
+# Model Suitability: API test logic is standard; GPT-4.1 is sufficient.
 """
 Tests for API endpoints.
 """

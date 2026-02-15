@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for dashboard UI using Playwright. Covers login, navigation, stats, and activity log visibility.
+// Why: Ensures main dashboard features work in real browser and regressions are caught before release.
+// Root Cause: UI bugs can break user workflows and go undetected in unit tests.
+// Context: Run in CI for every PR. Future: expand to cover edge cases, error states, and mobile views.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Dashboard', () => {

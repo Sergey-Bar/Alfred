@@ -1,11 +1,13 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests Pydantic settings/config loading, environment overrides, and validation logic for Alfred backend.
+# Why: Ensures configuration is robust, environment variables are respected, and validation logic is enforced.
+# Root Cause: Misconfigured settings or missing env vars can break deployments or tests.
+# Context: Run in CI to validate config logic. Future: add more edge cases and production DB checks.
+# Model Suitability: Config test logic is standard; GPT-4.1 is sufficient.
 """
 Tests for configuration and settings.
-
-[AI GENERATED]
-Model: Antigravity (Gemini 2.5 Pro)
-Logic: Fixed environment validation tests by providing a valid PostgreSQL database_url for production environments.
-Root Cause: Validator in config.py forbids SQLite in production, but tests didn't provide a replacement.
-Context: Required to pass unit tests in CI/CD.
 """
 
 import os

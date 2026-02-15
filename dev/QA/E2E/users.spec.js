@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for user management UI using Playwright. Covers user listing, search, creation, editing, and status toggling.
+// Why: Ensures admin user flows work in real browser and regressions are caught before release.
+// Root Cause: User management bugs can block onboarding or cause data issues.
+// Context: Run in CI for every PR. Future: add permission checks and error cases.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('User Management', () => {

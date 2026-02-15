@@ -12,7 +12,8 @@ Alfred is an enterprise AI Credit Governance Platform designed to help organizat
 - **Multi-Provider Support:** Works with 100+ LLM providers via LiteLLM integration.
 - **Extensible API:** OpenAI-compatible endpoints for easy integration.
 
-## Architecture
+
+## Architecture & Recent Improvements
 - **Three-Layer Design:**
   1. Proxy Gateway for request interception and quota enforcement
   2. Ledger System for credit ownership and transaction tracking
@@ -20,6 +21,14 @@ Alfred is an enterprise AI Credit Governance Platform designed to help organizat
 - **Modular Backend:** Built with Python (FastAPI, SQLModel, Alembic)
 - **Modern Frontend:** Built with React and Vite
 - **DevOps Ready:** Docker, Kubernetes, CI/CD, and Helm charts
+
+### Recent Roadmap Progress (Feb 2026)
+- All moderate-complexity items from the roadmap have been scaffolded and documented:
+  - GitOps onboarding docs and API ([docs/gitops_onboarding.md](../docs/gitops_onboarding.md))
+  - Docker Compose unification ([docs/docker_compose_unification.md](../docs/docker_compose_unification.md))
+  - Dockerfile path consistency ([docs/dockerfile_path_consistency.md](../docs/dockerfile_path_consistency.md))
+  - Multi-region/sharding strategies ([docs/multi_region_sharding.md](../docs/multi_region_sharding.md))
+- See the [changelog](changelog.md) for rationale, root cause, and future context for each improvement.
 
 ## Monitoring & Alerting
 - **Prometheus & Grafana:** Metrics are exposed via /metrics and can be scraped by Prometheus. Dashboards in Grafana provide real-time visibility into API usage, quota consumption, error rates, and system health.

@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Tests API response contracts for key endpoints, asserting required fields and types for frontend and client compatibility.
+# Why: Ensures API changes do not break clients relying on response structure.
+# Root Cause: Contract drift can cause frontend bugs and integration failures.
+# Context: Run in CI for every PR. Future: expand to cover all public endpoints and error contracts.
+# Model Suitability: API contract test logic is standard; GPT-4.1 is sufficient.
 """
 API contract tests — verify response shapes for critical endpoints.
 

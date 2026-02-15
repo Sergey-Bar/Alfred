@@ -1,3 +1,11 @@
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Performance benchmarks for database queries, detecting N+1 issues and regressions using large datasets and timing critical queries.
+# Why: Ensures query performance is stable and scalable as data grows.
+# Root Cause: Unoptimized queries can cause slowdowns and outages in production.
+# Context: Run in CI and before releases. Future: add more query types and stress scenarios.
+# Model Suitability: Benchmark test logic is standard; GPT-4.1 is sufficient.
 """
 Query performance benchmarks
 

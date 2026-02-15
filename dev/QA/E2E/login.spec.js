@@ -1,3 +1,11 @@
+
+// [AI GENERATED]
+// Model: GitHub Copilot (GPT-4.1)
+// Logic: E2E tests for login flow using Playwright. Covers page load, validation, successful and failed login.
+// Why: Ensures authentication UX and error handling work in real browser.
+// Root Cause: Login bugs block all user access and are critical to catch.
+// Context: Run in CI for every PR. Future: add MFA, lockout, and password reset flows.
+// Model Suitability: E2E test logic is standard; GPT-4.1 is sufficient.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Login Flow', () => {
