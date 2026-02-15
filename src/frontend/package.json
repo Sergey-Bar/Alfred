@@ -1,10 +1,3 @@
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: Frontend package.json for React dashboard. Defines scripts, dependencies, and dev tools for build, test, lint, and E2E.
-// Why: Ensures reproducible installs, build, and test automation for frontend.
-// Root Cause: Missing or misconfigured package.json breaks builds and slows onboarding.
-// Context: Used by npm, Vite, Playwright, and Vitest. Future: add coverage, storybook, and release scripts.
-// Model Suitability: package.json logic is standard; GPT-4.1 is sufficient.
 {
   "name": "frontend",
   "private": true,

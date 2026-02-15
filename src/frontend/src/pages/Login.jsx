@@ -13,6 +13,19 @@ export default function Login({ onLogin }) {
         setError('');
         setLoading(true);
 
+        // DEMO MODE: Accept 'tp-demo' or 'tp-demo-1234567890abcdef' as a valid key
+        if (apiKey === 'tp-demo' || apiKey === 'tp-demo-1234567890abcdef') {
+            api.setApiKey(apiKey);
+            // Optionally: set a flag in localStorage for demo mode
+            localStorage.setItem('alfred_demo_mode', 'true');
+            onLogin();
+            navigate('/');
+            setLoading(false);
+            return;
+        } else {
+            localStorage.removeItem('alfred_demo_mode');
+        }
+
         try {
             // Save API key and try to fetch dashboard to validate
             api.setApiKey(apiKey);
@@ -28,38 +41,28 @@ export default function Login({ onLogin }) {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1d3557] to-[#0f1f38] py-12 px-4 sm:px-6 lg:px-8">
-            {/* Large Logo Section - Jenkins Style */}
-            <div className="mb-8 text-center">
-                <img
-                    src="/Logo.png"
-                    alt="Alfred"
-                    className="h-32 w-32 mx-auto rounded-2xl shadow-2xl ring-4 ring-white/20 transform hover:scale-105 transition-transform duration-300"
-                />
-                <h1 className="mt-6 text-5xl font-bold text-white tracking-tight">
-                    Alfred
-                </h1>
-                <p className="mt-2 text-xl text-blue-200">
-                    AI Token Quota Manager
-                </p>
-            </div>
+
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1d3557] to-[#0f1f38] py-0 px-0">
+            {/* Full-size Logo, no frame, no text */}
+            <img
+                src="/sidebar-big.png"
+                alt="Alfred Logo"
+                style={{ width: '100%', maxWidth: '30%', height: 'auto', display: 'block', objectFit: 'contain', margin: '0 auto 2.5rem auto', padding: 0 }}
+            />
 
             {/* Login Card */}
-            <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
+                        <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8 mt-0">
                 <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-800">
+                    <h2 className="text-xl font-semibold" style={{ color: '#1d3557', textAlign: 'center' }}>
                         Sign in to your account
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-500" style={{ textAlign: 'center' }}>
                         Enter your API key to access the dashboard
                     </p>
                 </div>
 
                 <form className="space-y-5" onSubmit={handleSubmit}>
-                    <div>
-                        <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-1">
-                            API Key
-                        </label>
+                    <div className="text-center">
                         <input
                             id="api-key"
                             name="apiKey"
@@ -70,6 +73,7 @@ export default function Login({ onLogin }) {
                             onChange={(e) => setApiKey(e.target.value)}
                             className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1d3557] focus:border-[#1d3557] sm:text-sm"
                             placeholder="tp-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            style={{ marginTop: 0 }}
                         />
                     </div>
 

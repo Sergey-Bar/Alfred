@@ -67,7 +67,7 @@ Alfred is trusted by enterprises, startups, and research teams to:
 - Provide unified analytics and reporting for all LLM providers
 - Accelerate onboarding and integration with OpenAI-compatible APIs
 
-Alfred adapts to a wide range of business needs—from internal R&D to customer-facing AI products—delivering transparency, control, and peace of mind.
+Alfred adapts to a wide range of business needs—from internal R&D to customer-facing AI products—delivering transparency, concd src/backendtrol, and peace of mind.
 
 **Alfred** is an enterprise-grade AI credit governance platform. It acts as a FastAPI proxy, managing token quotas, analytics, and unified authentication for 100+ LLM providers. Alfred empowers organizations to control, monitor, and optimize their AI usage with confidence.
 

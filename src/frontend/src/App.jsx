@@ -1,5 +1,3 @@
-const ImportExportAdmin = lazy(() => import('./pages/ImportExportAdmin'));
-const CustomReportsAdmin = lazy(() => import('./pages/CustomReportsAdmin'));
 import NotificationCenter from './components/NotificationCenter';
 // [AI GENERATED]
 // Model: GitHub Copilot (GPT-4.1)
@@ -32,9 +30,10 @@ const Integrations = lazy(() => import('./pages/Integrations'));
 const UserGuide = lazy(() => import('./pages/UserGuide'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
-
 const RBACAdmin = lazy(() => import('./pages/RBACAdmin'));
 const Login = lazy(() => import('./pages/Login'));
+const ImportExportAdmin = lazy(() => import('./pages/ImportExportAdmin'));
+const CustomReportsAdmin = lazy(() => import('./pages/CustomReportsAdmin'));
 
 
 // [AI GENERATED]

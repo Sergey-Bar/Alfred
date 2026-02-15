@@ -37,6 +37,29 @@ docker compose -f devops/merged/docker/docker-compose.yml exec redis redis-cli L
 docker compose -f devops/merged/docker/docker-compose.yml exec db psql -U alfred -d alfred -c "select id, actor_user_id, action, target_type, target_id, created_at from audit_logs order by created_at desc limit 20;"
 ```
 
-Escalation
+## Rollback Procedures
+
+If a deployment or migration causes a production incident, follow these steps:
+
+1. Notify SRE and affected stakeholders immediately.
+2. Identify the last known good deployment (Docker image tag, commit hash, or backup snapshot).
+3. Roll back the API and worker services:
+   - For Docker Compose:
+     ```sh
+     docker compose -f devops/merged/docker/docker-compose.yml pull api worker
+     docker compose -f devops/merged/docker/docker-compose.yml up -d api worker
+     # Or redeploy a previous image:
+     docker compose -f devops/merged/docker/docker-compose.yml up -d api=alfred-api:<previous_tag> worker=alfred-worker:<previous_tag>
+     ```
+4. If a database migration failed:
+   - Restore from the latest backup or snapshot.
+   - Example (Postgres):
+     ```sh
+     docker compose -f devops/merged/docker/docker-compose.yml exec db pg_restore -U alfred -d alfred /backups/alfred-latest.dump
+     ```
+5. Monitor logs and health endpoints to confirm recovery.
+6. Document the incident, root cause, and actions taken in the incident log.
+
+## Escalation
 
 - If logs show 5xx errors or repeated failures, escalate to SRE and include: request IDs, user info, affected endpoints, and recent deploys.

@@ -9,7 +9,6 @@ import {
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { useUser } from '../context/UserContext';
-import api from '../services/api';
 
 
 const { user, updateUser } = useUser();

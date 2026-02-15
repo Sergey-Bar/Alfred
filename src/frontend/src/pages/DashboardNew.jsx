@@ -10,7 +10,6 @@ import {
     XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useNavigate } from 'react-router-dom';
 import {
     Area,
@@ -113,7 +112,7 @@ function formatDateFull(dateStr) {
 }
 
 // [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
+// Model: GitHub Copilot (Claude Opus 4.5)
 // Logic: Adds drag-and-drop reordering to StatCard grid using react-beautiful-dnd.
 // Why: Implements the first quick win from the roadmap for dashboard UX improvement.
 // Root Cause: StatCard order was static and not user-configurable.
@@ -131,158 +130,142 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [dateRange, setDateRange] = useState({ range: 'year', year: new Date().getFullYear() });
 
+    // Calculate trends
+    const usersTrend = overview?.users_trend || 0;
+    const tokensTrend = overview?.tokens_trend || 0;
+    const costTrend = overview?.cost_trend || 0;
+
+    // StatCard drag-and-drop state
+    const initialCards = [
+        {
+            id: 'users',
+            title: 'Total Users',
+            value: overview?.total_users || 0,
+            icon: UsersIcon,
+            color: 'blue',
+            trend: usersTrend,
+            subtitle: 'Click to manage users',
+            onClick: () => navigate('/users'),
+        },
+        {
+            id: 'tokens',
+            title: 'Tokens Used',
+            value: (overview?.total_tokens_used || 0).toLocaleString(),
+            icon: ChartBarIcon,
+            color: 'green',
+            trend: tokensTrend,
+            subtitle: 'Click for detailed breakdown',
+            onClick: () => navigate('/transfers'),
+        },
+        {
+            id: 'cost',
+            title: 'Total Cost',
+            value: `$${(overview?.total_credits_spent || 0).toFixed(2)}`,
+            icon: CurrencyDollarIcon,
+            color: 'yellow',
+            trend: costTrend,
+            subtitle: 'Click for cost analysis',
+            onClick: () => navigate('/transfers'),
+        },
+        {
+            id: 'teams',
+            title: 'Active Teams',
+            value: overview?.total_teams || 0,
+            icon: UserGroupIcon,
+            color: 'purple',
+            subtitle: 'Click to manage teams',
+            onClick: () => navigate('/teams'),
+        },
+    ];
+
+    const [cards, setCards] = useState(initialCards);
+
+    useEffect(() => {
+        setCards(initialCards);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [overview]);
+
+    useEffect(() => {
+        fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateRange]);
+
     async function fetchData() {
         try {
             setLoading(true);
             const days = dateRange.range === '7d' ? 7 : dateRange.range === '30d' ? 30 : 365;
 
-            const [overviewData, trendsData, modelsData, leaderboardData, approvalsData] =
-                // StatCard drag-and-drop state
-                const initialCards = [
-                {
-                    id: 'users',
-                    title: 'Total Users',
-                    value: overview?.total_users || 0,
-                    icon: UsersIcon,
-                    color: 'blue',
-                    trend: usersTrend,
-                    subtitle: 'Click to manage users',
-                    onClick: () => navigate('/users'),
-                },
-                {
-                    id: 'tokens',
-                    title: 'Tokens Used',
-                    value: (overview?.total_tokens_used || 0).toLocaleString(),
-                    icon: ChartBarIcon,
-                    color: 'green',
-                    trend: tokensTrend,
-                    subtitle: 'Click for detailed breakdown',
-                    onClick: () => navigate('/transfers'),
-                },
-                {
-                    id: 'cost',
-                    title: 'Total Cost',
-                    value: `$${(overview?.total_credits_spent || 0).toFixed(2)}`,
-                    icon: CurrencyDollarIcon,
-                    color: 'yellow',
-                    trend: costTrend,
-                    subtitle: 'Click for cost analysis',
-                    onClick: () => navigate('/transfers'),
-                },
-                {
-                    id: 'teams',
-                    title: 'Active Teams',
-                    value: overview?.total_teams || 0,
-                    icon: UserGroupIcon,
-                    color: 'purple',
-                    subtitle: 'Click to manage teams',
-                    onClick: () => navigate('/teams'),
-                },
-            ];
-            const [cards, setCards] = useState(initialCards);
-            useEffect(() => {
-                setCards(initialCards);
-                // eslint-disable-next-line
-            }, [overview]);
+            const [overviewRes, trendsRes, modelsRes, leaderboardRes, approvalsRes] = await Promise.all([
+                api.getOverview().catch((err) => { console.error('getOverview failed:', err); throw err; }),
+                api.getCostTrends(days).catch((err) => { console.error('getCostTrends failed:', err); throw err; }),
+                api.getModelUsage().catch((err) => { console.error('getModelUsage failed:', err); throw err; }),
+                api.getLeaderboard(10).catch((err) => { console.error('getLeaderboard failed:', err); throw err; }),
+                api.getApprovalStats().catch((err) => { console.error('getApprovalStats failed:', err); throw err; }),
+            ]);
 
-            function handleDragEnd(result) {
-                if (!result.destination) return;
-                const reordered = Array.from(cards);
-                const [removed] = reordered.splice(result.source.index, 1);
-                reordered.splice(result.destination.index, 0, removed);
-                setCards(reordered);
-            }
+            setOverview(overviewRes);
+            setTrends(
+                (trendsRes || []).map((t) => ({
+                    ...t,
+                    displayDate: formatDateShort(t.date),
+                    fullDate: formatDateFull(t.date),
+                }))
+            );
+            setModels(modelsRes || []);
+            setLeaderboard(leaderboardRes || []);
+            setApprovals(approvalsRes);
+        } catch (err) {
+            console.error('fetchData error:', err);
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    }
 
-            return (
-                <div>
-                    {/* Header with Date Picker */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-                            <p className="text-gray-400 mt-1">
-                                Overview of your Alfred token usage and quotas
-                            </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <DateRangePicker
-                                value={dateRange.range}
-                                onChange={setDateRange}
-                            />
-                        </div>
-                    </div>
+    // Drag-and-drop removed due to React 19 incompatibility with react-beautiful-dnd
+    // Future: implement with @dnd-kit/core when upgrading
 
-                    {error && (
-                        <div className="mb-4 p-3 bg-yellow-900/30 text-yellow-400 rounded-lg text-sm flex items-center justify-between">
-                            <div>API error: {error}. Demo data not used.</div>
-                            <div className="flex items-center space-x-2">
-                                <button
-                                    onClick={() => fetchData()}
-                                    className="btn btn-primary"
-                                >
-                                    Retry
-                                </button>
-                                <a href="mailto:support@example.com" className="btn btn-secondary">
-                                    Contact Support
-                                </a>
-                            </div>
-                        </div>
-                    )}
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
 
-                    {/* Quick Actions */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                        <QuickAction
-                            icon={UsersIcon}
-                            label="Add User"
-                            onClick={() => navigate('/users')}
-                            color="blue"
-                        />
-                        <QuickAction
-                            icon={UserGroupIcon}
-                            label="Create Team"
-                            onClick={() => navigate('/teams')}
-                            color="green"
-                        />
-                        <QuickAction
-                            icon={CurrencyDollarIcon}
-                            label="Add Credits"
-                            onClick={() => navigate('/transfers')}
-                            color="purple"
-                        />
-                    </div>
+    if (error) {
+        return (
+            <div className="text-center text-red-500 p-8">
+                <p>Error loading dashboard: {error.message}</p>
+                <button
+                    onClick={fetchData}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
-                    {/* Interactive Stats Grid with Drag-and-Drop */}
-                    <DragDropContext onDragEnd={handleDragEnd}>
-                        <Droppable droppableId="statCards" direction="horizontal">
-                            {(provided) => (
-                                <div
-                                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                >
-                                    {cards.map((card, idx) => (
-                                        <Draggable key={card.id} draggableId={card.id} index={idx}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    {...provided.dragHandleProps}
-                                                    style={{
-                                                        ...provided.draggableProps.style,
-                                                        boxShadow: snapshot.isDragging ? '0 0 0 2px #3B82F6' : undefined,
-                                                    }}
-                                                >
-                                                    <StatCard {...card} />
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    ))}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
-                    </DragDropContext>
-                    color="green"
-                />
+    return (
+        <div className="space-y-6">
+            {/* Header with Quick Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+                <div className="flex flex-wrap items-center gap-3">
+                    <DateRangePicker value={dateRange} onChange={setDateRange} />
+                    <QuickAction
+                        icon={UsersIcon}
+                        label="Add User"
+                        onClick={() => navigate('/users')}
+                        color="blue"
+                    />
+                    <QuickAction
+                        icon={UserGroupIcon}
+                        label="Create Team"
+                        onClick={() => navigate('/teams')}
+                        color="green"
+                    />
                     <QuickAction
                         icon={ArrowTrendingUpIcon}
                         label="View Reports"
@@ -290,48 +273,17 @@ export default function Dashboard() {
                         color="purple"
                     />
                 </div>
-
-            {/* Interactive Stats Grid */ }
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                <StatCard
-                    title="Total Users"
-                    value={overview?.total_users || 0}
-                    icon={UsersIcon}
-                    color="blue"
-                    trend={usersTrend}
-                    subtitle="Click to manage users"
-                    onClick={() => navigate('/users')}
-                />
-                <StatCard
-                    title="Tokens Used"
-                    value={(overview?.total_tokens_used || 0).toLocaleString()}
-                    icon={ChartBarIcon}
-                    color="green"
-                    trend={tokensTrend}
-                    subtitle="Click for detailed breakdown"
-                    onClick={() => navigate('/transfers')}
-                />
-                <StatCard
-                    title="Total Cost"
-                    value={`$${(overview?.total_credits_spent || 0).toFixed(2)}`}
-                    icon={CurrencyDollarIcon}
-                    color="yellow"
-                    trend={costTrend}
-                    subtitle="Click for cost analysis"
-                    onClick={() => navigate('/transfers')}
-                />
-                <StatCard
-                    title="Active Teams"
-                    value={overview?.total_teams || 0}
-                    icon={UserGroupIcon}
-                    color="purple"
-                    subtitle="Click to manage teams"
-                    onClick={() => navigate('/teams')}
-                />
             </div>
 
-            {/* Charts Row */ }
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
+            {/* Interactive Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {cards.map((card) => (
+                    <StatCard key={card.id} {...card} />
+                ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 {/* Usage Trends */}
                 <div className="card">
                     <div className="flex items-center justify-between mb-4">
@@ -360,10 +312,7 @@ export default function Dashboard() {
                                 }}
                                 labelStyle={{ color: darkMode ? '#F3F4F6' : '#111827', fontWeight: 600 }}
                                 itemStyle={{ color: darkMode ? '#9CA3AF' : '#4B5563' }}
-                                formatter={(value, name, props) => [
-                                    value.toLocaleString(),
-                                    'Tokens'
-                                ]}
+                                formatter={(value) => [value.toLocaleString(), 'Tokens']}
                                 labelFormatter={(label, payload) => {
                                     if (payload?.[0]?.payload?.fullDate) {
                                         return payload[0].payload.fullDate;
@@ -435,7 +384,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Bottom Row */ }
+            {/* Bottom Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 {/* Model Usage */}
                 <div className="card">
@@ -540,6 +489,6 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
-        }
+}

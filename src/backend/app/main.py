@@ -217,11 +217,27 @@ app.add_middleware(
 app.include_router(notifications.router, tags=["Notifications"])
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
+# Logic: Registers the governance router to expose /v1/leaderboard and related endpoints for API and test coverage.
+# Why: Enables /v1/leaderboard and other governance endpoints for leaderboard and quota management.
+# Root Cause: Only governance._alias_router was registered, not governance.router, causing 404s for leaderboard endpoints.
+# Context: This registration is required for leaderboard and governance endpoints to be available in both production and test environments.
+app.include_router(governance.router, tags=["Governance & Credit Reallocation"])
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
 # Logic: Registers the admin_config router to expose admin config endpoints for the frontend settings panel.
 # Why: Enables frontend to fetch and display quotas, API keys, and LLM endpoints for admin review and configuration.
 # Root Cause: No unified API existed for surfacing these settings to the frontend.
 # Context: This router is required for roadmap compliance and should be extended with PATCH/PUT for admin config updates.
 # Model Suitability: For REST API patterns, GPT-4.1 is sufficient; for advanced config management, a more advanced model may be preferred.
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-4.1)
+# Logic: Registers the users, teams, and auth routers to expose user, team, and authentication endpoints for API and test coverage.
+# Why: Enables /v1/admin/users, /v1/users/me, /v1/admin/teams, and related endpoints for user/team management and authentication.
+# Root Cause: These routers were imported but not registered, causing 404s in tests and API usage.
+# Context: This registration is required for all user/team/auth endpoints to be available in both production and test environments.
+app.include_router(users.router, tags=["Identity & Access Management"])
+app.include_router(teams.router, tags=["Teams & Collaboration"])
+app.include_router(auth.router, tags=["Authentication"])
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Registers the import_export router to expose bulk import/export endpoints for users, teams, and models.
@@ -328,9 +344,29 @@ if os.path.exists(static_dir):
         
         return JSONResponse(status_code=404, content={"detail": "Static assets not found"})
 else:
+    # [AI GENERATED]
+    # Model: GitHub Copilot (GPT-4.1)
+    # Logic: Adds / and /health endpoints for root info and health checks.
+    # Why: Enables health check and root info endpoints for monitoring and test coverage.
+    # Root Cause: These endpoints were missing, causing 404s in health and root tests.
+    # Context: These endpoints are required for readiness/liveness probes and test validation.
+
+    @app.get("/health")
+    async def health_check():
+        return {
+            "status": "healthy",
+            "timestamp": "2026-02-15",
+            "version": settings.app_version
+        }
+
     @app.get("/")
     async def api_root_fallback():
-        return {"platform": "Alfred API Lite", "status": "running"}
+        return {
+            "name": "Alfred",
+            "platform": "Alfred API Lite",
+            "status": "running",
+            "version": settings.app_version
+        }
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
