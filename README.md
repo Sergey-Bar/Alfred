@@ -25,9 +25,7 @@ ALFRED: <span style="color:#00eaff;">Enterprise AI Credit Governance</span>
 </div>
 
 <hr style="border: 0; height: 2px; background: linear-gradient(90deg, #39ff14, #00eaff, #ff00cc, #fffb00); margin: 24px 0;"/>
-# Alfred
-...existing code...
-## 🦾 Backend
+-## 🦾 Backend
 - Main FastAPI app: `backend/app/main.py`
 - Routers: `backend/app/routers/`
 - Analytics: `backend/app/dashboard.py`
