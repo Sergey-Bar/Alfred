@@ -516,3 +516,35 @@ class ApprovalManager:
 
         self.session.add(approval); self.session.commit()
         return approval
+
+    def allocate_vacation_liquidity(self, user_id: uuid.UUID, team_id: uuid.UUID, requested_quota: Decimal):
+        """Allocate vacation liquidity for non-critical requests."""
+        from .models import User, TeamMemberLink, UserStatus
+
+        # Fetch team members on vacation
+        vacation_members = self.session.exec(
+            select(User).where(
+                User.status == UserStatus.ON_VACATION,
+                TeamMemberLink.team_id == team_id,
+                TeamMemberLink.user_id == User.id
+            )
+        ).all()
+
+        total_vacation_quota = sum(
+            member.personal_quota - member.used_tokens for member in vacation_members
+        )
+
+        if total_vacation_quota >= requested_quota:
+            # Allocate quota from vacation pool
+            for member in vacation_members:
+                available_quota = member.personal_quota - member.used_tokens
+                if available_quota > 0:
+                    allocation = min(available_quota, requested_quota)
+                    member.used_tokens += allocation
+                    requested_quota -= allocation
+                    self.session.add(member)
+                    if requested_quota == 0:
+                        break
+            self.session.commit()
+            return True
+        return False

@@ -1,0 +1,89 @@
+
+
+[33m[1m+===========================================================================================================================================================================================+[0m
+
+
+[31m[1mDEPRECATED: [0m[33m[1mthis command (`check`) has been DEPRECATED, and will be unsupported beyond 01 June 2024.[0m
+
+
+[32mWe highly encourage switching to the new [0m[32m[1m`scan`[0m[32m command which is easier to use, more powerful, and can be set up to mimic the deprecated command if required.[0m
+
+
+[33m[1m+===========================================================================================================================================================================================+[0m
+
+
++==============================================================================+
+
+                               /$$$$$$            /$$
+                              /$$__  $$          | $$
+           /$$$$$$$  /$$$$$$ | $$  \__//$$$$$$  /$$$$$$   /$$   /$$
+          /$$_____/ |____  $$| $$$$   /$$__  $$|_  $$_/  | $$  | $$
+         |  $$$$$$   /$$$$$$$| $$_/  | $$$$$$$$  | $$    | $$  | $$
+          \____  $$ /$$__  $$| $$    | $$_____/  | $$ /$$| $$  | $$
+          /$$$$$$$/|  $$$$$$$| $$    |  $$$$$$$  |  $$$$/|  $$$$$$$
+         |_______/  \_______/|__/     \_______/   \___/   \____  $$
+                                                          /$$  | $$
+                                                         |  $$$$$$/
+  by safetycli.com                                        \______/
+
++==============================================================================+
+
+ [1mREPORT[0m 
+
+  Safety [1mv3.7.0[0m is scanning for [1mVulnerabilities[0m[1m...[0m
+[1m  Scanning dependencies[0m in your [1menvironment:[0m
+
+  -> C:\Users\Sergey\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages
+
+  Using [1mopen-source vulnerability database[0m
+[1m  Found and scanned 109 packages[0m
+  Timestamp [1m2026-02-15 15:49:21[0m
+[1m  1[0m[1m vulnerability reported[0m
+[1m  0[0m[1m vulnerabilities ignored[0m
+
++==============================================================================+
+ [1mVULNERABILITIES REPORTED[0m 
++==============================================================================+
+
+[31m-> Vulnerability found in gunicorn version 22.0.0[0m
+[1m   Vulnerability ID: [0m72809
+[1m   Affected spec: [0m>=22.0.0,<23.0.0
+[1m   ADVISORY: [0mA vulnerability in Gunicorn allowed the
+   TolerateDangerousFraming setting to process conflicting headers (Transfer-
+   Encoding and Content-Length) and dangerous characters in HTTP header
+   fields. This could lead to HTTP request smuggling and header injection
+   attacks. The issue was resolved by removing this setting and enforcing
+   stricter header validation. Note: It happens due to an incomplete fix for
+   CVE-2024-1135.
+[1m   PVE-2024-72809[0m
+[1m   For more information about this vulnerability, visit
+   [0mhttps://data.safetycli.com/v/72809/97c[0m
+   To ignore this vulnerability, use PyUp vulnerability id 72809 in safety’s
+   ignore command-line argument or add the ignore to your safety policy file.
+
+
++==============================================================================+
+   [32m[1mREMEDIATIONS[0m
+
+  1 vulnerability was reported in 1 package. For detailed remediation & fix 
+  recommendations, upgrade to a commercial license. 
+
++==============================================================================+
+
+ Scan was completed. 1 vulnerability was reported. 
+
++==============================================================================+[0m
+
+
+[33m[1m+===========================================================================================================================================================================================+[0m
+
+
+[31m[1mDEPRECATED: [0m[33m[1mthis command (`check`) has been DEPRECATED, and will be unsupported beyond 01 June 2024.[0m
+
+
+[32mWe highly encourage switching to the new [0m[32m[1m`scan`[0m[32m command which is easier to use, more powerful, and can be set up to mimic the deprecated command if required.[0m
+
+
+[33m[1m+===========================================================================================================================================================================================+[0m
+
+

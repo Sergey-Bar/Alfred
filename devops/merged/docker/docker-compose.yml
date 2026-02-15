@@ -28,7 +28,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: devops/docker/Dockerfile
+      dockerfile: docker/docker-tools/Dockerfile
     container_name: alfred-api
     restart: unless-stopped
     depends_on:
@@ -75,7 +75,7 @@ services:
   worker:
     build:
       context: ..
-      dockerfile: devops/docker/Dockerfile
+      dockerfile: docker/docker-tools/Dockerfile
     container_name: alfred-worker
     restart: unless-stopped
     depends_on:

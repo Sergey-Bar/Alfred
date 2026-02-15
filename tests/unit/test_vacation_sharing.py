@@ -247,3 +247,54 @@ class TestPriorityBypass:
 
         # HIGH is not CRITICAL, so should not bypass
         assert result.allowed is False
+
+    # Added test cases for critical priority bypass logic to ensure team liquidity is utilized effectively.
+    def test_critical_priority_uses_team_pool_effectively(self, session, test_user, test_team):
+        # Add user to team
+        link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
+        session.add(link)
+        session.commit()
+
+        # Exhaust personal quota
+        test_user.used_tokens = test_user.personal_quota
+        session.add(test_user)
+        session.commit()
+
+        manager = QuotaManager(session)
+
+        result = manager.check_quota(
+            user=test_user,
+            estimated_cost=Decimal("100.00"),
+            priority=ProjectPriority.CRITICAL
+        )
+
+        assert result.allowed is True
+        assert result.source == "priority_bypass"
+        assert "critical" in result.message.lower() or "bypass" in result.message.lower()
+
+# Added test for vacation liquidity sharing logic
+def test_allocate_vacation_liquidity(session, test_user, test_team):
+    """Test vacation liquidity sharing logic."""
+    from app.logic import allocate_vacation_liquidity
+    from app.models import User, UserStatus, TeamMemberLink
+
+    # Create vacation user
+    vacation_user = User(
+        email="vacation@example.com",
+        name="Vacation User",
+        personal_quota=Decimal("1000.00"),
+        used_tokens=Decimal("0.00"),
+        status=UserStatus.ON_VACATION
+    )
+    session.add(vacation_user)
+    session.commit()
+
+    # Link vacation user to team
+    link = TeamMemberLink(team_id=test_team.id, user_id=vacation_user.id)
+    session.add(link)
+    session.commit()
+
+    # Test allocation
+    result = allocate_vacation_liquidity(session, test_user.id, test_team.id, Decimal("500.00"))
+    assert result is True
+    assert vacation_user.used_tokens == Decimal("500.00")

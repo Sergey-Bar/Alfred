@@ -10,7 +10,9 @@
 export function exportToCSV(data, filename, options = {}) {
     const { columns, includeHeaders = true } = options;
 
+    // Added user feedback for no data scenario
     if (!data || data.length === 0) {
+        alert('No data available to export.'); // Notify user in the UI
         console.warn('No data to export');
         return;
     }
@@ -46,17 +48,22 @@ export function exportToCSV(data, filename, options = {}) {
 
     const csvContent = rows.join('\n');
 
-    // Create and download file
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel compatibility
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Added error handling for file creation and download
+    try {
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel compatibility, ensure other parsers handle it
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error creating or downloading the CSV file:', error);
+        alert('Failed to export the file. Please try again.'); // Notify user in the UI
+    }
 }
 
 /**

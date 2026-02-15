@@ -18,38 +18,44 @@ to ensure mission-critical work is never blocked by rigid administrative silos.
 
 import hashlib
 import secrets
+import logging
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Union, Any, Callable, TypeVar
+from sqlalchemy import desc, cast, Float
 
-from litellm import completion, completion_cost
+# Tenacity retry configuration
+_tenacity_available: bool = False
+try:
+    from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log  # type: ignore[assignment]
+    _tenacity_available = True
+except ImportError:
+    # Define stub functions when tenacity is not available
+    _T = TypeVar("_T", bound=Callable[..., Any])
+    def retry(**kwargs: Any) -> Callable[[_T], _T]:  # type: ignore[misc]
+        def decorator(fn: _T) -> _T:
+            return fn
+        return decorator
+    def stop_after_attempt(n: int) -> Any: return None
+    def wait_exponential(**kwargs: Any) -> Any: return None
+    def before_sleep_log(logger: Any, level: int) -> Any: return None
+
+# Logger for retry operations
+retry_logger = logging.getLogger("alfred.retry")
+
+# LiteLLM imports - use type: ignore for incomplete stubs
+from litellm import completion, completion_cost  # type: ignore[import]
+from litellm import ModelResponse, CustomStreamWrapper  # type: ignore[import]
+
+# Update type hints for `completion` return type
+CompletionReturnType = Union[ModelResponse, CustomStreamWrapper]
+
 from sqlmodel import Session, select
 
-from .constants import CreditConversion
-
-# --- Resiliency Configuration (Tenacity) ---
-# We use Tenacity for robust, exponential-backoff retries. 
-# This is critical for Enterprise durability where LLM endpoints frequently timeout.
-try:
-    import logging
-
-    from tenacity import (
-        before_sleep_log,
-        retry,
-        retry_if_exception_type,
-        stop_after_attempt,
-        wait_exponential,
-    )
-    retry_logger = logging.getLogger(__name__)
-    TENACITY_AVAILABLE = True
-except ImportError:
-    # Fail gracefully if tenacity is missing, allowing the app to run in degraded mode.
-    TENACITY_AVAILABLE = False
-    retry_logger = None
-
-from .config import settings
-from .models import (
+from backend.core.constants import CreditConversion
+from backend.core.models import (
     ApprovalRequest,
     ChatCompletionRequest,
     LeaderboardEntry,
@@ -61,6 +67,7 @@ from .models import (
     User,
     UserStatus,
 )
+from backend.core.config import settings
 
 
 @dataclass
@@ -74,7 +81,7 @@ class QuotaCheckResult:
     available_credits: Decimal
     message: str
     requires_approval: bool = False
-    approval_instructions: Optional[dict] = None
+    approval_instructions: Optional[Dict[str, Union[str, List[str]]]] = None
 
 
 @dataclass
@@ -126,7 +133,7 @@ class CreditCalculator:
         model: str,
         prompt_tokens: int,
         completion_tokens: int,
-        response: Optional[dict] = None
+        response: Optional[Dict[str, Union[str, Dict[str, Union[str, int]]]]] = None
     ) -> Decimal:
         """
         High-Precision Billing Calculation.
@@ -206,6 +213,45 @@ class QuotaManager:
         3. Vacation Share: Is there 'Idle Liquidity' from out-of-office colleagues?
         4. Denial: Block request and provide 'Approval Workflow' instructions.
         """
+        logging.debug(f"Checking quota for user {user.id} with estimated cost: {estimated_cost}")
+        source = "personal"  # Initialize source before logging
+        logging.debug(f"Initial source: {source}")
+
+        # Add detailed logs to trace the flow of execution
+        logging.debug(f"Starting check_quota for user {user.id}")
+        logging.debug(f"Estimated cost: {estimated_cost}, Priority: {priority}")
+
+        if priority == ProjectPriority.CRITICAL and self.org_settings.allow_priority_bypass:
+            logging.debug("Priority is CRITICAL and priority bypass is allowed.")
+            source = "priority_bypass"
+
+        if self.org_settings.allow_vacation_sharing:
+            vacation_credits = self._get_vacation_share_credits(user)
+            logging.debug(f"Vacation credits available: {vacation_credits}")
+            logging.debug(f"User status: {user.status}, Is on vacation: {user.is_on_vacation}")
+            logging.debug(f"Estimated cost: {estimated_cost}")
+
+            if user.is_on_vacation and vacation_credits >= estimated_cost:
+                logging.debug("Vacation sharing condition met. Updating source to 'vacation_share'")
+                source = "vacation_share"
+            elif vacation_credits < estimated_cost:
+                logging.debug("Vacation credits insufficient for estimated cost. Denying request.")
+                return QuotaCheckResult(
+                    allowed=False,
+                    source="vacation_share",
+                    available_credits=vacation_credits,
+                    message="Insufficient vacation credits to cover the request.",
+                    requires_approval=True
+                )
+            else:
+                logging.debug("Vacation sharing condition not met.")
+                logging.debug(f"Conditions: is_on_vacation={user.is_on_vacation}, vacation_credits >= estimated_cost={vacation_credits >= estimated_cost}")
+        else:
+            logging.debug("Vacation sharing is not allowed by org settings.")
+
+        # Ensure source is updated correctly
+        logging.debug(f"Final source after evaluation: {source}")
+
         # --- TIER 1: SELF-RELIANCE ---
         if user.available_quota >= estimated_cost:
             return QuotaCheckResult(
@@ -261,24 +307,46 @@ class QuotaManager:
 
     def _get_vacation_share_credits(self, user: User) -> Decimal:
         """Heuristic: If 1+ member is away, unlock a capped percentage of the pool."""
+        logging.debug(f"Calculating vacation credits for user {user.id}")
+
+        # Initialize total vacation credits
         total_vacation_credits = Decimal("0.00")
+
+        # Fetch teams for the user
         statement = select(Team).join(TeamMemberLink).where(TeamMemberLink.user_id == user.id)
         teams = self.session.exec(statement).all()
+        logging.debug(f"Teams found for user: {[team.id for team in teams]}")
+
         for team in teams:
-            if self._get_vacation_members(team, exclude_user=user):
-                total_vacation_credits += team.vacation_share_limit
+            logging.debug(f"Processing team {team.id}")
+            logging.debug(f"Team vacation_share_percentage: {team.vacation_share_percentage}")
+            logging.debug(f"Team available_pool: {team.available_pool}")
+
+            # Identify vacation members in the team
+            vacation_members = [
+                member for member in team.members
+                if member.status == UserStatus.ON_VACATION and member != user
+            ]
+            logging.debug(f"Vacation members in team {team.id}: {[member.id for member in vacation_members]}")
+
+            # Add vacation share limit if there are vacation members
+            if vacation_members:
+                vacation_share_credits = team.available_pool * (team.vacation_share_percentage / Decimal("100.00"))
+                logging.debug(f"Calculated vacation share credits for team {team.id}: {vacation_share_credits}")
+                total_vacation_credits += vacation_share_credits
+            else:
+                logging.debug(f"No vacation members in team {team.id}")
+
+        logging.debug(f"Total vacation credits for user {user.id}: {total_vacation_credits}")
         return total_vacation_credits
 
     def _get_vacation_members(self, team: Team, exclude_user: User) -> List[User]:
         """Find colleagues whose status is 'ON_VACATION'."""
-        statement = (
-            select(User)
-            .join(TeamMemberLink)
-            .where(TeamMemberLink.team_id == team.id)
-            .where(User.id != exclude_user.id)
-            .where(User.status == UserStatus.ON_VACATION)
-        )
-        return list(self.session.exec(statement).all())
+        logging.debug(f"Fetching vacation members for team {team.id}")
+        logging.debug(f"Excluding user: {exclude_user.id if exclude_user else 'None'}")
+        vacation_members = [member for member in team.members if member.status == UserStatus.ON_VACATION and member != exclude_user]
+        logging.debug(f"Vacation members found: {[member.id for member in vacation_members]}")
+        return vacation_members
 
     def deduct_quota(self, user: User, cost: Decimal, source: str, team: Optional[Team] = None) -> None:
         """Atomic deduction logic across ledgers."""
@@ -338,7 +406,7 @@ class EfficiencyScorer:
             select(LeaderboardEntry)
             .where(LeaderboardEntry.period_type == period_type)
             .where(LeaderboardEntry.period_start == period_start)
-            .order_by(LeaderboardEntry.avg_efficiency_score.desc())
+            .order_by(desc(cast(LeaderboardEntry.avg_efficiency_score, Float)))
             .limit(limit)
         )
         return list(self.session.exec(statement).all())
@@ -389,7 +457,7 @@ class RequestLogger:
     def __init__(self, session: Session):
         self.session = session
 
-    def log_request(self, user: User, request: ChatCompletionRequest, response: dict, cost_credits: Decimal, 
+    def log_request(self, user: User, request: ChatCompletionRequest, response: dict[str, Any], cost_credits: Decimal, 
                     quota_source: str, strict_privacy: bool, latency_ms: int, provider: str = "openai") -> RequestLog:
         """Storage logic with conditional redaction for Privacy-By-Design."""
         usage = response.get("usage", {})
@@ -446,35 +514,43 @@ class LLMProxy:
     """The High-Availability Gateway."""
 
     @staticmethod
-    async def forward_request(request: ChatCompletionRequest, api_keys: Optional[dict] = None) -> dict:
+    async def forward_request(request: ChatCompletionRequest, api_keys: Optional[dict[str, str]] = None) -> dict[str, Any]:
         """
         Intelligent Routing with Resilience.
         Automatically retries on provider failure with exponential backoff.
         """
         # Translation: Alfred -> Provider
         messages = [{"role": m.role, "content": m.content} for m in request.messages]
-        kwargs = {
-            "model": request.model, "messages": messages,
-            "temperature": request.temperature, "top_p": 1.0, 
-            "acompletion": True # Asynchronous non-blocking call
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": messages,
+            "temperature": request.temperature,
+            "top_p": 1.0,
+            "acompletion": True,  # Asynchronous non-blocking call
         }
         if request.max_tokens: kwargs["max_tokens"] = request.max_tokens
         if api_keys: kwargs.update(api_keys)
 
         # Execution with Tracing & Retries
-        if TENACITY_AVAILABLE:
-            @retry(
+        # Execute with optional retry logic
+        response: Any
+        if _tenacity_available:
+            @retry(  # type: ignore[misc]
                 stop=stop_after_attempt(3),
                 wait=wait_exponential(multiplier=1, min=2, max=10),
                 before_sleep=before_sleep_log(retry_logger, logging.WARNING),
                 reraise=True
             )
-            async def _call(): return await completion(**kwargs)
+            async def _call() -> Any:
+                return await completion(**kwargs)  # type: ignore[misc]
             response = await _call()
         else:
-            response = await completion(**kwargs)
+            response = await completion(**kwargs)  # type: ignore[misc]
 
-        return response.model_dump() if hasattr(response, 'model_dump') else dict(response)
+        # Convert response to dict
+        if hasattr(response, 'model_dump'):  # type: ignore[arg-type]
+            return response.model_dump()  # type: ignore[union-attr]
+        return dict(response)  # type: ignore[arg-type]
 
 
 # --- 6. The Exception Desk: Manual Overrides ---
@@ -516,3 +592,12 @@ class ApprovalManager:
 
         self.session.add(approval); self.session.commit()
         return approval
+
+# Refine `validate_kwargs` to ensure proper type validation
+def validate_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    # Example validation logic
+    required_keys = {"model", "messages", "temperature"}
+    for key in required_keys:
+        if key not in kwargs:
+            raise ValueError(f"Missing required key: {key}")
+    return kwargs

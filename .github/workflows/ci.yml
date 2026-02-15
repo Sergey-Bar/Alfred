@@ -28,13 +28,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r dev/backend/requirements/requirements-dev.txt
       - name: Run Black
-        run: black --check dev/backend/app/ dev/QA/Backend/ || true
+        run: black --check dev/backend/app/ dev/QA/Backend/
       - name: Run isort
-        run: isort --check-only dev/backend/app/ dev/QA/Backend/ || true
+        run: isort --check-only dev/backend/app/ dev/QA/Backend/
       - name: Run Ruff
-        run: ruff check dev/backend/app/ dev/QA/Backend/ || true
+        run: ruff check dev/backend/app/ dev/QA/Backend/
       - name: Run mypy type checks
-        run: mypy dev/backend/app/ --ignore-missing-imports || true
+        run: mypy dev/backend/app/ --ignore-missing-imports
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -44,7 +44,7 @@ jobs:
         run: npm ci
       - name: Run ESLint
         working-directory: dev/frontend
-        run: npm run lint || true
+        run: npm run lint
 
   test-backend:
     name: Backend tests

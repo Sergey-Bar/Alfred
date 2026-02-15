@@ -10,17 +10,42 @@ import axios from 'axios';
 const API_BASE = '/api';
 
 export const recordLineageEvent = async (event) => {
-    const res = await axios.post(`${API_BASE}/data-lineage/events`, event);
-    return res.data;
+    try {
+        const res = await axios.post(`${API_BASE}/data-lineage/events`, event);
+        return res.data;
+    } catch (error) {
+        console.error('Error recording lineage event:', error);
+        throw new Error('Failed to record lineage event. Please try again later.');
+    }
 };
 
 export const getLineageEvents = async (dataset) => {
-    const url = dataset ? `${API_BASE}/data-lineage/events?dataset=${encodeURIComponent(dataset)}` : `${API_BASE}/data-lineage/events`;
-    const res = await axios.get(url);
-    return res.data;
+    // Added dataset parameter validation
+    if (dataset && typeof dataset !== 'string') {
+        throw new Error('Invalid dataset parameter. It must be a string.');
+    }
+
+    try {
+        const url = dataset ? `${API_BASE}/data-lineage/events?dataset=${encodeURIComponent(dataset)}` : `${API_BASE}/data-lineage/events`;
+        const res = await axios.get(url);
+        return res.data;
+    } catch (error) {
+        console.error('Error fetching lineage events:', error);
+        throw new Error('Failed to fetch lineage events. Please try again later.');
+    }
 };
 
 export const traceDataOrigin = async (dataset) => {
-    const res = await axios.get(`${API_BASE}/data-lineage/trace?dataset=${encodeURIComponent(dataset)}`);
-    return res.data;
+    // Added validation for dataset existence
+    if (!dataset) {
+        throw new Error('Dataset parameter is required.');
+    }
+
+    try {
+        const res = await axios.get(`${API_BASE}/data-lineage/trace?dataset=${encodeURIComponent(dataset)}`);
+        return res.data;
+    } catch (error) {
+        console.error('Error tracing data origin:', error);
+        throw new Error('Failed to trace data origin. Please try again later.');
+    }
 };
