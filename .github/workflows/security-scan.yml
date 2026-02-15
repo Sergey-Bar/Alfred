@@ -2,9 +2,9 @@ name: Security Scan
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   trivy-scan:
@@ -16,14 +16,14 @@ jobs:
       - name: Run Trivy filesystem scan (OS & Python deps)
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          vuln-type: 'os,library'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          vuln-type: "os,library"
 
       - name: Run Trivy Dockerfile scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'config'
-          scan-ref: 'dev/devops/docker/Dockerfile'
-          format: 'table'
+          scan-type: "config"
+          scan-ref: "devops/merged/docker/Dockerfile"
+          format: "table"

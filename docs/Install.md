@@ -184,6 +184,7 @@ SSO_ISSUER_URL=https://login.microsoftonline.com/{tenant}/v2.0
 SCIM_ENABLED=true
 SCIM_BEARER_TOKEN=your-scim-token
 ```
+
 </details>
 
 <details>
@@ -206,6 +207,7 @@ PM_API_URL=https://company.atlassian.net
 PM_API_TOKEN=your-jira-token
 PM_HIGH_PRIORITY_BURST_MULTIPLIER=2.0
 ```
+
 </details>
 
 <details>
@@ -224,6 +226,7 @@ OVERDRAFT_ENABLED=true
 OVERDRAFT_LIMIT_MULTIPLIER=0.1
 OVERDRAFT_INTEREST_RATE=1.5
 ```
+
 </details>
 
 <details>
@@ -252,6 +255,7 @@ VAULT_ENABLED=true
 VAULT_ADDR=https://vault.company.com:8200
 VAULT_TOKEN=your-vault-token
 ```
+
 </details>
 
 <details>
@@ -272,6 +276,7 @@ CAPABILITY_PRICING_MAP={"frontier_reasoning": 3.0, "standard_chat": 1.0}
 BURN_RATE_ALERTS_ENABLED=true
 BURN_RATE_WARNING_THRESHOLD=0.8
 ```
+
 </details>
 
 <details>
@@ -284,6 +289,7 @@ TEE_PROVIDER=azure_confidential
 ENCLAVE_ATTESTATION_ENABLED=true
 CLIENT_DATA_ISOLATION=strict
 ```
+
 </details>
 
 <details>
@@ -299,6 +305,7 @@ SALESFORCE_ENABLED=true
 SALESFORCE_INSTANCE_URL=https://company.salesforce.com
 SALESFORCE_ACCESS_TOKEN=your-sf-token
 ```
+
 </details>
 
 ---
@@ -317,7 +324,7 @@ cp backend/config/.env.example .env
 # Edit .env with your API keys
 
 # Start with Docker Compose
-cd dev/devops/docker && docker-compose up -d
+cd devops/merged/docker && docker compose up -d
 
 # Check logs
 docker-compose logs -f
@@ -327,7 +334,7 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t alfred -f dev/devops/docker/Dockerfile .
+docker build -t alfred -f devops/merged/docker/Dockerfile .
 
 # Run container
 docker run -d \
@@ -410,15 +417,18 @@ black . && isort . && ruff . && mypy dev/backend/app/
 <summary><b>ModuleNotFoundError: No module named 'xxx'</b></summary>
 
 Make sure your virtual environment is activated:
+
 ```bash
 source .venv/bin/activate  # Linux/macOS
 .\.venv\Scripts\Activate.ps1  # Windows
 ```
 
 Then reinstall dependencies:
+
 ```bash
 pip install -r dev/backend/requirements/requirements.txt
 ```
+
 </details>
 
 <details>
@@ -437,11 +447,13 @@ pip install -r dev/backend/requirements/requirements.txt
 <summary><b>Port 8000 already in use</b></summary>
 
 Use a different port:
+
 ```bash
 uvicorn app.main:app --reload --port 8001
 ```
 
 Or find and kill the process using port 8000:
+
 ```bash
 # Linux/macOS
 lsof -i :8000
@@ -451,6 +463,7 @@ kill -9 <PID>
 netstat -ano | findstr :8000
 taskkill /PID <PID> /F
 ```
+
 </details>
 
 <details>
@@ -480,4 +493,3 @@ After installation:
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-org/alfred/issues)
 - 💬 **Questions**: [GitHub Discussions](https://github.com/your-org/alfred/discussions)
 - 👤 **Author**: [Sergey Bar](https://www.linkedin.com/in/sergeybar/)
-

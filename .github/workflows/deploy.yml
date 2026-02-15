@@ -5,11 +5,11 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy to'
+        description: "Environment to deploy to"
         required: true
         type: choice
         options:
@@ -23,10 +23,10 @@ jobs:
     environment:
       name: staging
       url: https://staging.alfred.dev
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure kubeconfig
         run: |
           if [ -n "$KUBE_CONFIG_DATA" ]; then
@@ -38,13 +38,13 @@ jobs:
           fi
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-      
+
       - name: Deploy to staging
         run: |
           echo "Deploying to staging environment..."
           # Add your deployment commands here
-          # Example: kubectl apply -f dev/devops/k8s/staging/
-      
+          # Example: kubectl apply -f devops/merged/k8s/staging/
+
       - name: Run health check
         run: |
           echo "Running health checks..."
@@ -57,10 +57,10 @@ jobs:
       name: production
       url: https://alfred.dev
     needs: []
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure kubeconfig
         run: |
           if [ -n "$KUBE_CONFIG_DATA" ]; then
@@ -72,18 +72,18 @@ jobs:
           fi
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-      
+
       - name: Deploy to production
         run: |
           echo "Deploying to production environment..."
           # Add your deployment commands here
-          # Example: kubectl apply -f dev/devops/k8s/production/
-      
+          # Example: kubectl apply -f devops/merged/k8s/production/
+
       - name: Run health check
         run: |
           echo "Running health checks..."
           # curl -f https://alfred.dev/health || exit 1
-      
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1

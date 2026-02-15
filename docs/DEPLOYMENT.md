@@ -20,11 +20,11 @@ Production deployment instructions for Alfred.
 
 Alfred can be deployed in several ways:
 
-| Method | Best For | Complexity |
-|--------|----------|------------|
-| Docker Compose | Dev, small teams | Low |
-| Kubernetes | Production, scale | Medium |
-| Bare metal | Custom requirements | High |
+| Method         | Best For            | Complexity |
+| -------------- | ------------------- | ---------- |
+| Docker Compose | Dev, small teams    | Low        |
+| Kubernetes     | Production, scale   | Medium     |
+| Bare metal     | Custom requirements | High       |
 
 ---
 
@@ -42,7 +42,7 @@ cp dev/backend/config/.env.example .env
 # Edit .env with your API keys and settings
 
 # Start with Docker Compose
-cd dev/devops/docker && docker-compose up -d
+cd devops/merged/docker && docker compose up -d
 
 # Check logs
 docker-compose logs -f
@@ -52,7 +52,7 @@ docker-compose logs -f
 
 ```bash
 # Build image
-docker build -t alfred -f dev/devops/docker/Dockerfile .
+docker build -t alfred -f devops/merged/docker/Dockerfile .
 
 # Run container
 docker run -d \
@@ -67,13 +67,13 @@ docker run -d \
 ### docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   alfred:
     build:
       context: ..
-      dockerfile: dev/devops/docker/Dockerfile
+      dockerfile: devops/merged/docker/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -113,6 +113,7 @@ helm install alfred alfred/alfred \
 ### Manual Kubernetes
 
 **Deployment:**
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -129,43 +130,44 @@ spec:
         app: alfred
     spec:
       containers:
-      - name: alfred
-        image: ghcr.io/your-org/alfred:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: alfred-secrets
-              key: database-url
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: alfred-secrets
-              key: openai-api-key
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        - name: alfred
+          image: ghcr.io/your-org/alfred:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: alfred-secrets
+                  key: database-url
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: alfred-secrets
+                  key: openai-api-key
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
 ```
 
 **Service:**
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -175,12 +177,13 @@ spec:
   selector:
     app: alfred
   ports:
-  - port: 80
-    targetPort: 8000
+    - port: 80
+      targetPort: 8000
   type: ClusterIP
 ```
 
 **Ingress:**
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -191,23 +194,24 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
-  - hosts:
-    - alfred.company.com
-    secretName: alfred-tls
+    - hosts:
+        - alfred.company.com
+      secretName: alfred-tls
   rules:
-  - host: alfred.company.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: alfred
-            port:
-              number: 80
+    - host: alfred.company.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alfred
+                port:
+                  number: 80
 ```
 
 **Troubleshooting Tips:**
+
 - **Issue**: Pods stuck in `CrashLoopBackOff`.
   **Solution**: Check logs using `kubectl logs <pod-name>`.
 - **Issue**: Service not accessible.
@@ -342,11 +346,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # WebSocket support (for streaming)
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        
+
         # Timeouts for long-running LLM requests
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
@@ -389,20 +393,20 @@ Alfred exposes Prometheus metrics at `/metrics`:
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'alfred'
+  - job_name: "alfred"
     static_configs:
-      - targets: ['alfred:8000']
+      - targets: ["alfred:8000"]
 ```
 
 ### Key Metrics
 
-| Metric | Description |
-|--------|-------------|
-| `alfred_requests_total` | Total API requests |
-| `alfred_credits_used_total` | Total credits consumed |
-| `alfred_request_duration_seconds` | Request latency |
-| `alfred_active_users` | Currently active users |
-| `alfred_quota_exceeded_total` | Quota exceeded events |
+| Metric                            | Description            |
+| --------------------------------- | ---------------------- |
+| `alfred_requests_total`           | Total API requests     |
+| `alfred_credits_used_total`       | Total credits consumed |
+| `alfred_request_duration_seconds` | Request latency        |
+| `alfred_active_users`             | Currently active users |
+| `alfred_quota_exceeded_total`     | Quota exceeded events  |
 
 ### Alerting
 
@@ -451,12 +455,12 @@ spec:
   minReplicas: 3
   maxReplicas: 20
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ```
 
 ### Database Scaling
@@ -481,5 +485,4 @@ Configure regional routing via DNS or load balancer.
 
 ---
 
-*See also: [Architecture](architecture.md) | [Security](security.md) | [Installation](install.md)*
-
+_See also: [Architecture](architecture.md) | [Security](security.md) | [Installation](install.md)_

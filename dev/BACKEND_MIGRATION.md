@@ -36,6 +36,7 @@ dev/
 ## Files Updated (20 files)
 
 ### Configuration Files
+
 1. ✅ **pyproject.toml**
    - `include = ["backend/app*"]` → `["dev/backend/app*"]`
    - `pythonpath = ["backend"]` → `["dev/backend"]`
@@ -54,6 +55,7 @@ dev/
    - `alembic -c backend/config/alembic.ini` → `dev/backend/config/alembic.ini`
 
 ### Documentation Files
+
 5. ✅ **README.md**
    - Quick install command updated
    - Migration command updated
@@ -85,19 +87,21 @@ dev/
    - Mypy: `mypy backend/app/` → `mypy dev/backend/app/`
 
 ### DevOps Files
-10. ✅ **dev/devops/docker/Dockerfile**
+
+10. ✅ **devops/merged/docker/Dockerfile**
     - `COPY backend/requirements/requirements.txt` → `dev/backend/requirements/requirements.txt`
     - `COPY --chown=appuser:appuser backend/app` → `dev/backend/app`
     - `COPY --chown=appuser:appuser backend/alembic` → `dev/backend/alembic`
     - `COPY --chown=appuser:appuser backend/config` → `dev/backend/config`
 
-11. ✅ **dev/devops/scripts/build_minimal.sh**
+11. ✅ **devops/scripts/build_minimal.sh**
     - `rsync backend/app/` → `dev/backend/app/`
     - `rsync backend/alembic/` → `dev/backend/alembic/`
     - `rsync backend/config/` → `dev/backend/config/`
     - `cp backend/requirements/` → `dev/backend/requirements/`
 
 ### QA Documentation
+
 12. ✅ **dev/QA/README_STRUCTURE.md**
     - Coverage command updated
     - Migration notes updated to include backend move
@@ -109,9 +113,11 @@ dev/
 ## Verification Results
 
 ### Tests Status
+
 ```bash
 pytest dev/QA/Backend -q
 ```
+
 **Result**: ✅ 70 passed, 1 skipped, 16 warnings in 8.29s
 
 All tests continue to pass after the migration!
@@ -119,20 +125,25 @@ All tests continue to pass after the migration!
 ## Impact Analysis
 
 ### Breaking Changes
+
 None - all paths updated in configuration files.
 
 ### Version Control
+
 - Old `backend/` directory removed from project root
 - All history preserved in git
 - New structure committed to repository
 
 ### CI/CD
+
 - ✅ GitHub Actions workflows updated
 - ✅ All lint/test paths corrected
 - ✅ Docker build context remains at project root
 
 ### Developer Workflow
+
 Developers need to update:
+
 1. Local checkout (pull latest changes)
 2. IDE workspace settings (if using absolute paths)
 3. Run scripts that hardcoded backend paths
@@ -140,11 +151,11 @@ Developers need to update:
 ## Benefits
 
 1. **Unified Structure**: All development code now under `dev/`
-2. **Clearer Organization**: 
+2. **Clearer Organization**:
    - `dev/backend/` - Python backend
    - `dev/frontend/` - React frontend
    - `dev/QA/` - All tests
-   - `dev/devops/` - Infrastructure code
+   - `devops/` - Infrastructure code
 
 3. **Easier Navigation**: Related code grouped together
 4. **Better .gitignore**: Can apply dev-specific rules more easily
@@ -152,6 +163,7 @@ Developers need to update:
 ## Commands Quick Reference
 
 ### Development
+
 ```bash
 # Install dependencies
 pip install -r dev/backend/requirements/requirements.txt
@@ -167,12 +179,13 @@ pytest dev/QA/Backend -v
 ```
 
 ### Docker
+
 ```bash
 # Build (context is project root)
-docker build -f dev/devops/docker/Dockerfile .
+docker build -f devops/merged/docker/Dockerfile .
 
 # Docker compose (updated working directory)
-docker-compose -f dev/devops/docker/docker-compose.yml up
+docker compose -f devops/merged/docker/docker-compose.yml up
 ```
 
 ## Migration Checklist
@@ -200,6 +213,7 @@ docker-compose -f dev/devops/docker/docker-compose.yml up
 ## Rollback Plan
 
 If issues arise, rollback by:
+
 1. `git revert <commit-hash>`
 2. Move `dev/backend/` back to `backend/`
 3. Revert configuration files

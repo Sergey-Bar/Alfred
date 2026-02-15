@@ -43,9 +43,6 @@
 - **Context:** The code is ready for further extension (synthetic data generation, masking, audit, CI/CD integration). Next steps: add synthetic data generation, integrate masking tools, automate refresh in CI/CD, and add audit logging.
 - **Date:** February 15, 2026
 
-
-
-
 # [2026-02-15] Long-Term/Complex Roadmap Items Scaffolded
 
 - **Summary:** All remaining long-term and most complex roadmap items have been scaffolded with backend routers, E2E tests, and documentation stubs. Each item now has a dedicated module or test file to guide future engineering work.
@@ -60,11 +57,9 @@
 - **Context:** These modules provide stubs, interfaces, and TODOs for future implementation. Next steps: integrate with CI/CD, data masking, a11y tools, translation files, compliance frameworks, knowledge base, doc QA, and security automation.
 - **Date:** February 15, 2026
 
-
 - **Summary:** All high-priority and multi-phase roadmap items (Data Quality Monitoring, Data Lineage & Provenance, Data Catalog & Metadata Management, Data Enrichment Pipelines, Data Governance & Stewardship, Real-Time & Historical Analytics) have been fully implemented, tested, and documented.
 - **Context:** The platform now supports persistent storage, advanced analytics, RBAC, audit logging, and extensibility for future features. Remaining roadmap items are long-term, complex, or ongoing (see FUTURE_ROADMAP.md).
 - **Date:** February 15, 2026
-
 
 - **Backend:** `src/backend/app/routers/analytics.py`, registered in `main.py`
 - **Frontend:** `src/frontend/src/services/analytics.js`
@@ -75,11 +70,11 @@
 - **Context:** Now uses SQLModel for persistent storage, supports advanced aggregations, RBAC, audit logging, and extensibility for streaming, BI, anomaly detection, and retention. Stubs for future features included. For advanced analytics, consider using a more advanced model (Claude Opus).
 
 ### Bugs/Areas Improved
+
 - Persistent storage (PostgreSQL/SQLModel) replaces in-memory store.
 - Advanced aggregations (min, max, avg, sum) and breakdowns by user/dataset.
 - Role-based access control (RBAC) and audit logging for all endpoints.
 - Stubs for streaming, BI integration, anomaly detection, and retention.
-
 
 - **Backend:** `src/backend/app/routers/data_governance.py`, registered in `main.py`
 - **Frontend:** `src/frontend/src/services/dataGovernance.js`
@@ -140,20 +135,7 @@
   6. Training & Enablement: Upskill analysts on platform tools (Plan, Feb 15, 2026)
   7. Feedback Loops: Track QA action items to resolution (Tracker, Feb 15, 2026)
 
-- **Moderate-Complexity Items:**
-  8. Data Usage Analytics: Track/report dataset usage, report popularity, user engagement (API & service scaffolded, Feb 15, 2026)
-  9. Data Access Controls: Fine-grained permissions for sensitive/PII data (API & service scaffolded, Feb 15, 2026)
-  10. Data Anonymization & Masking: Privacy-preserving analytics (API & service scaffolded, Feb 15, 2026)
-  11. Alerting & Anomaly Detection: Automated notifications for outliers, data drift (API & service scaffolded, Feb 15, 2026)
-  12. Collaboration & Sharing: Secure sharing of dashboards/reports (API & service scaffolded, Feb 15, 2026)
-  13. Integration with BI Tools: Power BI, Tableau, Looker connectors (API & service scaffolded, Feb 15, 2026)
-  14. Data Preparation & Transformation Tools: No-code/low-code interfaces (API & service scaffolded, Feb 15, 2026)
-  15. No advanced query validation/BI integration (API & service scaffolded, Feb 15, 2026)
-  16. No audit logging/permission checks for reports (API & service scaffolded, Feb 15, 2026)
-  17. Missing GitOps onboarding docs (Docs & API scaffolded, Feb 15, 2026)
-  18. Duplicate/fragmented Docker Compose files (Docs scaffolded, Feb 15, 2026)
-  19. Inconsistent Dockerfile paths (Docs scaffolded, Feb 15, 2026)
-  20. Missing multi-region/sharding docs/scripts (Docs scaffolded, Feb 15, 2026)
+- **Moderate-Complexity Items:** 8. Data Usage Analytics: Track/report dataset usage, report popularity, user engagement (API & service scaffolded, Feb 15, 2026) 9. Data Access Controls: Fine-grained permissions for sensitive/PII data (API & service scaffolded, Feb 15, 2026) 10. Data Anonymization & Masking: Privacy-preserving analytics (API & service scaffolded, Feb 15, 2026) 11. Alerting & Anomaly Detection: Automated notifications for outliers, data drift (API & service scaffolded, Feb 15, 2026) 12. Collaboration & Sharing: Secure sharing of dashboards/reports (API & service scaffolded, Feb 15, 2026) 13. Integration with BI Tools: Power BI, Tableau, Looker connectors (API & service scaffolded, Feb 15, 2026) 14. Data Preparation & Transformation Tools: No-code/low-code interfaces (API & service scaffolded, Feb 15, 2026) 15. No advanced query validation/BI integration (API & service scaffolded, Feb 15, 2026) 16. No audit logging/permission checks for reports (API & service scaffolded, Feb 15, 2026) 17. Missing GitOps onboarding docs (Docs & API scaffolded, Feb 15, 2026) 18. Duplicate/fragmented Docker Compose files (Docs scaffolded, Feb 15, 2026) 19. Inconsistent Dockerfile paths (Docs scaffolded, Feb 15, 2026) 20. Missing multi-region/sharding docs/scripts (Docs scaffolded, Feb 15, 2026)
 
 - **Context:**
   - Each item was scaffolded with backend API, frontend service, and/or documentation as appropriate.
@@ -172,7 +154,7 @@
 
 - **Docs:** `docs/dockerfile_path_consistency.md`
 - **Description:** Scaffolded a path consistency guide for Dockerfiles, addressing roadmap item 19. The doc explains the canonical Dockerfile location, migration steps, and best practices for reducing build drift and confusion.
-- **Why:** Multiple Dockerfiles (in dev/devops/docker/ and docker-tools/) caused confusion and risk of build drift. Unification improves reliability and onboarding.
+- **Why:** Multiple Dockerfiles (in devops/merged/docker/ and docker-tools/) caused confusion and risk of build drift. Unification improves reliability and onboarding.
 - **Root Cause:** Historical duplication and inconsistent references in Compose/CI led to fragmented Dockerfile usage.
 - **Context:** The guide recommends using docker-tools/Dockerfile as the canonical source, outlines migration, and sets the stage for future automation and CI checks. For advanced multi-stage build patterns, consider using a more advanced model (Claude Opus).
 
@@ -180,7 +162,7 @@
 
 - **Docs:** `docs/docker_compose_unification.md`
 - **Description:** Scaffolded a unification guide for Docker Compose files, addressing roadmap item 18. The doc explains the canonical compose file location, migration steps, and best practices for reducing drift and confusion.
-- **Why:** Multiple docker-compose.yml files (in dev/devops/docker/ and devops/merged/docker/) caused confusion and risk of environment drift. Unification improves reliability and onboarding.
+- **Why:** Multiple docker-compose.yml files (in devops/merged/docker/ and devops/merged/docker/) caused confusion and risk of environment drift. Unification improves reliability and onboarding.
 - **Root Cause:** Historical duplication and minor differences (Postgres version, Dockerfile path) led to fragmented Compose usage.
 - **Context:** The guide recommends using devops/merged/docker/docker-compose.yml as the canonical source, outlines migration, and sets the stage for future automation and CI checks. For advanced multi-environment Compose patterns, consider using a more advanced model (Claude Opus).
 
@@ -198,15 +180,16 @@
 - Moved all 'Areas for Improvement' from FUTURE_ROADMAP.md to BUGS.md for active tracking and triage.
 - This keeps the roadmap focused on future work and ensures improvement areas are not overlooked.
 - See BUGS.md for the full list of ongoing improvement opportunities.
+
 ## [2026-02-14] Roadmap Enhancement: Executive Summary & KPIs
 
 - Added an Executive Summary section to FUTURE_ROADMAP.md, outlining the 5-year vision, business alignment, and measurable outcomes.
 - Introduced executive-level KPIs for customer growth, platform reliability, AI/ML impact, onboarding speed, security, innovation, ecosystem expansion, R&D productivity, data quality, and sustainability.
 - Clarified quarterly review and CEO/CTO alignment process for roadmap accountability.
+
 # Changelog: Code Review Fixes & Rationale
 
 _Last updated: February 13, 2026 by Sergey Bar_
-
 
 ## Summary
 
@@ -221,23 +204,25 @@ _Last updated: February 13, 2026 by Sergey Bar_
 - **Context:** The API supports event submission, querying, and aggregation. Frontend service enables dashboard integration. Future improvements: persistent storage, streaming support (Kafka/WebSockets), advanced aggregations, BI integration, and anomaly detection. For advanced analytics, consider using a more advanced model (Claude Opus).
 
 ### Bugs/Areas to Improve
+
 - In-memory store (backend) is not persistent; replace with DB/data warehouse for production.
 - No streaming analytics or real-time dashboard updates yet.
 - No advanced aggregations, anomaly detection, or BI integration.
 - No audit logging or access controls for analytics endpoints.
-All code review recommendations from February 2026 have been implemented. This includes backend, frontend, extension, and DevOps improvements. Each fix is documented below with the reason, root cause, and extra context for future AI or human contributors, following the RULEBOOK.
+  All code review recommendations from February 2026 have been implemented. This includes backend, frontend, extension, and DevOps improvements. Each fix is documented below with the reason, root cause, and extra context for future AI or human contributors, following the RULEBOOK.
 
 ---
 
 ### Backend (Python)
 
 #### [FIX] `desc` with `datetime` (BUG-022)
+
 - **File:** `src/backend/app/dashboard.py`
 - **Date Fixed:** February 14, 2026
 - **Description:** Standardized all usages of `desc` with `datetime` fields to use `func.desc`, which is compatible with SQLAlchemy and datetime columns.
 - **Root Cause:** Direct use of `desc` on datetime fields is not supported by SQLAlchemy; required explicit use of `func.desc` for compatibility.
 - **Resolution:** Replaced all direct `desc` calls on datetime fields with `func.desc`.
-- **Config Validation:** Switched to Pydantic for config validation. 
+- **Config Validation:** Switched to Pydantic for config validation.
   - Why: Prevent runtime errors from missing/invalid settings.
   - Root Cause: Lack of strict validation in config loading.
   - Context: Centralizes config schema, improves reliability for all environments.
@@ -281,7 +266,9 @@ All code review recommendations from February 2026 have been implemented. This i
   - Why: Ensure reliability and visibility.
   - Root Cause: Gaps in edge case and error tests.
   - Context: See tests_backend.md for details.
+
 #### [FIX] UUID Compatibility Issues (BUG-020)
+
 - **File:** `src/backend/app/dashboard.py`
 - **Date Fixed:** February 14, 2026
 - **Description:** Fixed persistent type compatibility issues with `UUID` fields in SQLAlchemy queries. All usages in `group_by`, `where`, and `in_` clauses now consistently cast `UUID` fields to `String` using `cast(..., String)`.
@@ -289,14 +276,17 @@ All code review recommendations from February 2026 have been implemented. This i
 - **Resolution:** Applied `cast(..., String)` to all relevant UUID fields in queries.
 
 #### [FIX] Datetime Comparison Issues (BUG-021)
+
 - **File:** `src/backend/app/dashboard.py`
 - **Date Fixed:** February 14, 2026
 - **Description:** Fixed invalid comparisons involving `datetime` fields, such as `>= None`, and replaced all improper `isnot`/`is_not` usage with the correct SQLAlchemy `isnot(None)` construct.
 - **Root Cause:** SQLAlchemy requires explicit `isnot(None)` for null checks on datetime fields; previous code used invalid or Python-native comparisons.
 - **Resolution:** Replaced all invalid datetime comparisons and null checks with proper SQLAlchemy constructs.
+
 ### Bug Fixes (February 2026)
 
 #### Backend (Python)
+
 - **Duplicate Engine Creation (BUG-001):** Removed duplicate database engine creation in `main.py` by importing the global engine from `database.py`.
   - Why: Prevent resource wastage, connection exhaustion, and transaction conflicts.
   - Root Cause: Redundant engine initialization in the app entry point.
@@ -328,6 +318,7 @@ All code review recommendations from February 2026 have been implemented. This i
 - **Missing Type Hints (BUG-019):** Added return type hints and `AsyncGenerator` types to core utilities.
 
 #### Extension (TypeScript)
+
 - **Network Timeouts (BUG-009):** Implemented `fetchWithTimeout` utility with a 10s deadline.
   - Why: Prevent the extension from hanging indefinitely during network partitions.
 - **Active Window Optimization (BUG-013):** Paused background refreshes when the VS Code window is inactive.
@@ -338,6 +329,7 @@ All code review recommendations from February 2026 have been implemented. This i
   - Why: Protect global infrastructure from misconfigured client polling rates.
 
 ### Frontend (React)
+
 - **Component Documentation:** Added Storybook, improved prop validation and comments.
   - Why: Improve developer onboarding and UI consistency.
   - Root Cause: Lack of prop documentation and visual test coverage.
@@ -356,6 +348,7 @@ All code review recommendations from February 2026 have been implemented. This i
   - Context: Playwright for E2E, React Testing Library for unit tests.
 
 ### VS Code Extension (TypeScript)
+
 - **API Error Handling:** Improved error handling and retry logic for API calls.
   - Why: Prevent silent failures and improve user feedback.
   - Root Cause: Incomplete error handling in API integration.
@@ -370,6 +363,7 @@ All code review recommendations from February 2026 have been implemented. This i
   - Context: See extension_tests.md for details.
 
 ### DevOps & Infrastructure
+
 - **Documentation:** Added infrastructure-as-code docs, improved custom script documentation.
   - Why: Improve onboarding and reproducibility.
   - Root Cause: Missing or outdated infra docs.
@@ -379,24 +373,21 @@ All code review recommendations from February 2026 have been implemented. This i
   - Root Cause: Insufficient monitoring for critical services.
   - Context: Prometheus and Grafana dashboards added.
 
-
 ## AI Model Suitability
-
 
 ## [2026-02-15] Roadmap Implementation: Core Admin & Governance Features
 
-  - Backend: New routers for admin config and audit log, main.py updated for modular registration, config.py for settings.
-  - Frontend: api.js extended for new endpoints, ActivityLog.jsx and Settings.jsx fetch/display real data.
-  - Test: Pytest and Playwright coverage for new workflows.
-  - See FUTURE_ROADMAP.md (High Priority) and dev/QA/README_STRUCTURE.md for test structure.
+- Backend: New routers for admin config and audit log, main.py updated for modular registration, config.py for settings.
+- Frontend: api.js extended for new endpoints, ActivityLog.jsx and Settings.jsx fetch/display real data.
+- Test: Pytest and Playwright coverage for new workflows.
+- See FUTURE_ROADMAP.md (High Priority) and dev/QA/README_STRUCTURE.md for test structure.
 
 ## [2026-02-15] Roadmap Implementation: Bulk Import/Export for Users, Teams, Models
 
-  - Backend: `import_export.py` router with endpoints for users, teams, and models. Uses CSV for interoperability. Model import/export is a placeholder (not yet implemented).
-  - Frontend: `ImportExportAdmin.jsx` page and API methods for all import/export actions. UI allows CSV upload/download for each entity.
-  - Test: Manual and E2E tested via Playwright; backend covered by integration tests.
-  - Future: Extend with audit logging, dry-run, and rollback support for safer operations.
-
+- Backend: `import_export.py` router with endpoints for users, teams, and models. Uses CSV for interoperability. Model import/export is a placeholder (not yet implemented).
+- Frontend: `ImportExportAdmin.jsx` page and API methods for all import/export actions. UI allows CSV upload/download for each entity.
+- Test: Manual and E2E tested via Playwright; backend covered by integration tests.
+- Future: Extend with audit logging, dry-run, and rollback support for safer operations.
 
 ## [2026-02-15] Roadmap Implementation: Admin Onboarding & Help Flows
 
@@ -413,6 +404,7 @@ All code review recommendations from February 2026 have been implemented. This i
 - **Model Suitability:** For React onboarding flows, GPT-4.1 is sufficient; for advanced analytics or behavioral tracking, consider Claude 3 or Gemini 1.5.
 
 ### Bugs/Areas to Improve
+
 - No behavioral analytics or tracking for onboarding completion (cannot measure onboarding effectiveness).
 - No contextual tooltips or in-app product tours (onboarding is modal-only, not contextual).
 - Onboarding modal is not auto-triggered for new admins (manual launch only).
@@ -433,15 +425,21 @@ All code review recommendations from February 2026 have been implemented. This i
 - **Model Suitability:** GPT-4.1 is suitable for REST API, schema, and UI prototyping. For advanced analytics, BI, or scheduling, consider Claude 3 or Gemini 1.5.
 
 ### Bugs/Areas to Improve
+
 - In-memory store (backend) is not persistent; replace with DB for production.
 - No advanced query validation or BI integration yet.
 - No audit logging or permission checks for report access.
+
 ### Bugs/Areas to Improve
+
 - Model import/export is a placeholder (not implemented).
 - No audit logging for import/export actions yet.
 - No dry-run or rollback support for failed imports.
+
 ## [Unreleased]
+
 ### Added
+
 - Redis-backed distributed rate limiting for horizontal scalability.
 - Prometheus metrics integration for observability.
 - Standardized financial precision in `dashboard.py` using `Decimal`.

@@ -13,11 +13,10 @@ Comprehensive tests for vacation sharing logic.
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
-from app.logic import QuotaManager
-from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend/app')))
 
 
 class TestVacationSharing:
@@ -52,7 +51,9 @@ class TestVacationSharing:
         session.commit()
 
         # Exhaust test_user's personal quota
-        test_user.used_tokens = test_user.personal_quota
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
+        from app.logic import QuotaManager
+        from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
         session.add(test_user)
         session.commit()
 

@@ -12,11 +12,10 @@ Tests for quota management logic.
 
 from decimal import Decimal
 
+
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
-from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
-from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend/app')))
 
 
 class TestCreditCalculator:
@@ -35,6 +34,9 @@ class TestCreditCalculator:
 
     def test_calculate_cost_gpt35(self):
         """Test cost calculation for GPT-3.5."""
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
+        from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
+        from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
         cost = CreditCalculator.calculate_cost(
             model="gpt-3.5-turbo",
             prompt_tokens=1000,

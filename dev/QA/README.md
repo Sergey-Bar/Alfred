@@ -1,12 +1,12 @@
 # Alfred QA Test Suite
 
-This directory contains End-to-End (E2E) tests and test results for the Alfred application.
+This directory contains all End-to-End (E2E) tests and test results for the Alfred application. This is the canonical location for E2E Playwright specs and results.
 
 ## Directory Structure
 
 ```
 Dev/QA/
-├── Tests/           # E2E test specifications
+├── E2E/             # E2E Playwright test specifications (canonical)
 │   ├── login.spec.js
 │   ├── dashboard.spec.js
 │   ├── transfers.spec.js
@@ -16,12 +16,14 @@ Dev/QA/
 │   ├── profile.spec.js
 │   ├── integrations.spec.js
 │   └── smoke.spec.js
-└── results/         # Test execution results
+└── results/         # Test execution results (canonical)
     ├── html/        # HTML reports
     ├── test-results/# Screenshots, videos, traces
     ├── coverage/    # Code coverage reports
     └── results.json # JSON test results
 ```
+
+**Location**: `dev/QA/E2E/` (canonical)
 
 ## Test Suites
 
@@ -112,6 +114,7 @@ Playwright configuration is in `dev/frontend/playwright.config.js`:
 ## CI/CD Integration
 
 Tests run automatically on:
+
 - Pull requests to `main` and `develop` branches
 - Pushes to `main` and `develop` branches
 
@@ -129,25 +132,25 @@ Results are uploaded as GitHub Actions artifacts.
 ### Example Test Structure
 
 ```javascript
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require("@playwright/test");
 
-test.describe('Feature Name', () => {
-    test.beforeEach(async ({ page }) => {
-        // Setup before each test
-        await page.goto('/login');
-        // ... login steps
-    });
+test.describe("Feature Name", () => {
+  test.beforeEach(async ({ page }) => {
+    // Setup before each test
+    await page.goto("/login");
+    // ... login steps
+  });
 
-    test('should perform specific action', async ({ page }) => {
-        // Arrange
-        await page.goto('/feature');
-        
-        // Act
-        await page.click('button#action');
-        
-        // Assert
-        await expect(page.locator('#result')).toHaveText('Expected');
-    });
+  test("should perform specific action", async ({ page }) => {
+    // Arrange
+    await page.goto("/feature");
+
+    // Act
+    await page.click("button#action");
+
+    // Assert
+    await expect(page.locator("#result")).toHaveText("Expected");
+  });
 });
 ```
 

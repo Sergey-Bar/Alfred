@@ -8,7 +8,7 @@
 /docs/ @AlfredDev/docs-team
 /dev/frontend/ @AlfredDev/frontend-team
 /backend/app/ @AlfredDev/backend-team
-/dev/devops/k8s/ @AlfredDev/platform-team
-/dev/devops/docker/ @AlfredDev/platform-team
-/dev/devops/scripts/ @AlfredDev/devops-team
+/devops/merged/k8s/ @AlfredDev/platform-team
+/devops/merged/docker/ @AlfredDev/platform-team
+/devops/scripts/ @AlfredDev/devops-team
 /backend/tests/ @AlfredDev/qa-team
