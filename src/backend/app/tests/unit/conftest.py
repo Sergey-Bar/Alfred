@@ -9,7 +9,13 @@ import sys
 from pathlib import Path
 
 # Correct path to dev/QA/Backend/conftest.py
-qa_backend_conftest = Path(__file__).parent.parent.parent.parent.parent.parent / "dev" / "QA" / "Backend" / "conftest.py"
+qa_backend_conftest = (
+    Path(__file__).parent.parent.parent.parent.parent.parent
+    / "dev"
+    / "QA"
+    / "Backend"
+    / "conftest.py"
+)
 spec = importlib.util.spec_from_file_location("qa_backend_conftest", str(qa_backend_conftest))
 qa_backend = importlib.util.module_from_spec(spec)
 sys.modules["qa_backend_conftest"] = qa_backend

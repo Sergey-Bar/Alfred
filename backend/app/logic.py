@@ -601,3 +601,51 @@ def validate_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
         if key not in kwargs:
             raise ValueError(f"Missing required key: {key}")
     return kwargs
+
+
+# --- Integration of New Managers ---
+
+from backend.core.logic import (
+    HierarchicalQuotaManager,
+    PeerToPeerTransferManager,
+    VacationPoolingManager,
+    TeamSharedPoolManager,
+    PriorityOverrideManager,
+    AuditLogger,
+    RBACManager,
+    PolicyEngine,
+    AnalyticsDashboardManager,
+    GamificationManager,
+    ReportAutomationManager,
+    IntegrationManager,
+)
+
+# Initialize managers with session
+class LogicIntegration:
+    """
+    Integrates all new managers into the existing logic.
+    """
+
+    def __init__(self, session: Session):
+        self.session = session
+        self.hierarchical_quota_manager = HierarchicalQuotaManager(session)
+        self.peer_to_peer_manager = PeerToPeerTransferManager(session)
+        self.vacation_pooling_manager = VacationPoolingManager(session)
+        self.team_shared_pool_manager = TeamSharedPoolManager(session)
+        self.priority_override_manager = PriorityOverrideManager(session)
+        self.audit_logger = AuditLogger(session)
+        self.rbac_manager = RBACManager(session)
+        self.policy_engine = PolicyEngine(session)
+        self.analytics_dashboard_manager = AnalyticsDashboardManager(session)
+        self.gamification_manager = GamificationManager(session)
+        self.report_automation_manager = ReportAutomationManager(session)
+        self.integration_manager = IntegrationManager(session)
+
+    def integrate(self):
+        """
+        Example method to demonstrate integration points.
+        """
+        # Example: Check quota and log the event
+        result = self.hierarchical_quota_manager.check_quota("user_123")
+        self.audit_logger.log_event("quota_check", "user_123", {"result": result})
+        return result

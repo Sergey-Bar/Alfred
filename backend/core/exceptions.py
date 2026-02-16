@@ -201,6 +201,33 @@ class LLMProviderException(AlfredException):
         )
 
 
+class SafetyViolationException(AlfredException):
+    # [AI GENERATED]
+    # Model: GitHub Copilot (Claude Opus 4.5)
+    # Logic: Raised when safety pipeline detects violations (PII, secrets, injection).
+    # Why: Ensures 400 responses for safety policy violations with detailed violation info.
+    # Root Cause: Enterprise compliance requires blocking unsafe prompts.
+    # Context: Used by safety pipeline integration in proxy router.
+    """Safety Policy Violation (PII, Secrets, Prompt Injection)."""
+
+    def __init__(
+        self, 
+        message: str, 
+        violations: Optional[list] = None,
+        enforcement_mode: str = "block"
+    ):
+        super().__init__(
+            message=message,
+            code="safety_violation",
+            status_code=400,
+            details={
+                "violations": [v.to_dict() if hasattr(v, 'to_dict') else v for v in (violations or [])],
+                "enforcement_mode": enforcement_mode,
+                "violation_count": len(violations or [])
+            }
+        )
+
+
 class ConfigurationException(AlfredException):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)

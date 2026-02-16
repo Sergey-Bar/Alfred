@@ -8,13 +8,15 @@ Context: Used by backend for job orchestration, and by frontend for admin/user d
 Model Suitability: GPT-4.1 is suitable for FastAPI data prep APIs; for advanced workflow logic, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlmodel import Session
-from ..dependencies import get_session, require_admin
-from typing import List, Optional
 import uuid
+from typing import List
+
+from fastapi import APIRouter, Body, Depends, HTTPException
+
+from ..dependencies import require_admin
 
 router = APIRouter(prefix="/v1/data_prep", tags=["Data Preparation & Transformation"])
+
 
 # --- In-memory job store (for demo) ---
 class DataPrepJob:
@@ -24,7 +26,9 @@ class DataPrepJob:
         self.config = config  # dict with transformation steps
         self.created_by = created_by
 
+
 DATA_PREP_JOBS = {}
+
 
 # --- API Endpoints ---
 @router.post("/jobs", dependencies=[Depends(require_admin)])
@@ -38,12 +42,13 @@ async def create_job(
     DATA_PREP_JOBS[job_id] = job
     return {"id": job_id, "name": name}
 
+
 @router.get("/jobs", dependencies=[Depends(require_admin)])
 async def list_jobs():
     return [
-        {"id": j.id, "name": j.name, "created_by": j.created_by}
-        for j in DATA_PREP_JOBS.values()
+        {"id": j.id, "name": j.name, "created_by": j.created_by} for j in DATA_PREP_JOBS.values()
     ]
+
 
 @router.get("/jobs/{job_id}", dependencies=[Depends(require_admin)])
 async def get_job(job_id: str):
@@ -52,12 +57,14 @@ async def get_job(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found.")
     return {"id": job.id, "name": job.name, "config": job.config, "created_by": job.created_by}
 
+
 @router.delete("/jobs/{job_id}", dependencies=[Depends(require_admin)])
 async def delete_job(job_id: str):
     if job_id not in DATA_PREP_JOBS:
         raise HTTPException(status_code=404, detail="Job not found.")
     del DATA_PREP_JOBS[job_id]
     return {"message": "Job deleted."}
+
 
 @router.post("/preview", dependencies=[Depends(require_admin)])
 async def preview_transformation(

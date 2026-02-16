@@ -1,13 +1,16 @@
-from typing import Dict, List, Set
+from typing import Dict, Set
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from ..logging_config import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/ws", tags=["Real-time Operations"])
 
+
 class ConnectionManager:
     """Manages active WebSocket connections for real-time alerting."""
-    
+
     def __init__(self):
         # Maps user_id to a set of active websocket connections
         self.active_connections: Dict[str, Set[WebSocket]] = {}
@@ -17,7 +20,9 @@ class ConnectionManager:
         if user_id not in self.active_connections:
             self.active_connections[user_id] = set()
         self.active_connections[user_id].add(websocket)
-        logger.info(f"WebSocket: User {user_id} connected. Pool size: {len(self.active_connections[user_id])}")
+        logger.info(
+            f"WebSocket: User {user_id} connected. Pool size: {len(self.active_connections[user_id])}"
+        )
 
     def disconnect(self, websocket: WebSocket, user_id: str):
         if user_id in self.active_connections:
@@ -28,7 +33,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict):
         """Sends a message to all active admin connections."""
-        # For now, we broadcast to all connected users who are likely admins 
+        # For now, we broadcast to all connected users who are likely admins
         # (Filtering should be done based on role in a production environment)
         for user_id, connections in self.active_connections.items():
             for connection in connections:
@@ -45,7 +50,9 @@ class ConnectionManager:
                 except Exception as e:
                     logger.error(f"WebSocket: Individual send failed: {e}")
 
+
 manager = ConnectionManager()
+
 
 @router.websocket("/events/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
@@ -60,8 +67,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         logger.error(f"WebSocket Error: {e}")
         manager.disconnect(websocket, user_id)
 
+
 # Store connected clients
 connected_clients = []
+
 
 @router.websocket("/ws/approvals")
 async def approvals_websocket_endpoint(websocket: WebSocket):
@@ -73,6 +82,7 @@ async def approvals_websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         connected_clients.remove(websocket)
+
 
 # Function to broadcast messages to all connected clients
 async def broadcast_approval_update(message: str):

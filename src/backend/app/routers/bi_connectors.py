@@ -8,13 +8,14 @@
 # Model Suitability: GPT-4.1 is suitable for FastAPI integration APIs; for advanced connector logic, consider Claude 3 or Gemini 1.5.
 # """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlmodel import Session
-from ..dependencies import get_session, require_admin
-from typing import List, Optional
 import uuid
 
+from fastapi import APIRouter, Body, Depends, HTTPException
+
+from ..dependencies import require_admin
+
 router = APIRouter(prefix="/v1/bi_connectors", tags=["BI Tools Integration"])
+
 
 # --- In-memory connector store (for demo) ---
 class BIConnector:
@@ -25,7 +26,9 @@ class BIConnector:
         self.config = config  # dict with connection/config info
         self.created_by = created_by
 
+
 BI_CONNECTORS = {}
+
 
 # --- API Endpoints ---
 @router.post("/", dependencies=[Depends(require_admin)])
@@ -40,6 +43,7 @@ async def add_connector(
     BI_CONNECTORS[connector_id] = connector
     return {"id": connector_id, "tool": tool, "name": name}
 
+
 @router.get("/", dependencies=[Depends(require_admin)])
 async def list_connectors():
     return [
@@ -47,12 +51,20 @@ async def list_connectors():
         for c in BI_CONNECTORS.values()
     ]
 
+
 @router.get("/{connector_id}", dependencies=[Depends(require_admin)])
 async def get_connector(connector_id: str):
     connector = BI_CONNECTORS.get(connector_id)
     if not connector:
         raise HTTPException(status_code=404, detail="Connector not found.")
-    return {"id": connector.id, "tool": connector.tool, "name": connector.name, "config": connector.config, "created_by": connector.created_by}
+    return {
+        "id": connector.id,
+        "tool": connector.tool,
+        "name": connector.name,
+        "config": connector.config,
+        "created_by": connector.created_by,
+    }
+
 
 @router.delete("/{connector_id}", dependencies=[Depends(require_admin)])
 async def remove_connector(connector_id: str):
@@ -60,6 +72,7 @@ async def remove_connector(connector_id: str):
         raise HTTPException(status_code=404, detail="Connector not found.")
     del BI_CONNECTORS[connector_id]
     return {"message": "Connector removed."}
+
 
 @router.post("/test_connection", dependencies=[Depends(require_admin)])
 async def test_connection(

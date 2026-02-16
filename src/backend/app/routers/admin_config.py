@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Adds a backend API endpoint to expose quotas, API keys, and LLM endpoint config for the admin settings panel.
@@ -9,10 +8,12 @@
 
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
-from ..dependencies import get_session, require_admin
+
 from ..config import settings
+from ..dependencies import get_session, require_admin
 
 router = APIRouter(prefix="/v1", tags=["Admin Config"])
+
 
 @router.get("/admin/config", dependencies=[Depends(require_admin)])
 async def get_admin_config(session: Session = Depends(get_session)):

@@ -17,6 +17,7 @@ Pytest configuration and fixtures for Alfred tests.
 import sys
 from decimal import Decimal
 from pathlib import Path
+import logging
 
 import pytest
 from sqlalchemy.pool import StaticPool
@@ -24,9 +25,10 @@ from sqlmodel import Session, SQLModel, create_engine
 
 # Add backend directory to Python path so 'app' module can be imported
 src_backend_dir = Path(__file__).parent.parent.parent / "src" / "backend"
-print(f"[DEBUG] src_backend_dir: {src_backend_dir}")
+logger = logging.getLogger(__name__)
+logger.debug("src_backend_dir: %s", src_backend_dir)
 sys.path.insert(0, str(src_backend_dir))
-print(f"[DEBUG] sys.path: {sys.path}")
+logger.debug("sys.path: %s", sys.path)
 
 # Use SQLite in-memory for tests (truly in-memory - no file)
 TEST_DATABASE_URL = "sqlite:///:memory:"

@@ -57,7 +57,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: alfred_test
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
           POSTGRES_DB: alfred_test
         options: >-
           --health-cmd pg_isready
@@ -76,7 +76,7 @@ jobs:
           pip install -r dev/backend/requirements/requirements-dev.txt
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://alfred_test:test_password@localhost:5432/alfred_test
+          DATABASE_URL: postgresql://alfred_test:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/alfred_test
         run: pytest -q
 
   test-frontend:
@@ -106,6 +106,22 @@ jobs:
         with:
           name: frontend-coverage
           path: dev/QA/results/coverage
+
+  test-frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install frontend deps
+        working-directory: src/frontend
+        run: npm ci
+      - name: Run frontend tests
+        working-directory: src/frontend
+        run: npm test
 
   test-e2e:
     name: E2E tests (Playwright)
@@ -189,6 +205,16 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fail on common placeholder secrets
+        run: |
+          set -euo pipefail
+          PLACEHOLDERS='test_password|changeme|password123|admin123|tp-xxxxxxxx|REDACTED_EXAMPLE_KEY'
+          if grep -R --line-number -E "$PLACEHOLDERS" . ; then
+            echo "Hardcoded placeholder secrets found. Please remove or replace with repo secrets." >&2
+            exit 1
+          else
+            echo "No placeholder secrets found."
+          fi
 
   docker-build:
     name: Build and push Docker image

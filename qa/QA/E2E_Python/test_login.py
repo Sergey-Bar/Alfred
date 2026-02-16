@@ -7,6 +7,7 @@ Context: Verification of authentication mechanisms.
 
 import pytest
 from playwright.sync_api import Page, expect
+from test_credentials import TEST_USER_EMAIL, TEST_USER_PASSWORD
 
 @pytest.mark.describe("Login Flow")
 class TestLogin:
@@ -26,8 +27,8 @@ class TestLogin:
         page.goto("/login")
 
         # Fill in login form
-        page.fill('input[type="email"]', 'test@example.com')
-        page.fill('input[type="password"]', 'password123')
+        page.fill('input[type="email"]', TEST_USER_EMAIL)
+        page.fill('input[type="password"]', TEST_USER_PASSWORD)
 
         # Submit form
         page.click('button[type="submit"]')

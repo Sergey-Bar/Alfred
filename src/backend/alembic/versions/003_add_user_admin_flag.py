@@ -4,19 +4,20 @@ Revision ID: 003
 Revises: 002_add_token_transfers
 Create Date: 2024-01-15
 """
+
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers
-revision = '003'
-down_revision = '002_add_token_transfers'
+revision = "003"
+down_revision = "002_add_token_transfers"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column('users', sa.Column('is_admin', sa.Boolean(), nullable=False, server_default='0'))
+    op.add_column("users", sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="0"))
 
 
 def downgrade() -> None:
-    op.drop_column('users', 'is_admin')
+    op.drop_column("users", "is_admin")

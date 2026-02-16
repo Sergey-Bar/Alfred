@@ -8,15 +8,17 @@ Context: Used by frontend admin UI for import/export workflows. Future: extend f
 Model Suitability: For REST API and file handling, GPT-4.1 is sufficient; for advanced ETL, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, File, UploadFile, Response, HTTPException
-from sqlmodel import Session
-from ..models import User, Team
-from ..dependencies import get_session, require_admin
 import csv
 import io
-import json
+
+from fastapi import APIRouter, Depends, File, Response, UploadFile
+from sqlmodel import Session
+
+from ..dependencies import get_session, require_admin
+from ..models import Team, User
 
 router = APIRouter(prefix="/v1/import-export", tags=["Import/Export"])
+
 
 # --- Export Users ---
 @router.get("/users", dependencies=[Depends(require_admin)])
@@ -26,8 +28,17 @@ async def export_users(session: Session = Depends(get_session)):
     writer = csv.DictWriter(output, fieldnames=["id", "email", "name", "personal_quota", "status"])
     writer.writeheader()
     for u in users:
-        writer.writerow({"id": u.id, "email": u.email, "name": u.name, "personal_quota": u.personal_quota, "status": u.status})
+        writer.writerow(
+            {
+                "id": u.id,
+                "email": u.email,
+                "name": u.name,
+                "personal_quota": u.personal_quota,
+                "status": u.status,
+            }
+        )
     return Response(content=output.getvalue(), media_type="text/csv")
+
 
 # --- Import Users ---
 @router.post("/users", dependencies=[Depends(require_admin)])
@@ -37,13 +48,19 @@ async def import_users(file: UploadFile = File(...), session: Session = Depends(
     imported, errors = 0, []
     for row in reader:
         try:
-            user = User(email=row["email"], name=row["name"], personal_quota=row.get("personal_quota", 1000), status=row.get("status", "active"))
+            user = User(
+                email=row["email"],
+                name=row["name"],
+                personal_quota=row.get("personal_quota", 1000),
+                status=row.get("status", "active"),
+            )
             session.add(user)
             imported += 1
         except Exception as e:
             errors.append(str(e))
     session.commit()
     return {"imported": imported, "errors": errors}
+
 
 # --- Export Teams ---
 @router.get("/teams", dependencies=[Depends(require_admin)])
@@ -53,8 +70,11 @@ async def export_teams(session: Session = Depends(get_session)):
     writer = csv.DictWriter(output, fieldnames=["id", "name", "description", "common_pool"])
     writer.writeheader()
     for t in teams:
-        writer.writerow({"id": t.id, "name": t.name, "description": t.description, "common_pool": t.common_pool})
+        writer.writerow(
+            {"id": t.id, "name": t.name, "description": t.description, "common_pool": t.common_pool}
+        )
     return Response(content=output.getvalue(), media_type="text/csv")
+
 
 # --- Import Teams ---
 @router.post("/teams", dependencies=[Depends(require_admin)])
@@ -64,7 +84,11 @@ async def import_teams(file: UploadFile = File(...), session: Session = Depends(
     imported, errors = 0, []
     for row in reader:
         try:
-            team = Team(name=row["name"], description=row.get("description", ""), common_pool=row.get("common_pool", 10000))
+            team = Team(
+                name=row["name"],
+                description=row.get("description", ""),
+                common_pool=row.get("common_pool", 10000),
+            )
             session.add(team)
             imported += 1
         except Exception as e:
@@ -72,11 +96,13 @@ async def import_teams(file: UploadFile = File(...), session: Session = Depends(
     session.commit()
     return {"imported": imported, "errors": errors}
 
+
 # --- Export Models (Placeholder) ---
 @router.get("/models", dependencies=[Depends(require_admin)])
 async def export_models():
     # TODO: Implement model export logic
     return Response(content="id,name,description\n", media_type="text/csv")
+
 
 # --- Import Models (Placeholder) ---
 @router.post("/models", dependencies=[Depends(require_admin)])

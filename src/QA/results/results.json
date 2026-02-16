@@ -10,14 +10,18 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 0
+    },
     "preserveOutput": "always",
     "projects": [
       {
         "outputDir": "C:/Projects/Alfred/src/QA/results/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 0
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "C:/Projects/Alfred/src/QA/E2E",
@@ -31,7 +35,9 @@
         "outputDir": "C:/Projects/Alfred/src/QA/results/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 0
+        },
         "id": "firefox",
         "name": "firefox",
         "testDir": "C:/Projects/Alfred/src/QA/E2E",
@@ -45,7 +51,9 @@
         "outputDir": "C:/Projects/Alfred/src/QA/results/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 0
+        },
         "id": "webkit",
         "name": "webkit",
         "testDir": "C:/Projects/Alfred/src/QA/E2E",
@@ -84,9 +92,9 @@
     "shard": null,
     "tags": [],
     "updateSnapshots": "missing",
-    "updateSourceMethod": "patch",
+    "updateSourceMethod": "3way",
     "version": "1.58.2",
-    "workers": 6,
+    "workers": 1,
     "webServer": {
       "command": "npm run dev",
       "port": 5173,
@@ -94,15 +102,10 @@
     }
   },
   "suites": [],
-  "errors": [
-    {
-      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
-      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
-    }
-  ],
+  "errors": [],
   "stats": {
-    "startTime": "2026-02-14T20:13:33.655Z",
-    "duration": 1341.431,
+    "startTime": "2026-02-16T07:47:42.097Z",
+    "duration": 549.206999999471,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,

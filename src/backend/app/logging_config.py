@@ -41,8 +41,8 @@ class JSONFormatter(logging.Formatter):
     # Context: Used in production and file logging.
     """
     Production-Grade Structured Formatter.
-    
-    Converts Python log records into standardized JSON blobs. 
+
+    Converts Python log records into standardized JSON blobs.
     Implements recursive PII masking to ensure compliance with GDPR/SOC2.
     """
 
@@ -87,12 +87,18 @@ class JSONFormatter(logging.Formatter):
         }
 
         # Inject Cross-Cutting Context (Correlation IDs)
-        if (req_id := request_id_var.get()): log_data["request_id"] = req_id
-        if (usr_id := user_id_var.get()): log_data["user_id"] = usr_id
+        if req_id := request_id_var.get():
+            log_data["request_id"] = req_id
+        if usr_id := user_id_var.get():
+            log_data["user_id"] = usr_id
 
         # Merge Structured 'Extra' Metadata
         if hasattr(record, "extra_data"):
-            extra = self._mask_dict(record.extra_data) if isinstance(record.extra_data, dict) else record.extra_data
+            extra = (
+                self._mask_dict(record.extra_data)
+                if isinstance(record.extra_data, dict)
+                else record.extra_data
+            )
             log_data["extra"] = extra
 
         # Precise Exception Reporting
@@ -100,7 +106,7 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
                 "message": str(record.exc_info[1]) if record.exc_info[1] else None,
-                "traceback": self.formatException(record.exc_info)
+                "traceback": self.formatException(record.exc_info),
             }
 
         return json.dumps(log_data, default=str)
@@ -119,15 +125,18 @@ class DevelopmentFormatter(logging.Formatter):
     """
 
     COLORS = {
-        "DEBUG": "\033[36m", "INFO": "\033[32m", "WARNING": "\033[33m",
-        "ERROR": "\033[31m", "CRITICAL": "\033[35m",
+        "DEBUG": "\033[36m",
+        "INFO": "\033[32m",
+        "WARNING": "\033[33m",
+        "ERROR": "\033[31m",
+        "CRITICAL": "\033[35m",
     }
     RESET = "\033[0m"
 
     def format(self, record: logging.LogRecord) -> str:
         color = self.COLORS.get(record.levelname, "")
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
-        
+
         # Identity Badge: Show first 8 chars of request ID for easy tracking
         req_ctx = f"[req:{rid[:8]}] " if (rid := request_id_var.get()) else ""
 
@@ -157,7 +166,14 @@ class StructuredLogger(logging.Logger):
     Provides standard logging methods with a first-class `extra_data` argument.
     """
 
-    def _log_with_extra(self, level: int, msg: str, args: tuple, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+    def _log_with_extra(
+        self,
+        level: int,
+        msg: str,
+        args: tuple,
+        extra_data: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> None:
         if extra_data:
             extra = kwargs.get("extra", {})
             extra["extra_data"] = extra_data
@@ -170,13 +186,17 @@ class StructuredLogger(logging.Logger):
     def info(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.INFO, msg, args, extra_data, **kwargs)
 
-    def warning(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+    def warning(
+        self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> None:
         self._log_with_extra(logging.WARNING, msg, args, extra_data, **kwargs)
 
     def error(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         self._log_with_extra(logging.ERROR, msg, args, extra_data, **kwargs)
 
-    def critical(self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+    def critical(
+        self, msg: str, *args, extra_data: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> None:
         self._log_with_extra(logging.CRITICAL, msg, args, extra_data, **kwargs)
 
 
@@ -184,7 +204,12 @@ class StructuredLogger(logging.Logger):
 logging.setLoggerClass(StructuredLogger)
 
 
-def setup_logging(log_level: str = "INFO", log_format: str = "json", mask_pii: bool = True, log_file: Optional[str] = None) -> logging.Logger:
+def setup_logging(
+    log_level: str = "INFO",
+    log_format: str = "json",
+    mask_pii: bool = True,
+    log_file: Optional[str] = None,
+) -> logging.Logger:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Bootstraps the root logger with appropriate handlers and formatters for the environment.
@@ -193,8 +218,8 @@ def setup_logging(log_level: str = "INFO", log_format: str = "json", mask_pii: b
     # Context: Called at app startup in main.py.
     """
     Bootstrap the logging subsystem.
-    
-    Initializes the root logger with handlers and formatters based on the 
+
+    Initializes the root logger with handlers and formatters based on the
     current Environment setting.
     """
     root_logger = logging.getLogger()
@@ -234,8 +259,15 @@ def get_logger(name: str) -> StructuredLogger:
     return logging.getLogger(name)
 
 
-def log_request(logger: logging.Logger, method: str, path: str, status_code: int, duration_ms: float, 
-                user_id: Optional[str] = None, extra: Optional[Dict[str, Any]] = None) -> None:
+def log_request(
+    logger: logging.Logger,
+    method: str,
+    path: str,
+    status_code: int,
+    duration_ms: float,
+    user_id: Optional[str] = None,
+    extra: Optional[Dict[str, Any]] = None,
+) -> None:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Logs HTTP request lifecycle events with structured metadata for observability.
@@ -243,10 +275,14 @@ def log_request(logger: logging.Logger, method: str, path: str, status_code: int
     # Root Cause: Without request logs, it's impossible to diagnose latency or error patterns.
     # Context: Called by middleware or routers for every API request.
     data = {
-        "method": method, "path": path, "status_code": status_code,
+        "method": method,
+        "path": path,
+        "status_code": status_code,
         "duration_ms": round(duration_ms, 2),
     }
-    if user_id: data["user_id"] = user_id
-    if extra: data.update(extra)
+    if user_id:
+        data["user_id"] = user_id
+    if extra:
+        data.update(extra)
 
     logger.info(f"{method} {path} {status_code} ({duration_ms:.2f}ms)", extra_data=data)

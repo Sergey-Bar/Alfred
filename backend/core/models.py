@@ -612,3 +612,104 @@ class QuotaInjectionRequest(BaseModel):
     updated_at: Optional[datetime] = Field(default=None)
     approved_by: Optional[uuid.UUID] = Field(default=None)
     approval_notes: Optional[str] = Field(default=None, max_length=500)
+
+
+# [AI GENERATED]
+# Model: GitHub Copilot (Claude Opus 4.5)
+# Logic: Safety incident tracking for audit trail and compliance reporting.
+# Why: Enterprise compliance requires immutable log of all safety violations.
+# Root Cause: GDPR, HIPAA, SOC2 require audit trails for data protection incidents.
+# Context: Used by safety pipeline for incident logging and dashboard analytics.
+# Model Suitability: Claude Opus 4.5 used for critical compliance infrastructure.
+class SafetyIncident(BaseModel):
+    """
+    Safety Incident Log.
+    
+    Immutable audit trail for all safety violations detected by the pipeline.
+    Used for compliance reporting, analytics, and security monitoring.
+    """
+    __tablename__ = "safety_incidents"
+    
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    
+    # Context
+    user_id: Optional[uuid.UUID] = Field(default=None, index=True, foreign_key="users.id")
+    org_id: Optional[uuid.UUID] = Field(default=None, index=True)
+    request_id: Optional[str] = Field(default=None, index=True, max_length=100)
+    
+    # Violation details
+    violation_category: str = Field(index=True, max_length=50)  # pii, secret, injection, blocklist
+    violation_type: str = Field(index=True, max_length=100)  # ssn, openai_api_key, ignore_instructions, etc.
+    severity: str = Field(index=True, max_length=20)  # low, medium, high, critical
+    confidence: float = Field()
+    description: str = Field(max_length=500)
+    
+    # Action taken
+    enforcement_mode: str = Field(index=True, max_length=20)  # block, redact, warn, allow
+    request_allowed: bool = Field(index=True)
+    was_redacted: bool = Field(default=False)
+    
+    # Metadata (do NOT log actual PII/secrets)
+    violation_count: int = Field(default=1)
+    provider: Optional[str] = Field(default=None, max_length=100)
+    
+    # Additional context (JSON)
+    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+
+
+# [AI GENERATED]
+# Model: GitHub Copilot (Claude Opus 4.5)
+# Logic: Persistent safety policy configuration per organization.
+# Why: Enables per-org customization of safety enforcement modes and thresholds.
+# Root Cause: Different organizations have different compliance requirements.
+# Context: Used by safety pipeline to load org-specific policies.
+# Model Suitability: Claude Opus 4.5 used for critical compliance infrastructure.
+class SafetyPolicyDB(BaseModel):
+    """
+    Safety Policy Configuration.
+    
+    Stores organization-specific safety policy settings.
+    Loaded by safety pipeline to determine enforcement modes.
+    """
+    __tablename__ = "safety_policies"
+    
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    org_id: uuid.UUID = Field(index=True, unique=True)
+    
+    # PII settings
+    pii_enabled: bool = Field(default=True)
+    pii_enforcement: str = Field(default="block", max_length=20)  # block, redact, warn, allow
+    pii_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    pii_allow_redaction: bool = Field(default=True)
+    
+    # Secret settings
+    secret_enabled: bool = Field(default=True)
+    secret_enforcement: str = Field(default="block", max_length=20)
+    secret_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    secret_check_entropy: bool = Field(default=True)
+    secret_entropy_threshold: float = Field(default=4.5)
+    
+    # Injection settings
+    injection_enabled: bool = Field(default=True)
+    injection_enforcement: str = Field(default="block", max_length=20)
+    injection_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    injection_min_severity: str = Field(default="high", max_length=20)
+    injection_block_threshold: str = Field(default="high", max_length=20)
+    
+    # Custom blocklist
+    blocklist_enabled: bool = Field(default=True)
+    blocklist_patterns: List[str] = Field(default_factory=list, sa_column=Column(JSON))
+    blocklist_enforcement: str = Field(default="warn", max_length=20)
+    
+    # Global settings
+    log_violations: bool = Field(default=True)
+    notify_on_critical: bool = Field(default=True)
+    strict_mode: bool = Field(default=False)
+    allow_user_override: bool = Field(default=False)
+    
+    # Timestamps
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+

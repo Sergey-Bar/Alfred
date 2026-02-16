@@ -16,8 +16,10 @@ class TestApprovals:
         self.page = page
         # Login flow
         self.page.goto("/login")
-        self.page.fill('input[type="email"]', "test@example.com")
-        self.page.fill('input[type="password"]', "password123")
+        from test_credentials import TEST_USER_EMAIL, TEST_USER_PASSWORD
+
+        self.page.fill('input[type="email"]', TEST_USER_EMAIL)
+        self.page.fill('input[type="password"]', TEST_USER_PASSWORD)
         self.page.click('button[type="submit"]')
         self.page.wait_for_url("**/dashboard")
         self.page.goto("/approvals")

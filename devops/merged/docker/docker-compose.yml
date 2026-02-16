@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: alfred
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: alfred
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -35,7 +35,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://alfred:${DB_PASSWORD:-changeme}@db:5432/alfred
+      DATABASE_URL: postgresql://alfred:${DB_PASSWORD}@db:5432/alfred
       DEBUG: ${DEBUG:-false}
       # LLM Provider Keys (from .env file)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -84,7 +84,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://alfred:${DB_PASSWORD:-changeme}@db:5432/alfred
+      DATABASE_URL: postgresql://alfred:${DB_PASSWORD}@db:5432/alfred
       REDIS_URL: redis://redis:6379/0
     profiles:
       - with-cache

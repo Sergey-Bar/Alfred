@@ -6,12 +6,14 @@
 # Context: Extend this with authentication, filtering, and export formats as needed.
 # Model Suitability: For advanced export logic, consider GPT-4 Turbo or Claude Sonnet.
 
-from fastapi import APIRouter, Query, Response
-from typing import Optional
 import csv
 import io
+from typing import Optional
+
+from fastapi import APIRouter, Query, Response
 
 router = APIRouter()
+
 
 @router.get("/export/analytics")
 def export_analytics(format: Optional[str] = Query("csv", enum=["csv", "json"])):
@@ -28,5 +30,6 @@ def export_analytics(format: Optional[str] = Query("csv", enum=["csv", "json"]))
     writer.writeheader()
     writer.writerows(data)
     return Response(content=output.getvalue(), media_type="text/csv")
+
 
 # To use: include_router(data_export.router) in main.py

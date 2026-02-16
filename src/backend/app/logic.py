@@ -29,7 +29,7 @@ from sqlmodel import Session, select
 from .constants import CreditConversion
 
 # --- Resiliency Configuration (Tenacity) ---
-# We use Tenacity for robust, exponential-backoff retries. 
+# We use Tenacity for robust, exponential-backoff retries.
 # This is critical for Enterprise durability where LLM endpoints frequently timeout.
 try:
     import logging
@@ -41,6 +41,7 @@ try:
         stop_after_attempt,
         wait_exponential,
     )
+
     retry_logger = logging.getLogger(__name__)
     TENACITY_AVAILABLE = True
 except ImportError:
@@ -69,6 +70,7 @@ class QuotaCheckResult:
     Governance Decision Object.
     Encapsulates the result of the multi-tier quota evaluation.
     """
+
     allowed: bool
     source: str  # "personal", "team_pool", "vacation_share", "priority_bypass"
     available_credits: Decimal
@@ -80,6 +82,7 @@ class QuotaCheckResult:
 @dataclass
 class CostEstimate:
     """Logical prediction for pre-flight billing checks."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -89,6 +92,7 @@ class CostEstimate:
 
 
 # --- 1. The Credit Ledger: Mapping Raw Tokens to Org-Value ---
+
 
 class CreditCalculator:
     """
@@ -122,11 +126,7 @@ class CreditCalculator:
 
     @classmethod
     def calculate_cost(
-        cls,
-        model: str,
-        prompt_tokens: int,
-        completion_tokens: int,
-        response: Optional[dict] = None
+        cls, model: str, prompt_tokens: int, completion_tokens: int, response: Optional[dict] = None
     ) -> Decimal:
         """
         High-Precision Billing Calculation.
@@ -167,6 +167,7 @@ class CreditCalculator:
 
 # --- 2. The Balancer: Multi-Tier Quota Allocation ---
 
+
 class QuotaManager:
     """
     Inland Revenue for AI Tokens.
@@ -194,12 +195,12 @@ class QuotaManager:
         self,
         user: User,
         estimated_cost: Decimal,
-        priority: ProjectPriority = ProjectPriority.NORMAL
+        priority: ProjectPriority = ProjectPriority.NORMAL,
     ) -> QuotaCheckResult:
         """
         Governance Cascading Logic.
         Resolves the question: 'Who pays for this request?'
-        
+
         Logic Cascade:
         1. Personal: Does the user have enough of their own monthly allowance?
         2. Critical Bypass: If priority=CRITICAL, can they borrow from the team pool?
@@ -209,9 +210,10 @@ class QuotaManager:
         # --- TIER 1: SELF-RELIANCE ---
         if user.available_quota >= estimated_cost:
             return QuotaCheckResult(
-                allowed=True, source="personal",
+                allowed=True,
+                source="personal",
                 available_credits=user.available_quota,
-                message="Deducting from personal allowance."
+                message="Deducting from personal allowance.",
             )
 
         # --- TIER 2: MISSION-CRITICAL OVERRIDE ---
@@ -219,9 +221,10 @@ class QuotaManager:
             team_pool = self._get_total_team_pool(user)
             if team_pool >= estimated_cost:
                 return QuotaCheckResult(
-                    allowed=True, source="priority_bypass",
+                    allowed=True,
+                    source="priority_bypass",
                     available_credits=team_pool,
-                    message="Critical bypass: Utilizing shared team liquidity."
+                    message="Critical bypass: Utilizing shared team liquidity.",
                 )
 
         # --- TIER 3: VACATION LIQUIDITY ---
@@ -229,14 +232,17 @@ class QuotaManager:
             vacation_credits = self._get_vacation_share_credits(user)
             if vacation_credits >= estimated_cost:
                 return QuotaCheckResult(
-                    allowed=True, source="vacation_share",
+                    allowed=True,
+                    source="vacation_share",
                     available_credits=vacation_credits,
-                    message="Idle liquidity boost: Using credits from teammates on vacation."
+                    message="Idle liquidity boost: Using credits from teammates on vacation.",
                 )
 
         # --- TIER 4: HARD STOP & WORKFLOW ---
         return QuotaCheckResult(
-            allowed=False, source="none", available_credits=user.available_quota,
+            allowed=False,
+            source="none",
+            available_credits=user.available_quota,
             message="Quota exceeded. Approval required.",
             requires_approval=True,
             approval_instructions={
@@ -244,10 +250,10 @@ class QuotaManager:
                 "steps": [
                     "POST /v1/approvals with justification.",
                     "Wait for Team Admin review.",
-                    "Credits auto-replenish upon approval."
+                    "Credits auto-replenish upon approval.",
                 ],
-                "endpoint": "/v1/approvals"
-            }
+                "endpoint": "/v1/approvals",
+            },
         )
 
     def _get_total_team_pool(self, user: User) -> Decimal:
@@ -280,7 +286,9 @@ class QuotaManager:
         )
         return list(self.session.exec(statement).all())
 
-    def deduct_quota(self, user: User, cost: Decimal, source: str, team: Optional[Team] = None) -> None:
+    def deduct_quota(
+        self, user: User, cost: Decimal, source: str, team: Optional[Team] = None
+    ) -> None:
         """Atomic deduction logic across ledgers."""
         if source == "personal":
             user.used_tokens += cost
@@ -289,7 +297,9 @@ class QuotaManager:
         elif source in ("team_pool", "priority_bypass", "vacation_share"):
             if team is None:
                 # Default to primary team
-                team = self.session.exec(select(Team).join(TeamMemberLink).where(TeamMemberLink.user_id == user.id)).first()
+                team = self.session.exec(
+                    select(Team).join(TeamMemberLink).where(TeamMemberLink.user_id == user.id)
+                ).first()
             if team:
                 team.used_pool += cost
                 team.updated_at = datetime.now(timezone.utc)
@@ -308,6 +318,7 @@ class QuotaManager:
 
 # --- 3. Behavioral Scant: The Gamification Layer ---
 
+
 class EfficiencyScorer:
     """
     The 'Token-Frugality' Metric.
@@ -321,16 +332,21 @@ class EfficiencyScorer:
     @staticmethod
     def calculate_efficiency_score(prompt_tokens: int, completion_tokens: int) -> Decimal:
         """Ordinal efficiency score."""
-        if prompt_tokens == 0: return Decimal("0.00")
+        if prompt_tokens == 0:
+            return Decimal("0.00")
         return round(Decimal(completion_tokens) / Decimal(prompt_tokens), 4)
 
-    def get_leaderboard(self, period_type: str = "daily", limit: int = 10) -> List[LeaderboardEntry]:
+    def get_leaderboard(
+        self, period_type: str = "daily", limit: int = 10
+    ) -> List[LeaderboardEntry]:
         """Fetch the current leaderboard entries for a given period."""
         now = datetime.now(timezone.utc)
         if period_type == "daily":
             period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period_type == "weekly":
-            period_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            period_start = (now - timedelta(days=now.weekday())).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
         else:
             period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -343,27 +359,33 @@ class EfficiencyScorer:
         )
         return list(self.session.exec(statement).all())
 
-    def update_leaderboard(self, user: User, request_log: RequestLog, period_type: str = "daily") -> LeaderboardEntry:
+    def update_leaderboard(
+        self, user: User, request_log: RequestLog, period_type: str = "daily"
+    ) -> LeaderboardEntry:
         """Asynchronous update of the performance leaderboard."""
         now = datetime.now(timezone.utc)
-        
+
         # Temporal bucketing logic
         if period_type == "daily":
             period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period_type == "weekly":
-            period_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            period_start = (now - timedelta(days=now.weekday())).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
         else:
             period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         statement = select(LeaderboardEntry).where(
             LeaderboardEntry.user_id == user.id,
             LeaderboardEntry.period_type == period_type,
-            LeaderboardEntry.period_start == period_start
+            LeaderboardEntry.period_start == period_start,
         )
         entry = self.session.exec(statement).first() or LeaderboardEntry(
-            user_id=user.id, period_start=period_start,
-            period_end=period_start + (timedelta(days=1) if period_type=="daily" else timedelta(weeks=1)),
-            period_type=period_type
+            user_id=user.id,
+            period_start=period_start,
+            period_end=period_start
+            + (timedelta(days=1) if period_type == "daily" else timedelta(weeks=1)),
+            period_type=period_type,
         )
 
         # Atomic Aggregation
@@ -371,9 +393,11 @@ class EfficiencyScorer:
         entry.total_prompt_tokens += request_log.prompt_tokens
         entry.total_completion_tokens += request_log.completion_tokens
         entry.total_cost_credits += request_log.cost_credits
-        
+
         if entry.total_prompt_tokens > 0:
-            entry.avg_efficiency_score = Decimal(entry.total_completion_tokens) / Decimal(entry.total_prompt_tokens)
+            entry.avg_efficiency_score = Decimal(entry.total_completion_tokens) / Decimal(
+                entry.total_prompt_tokens
+            )
 
         entry.updated_at = now
         self.session.add(entry)
@@ -383,40 +407,58 @@ class EfficiencyScorer:
 
 # --- 4. The Auditing Layer ---
 
+
 class RequestLogger:
     """Ensures a perfect paper trail for compliance."""
 
     def __init__(self, session: Session):
         self.session = session
 
-    def log_request(self, user: User, request: ChatCompletionRequest, response: dict, cost_credits: Decimal, 
-                    quota_source: str, strict_privacy: bool, latency_ms: int, provider: str = "openai") -> RequestLog:
+    def log_request(
+        self,
+        user: User,
+        request: ChatCompletionRequest,
+        response: dict,
+        cost_credits: Decimal,
+        quota_source: str,
+        strict_privacy: bool,
+        latency_ms: int,
+        provider: str = "openai",
+    ) -> RequestLog:
         """Storage logic with conditional redaction for Privacy-By-Design."""
         usage = response.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
-        
+
         messages_json = None
         response_content = None
 
         # Content Redaction for High-Privacy Requests
         if not strict_privacy:
             import json
+
             messages_json = json.dumps([m.model_dump() for m in request.messages])
             choices = response.get("choices", [])
             if choices:
                 response_content = choices[0].get("message", {}).get("content", "")
 
         log = RequestLog(
-            user_id=user.id, model=request.model, provider=provider,
-            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            user_id=user.id,
+            model=request.model,
+            provider=provider,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
             total_tokens=usage.get("total_tokens", prompt_tokens + completion_tokens),
-            cost_credits=cost_credits, quota_source=quota_source,
+            cost_credits=cost_credits,
+            quota_source=quota_source,
             priority=request.project_priority or user.default_priority,
-            strict_privacy=strict_privacy, messages_json=messages_json,
+            strict_privacy=strict_privacy,
+            messages_json=messages_json,
             response_content=response_content,
-            efficiency_score=EfficiencyScorer.calculate_efficiency_score(prompt_tokens, completion_tokens),
-            latency_ms=latency_ms
+            efficiency_score=EfficiencyScorer.calculate_efficiency_score(
+                prompt_tokens, completion_tokens
+            ),
+            latency_ms=latency_ms,
         )
 
         self.session.add(log)
@@ -426,6 +468,7 @@ class RequestLogger:
 
 
 # --- 5. Security & Orchestration ---
+
 
 class AuthManager:
     """Security Boundary Manager."""
@@ -446,7 +489,9 @@ class LLMProxy:
     """The High-Availability Gateway."""
 
     @staticmethod
-    async def forward_request(request: ChatCompletionRequest, api_keys: Optional[dict] = None) -> dict:
+    async def forward_request(
+        request: ChatCompletionRequest, api_keys: Optional[dict] = None
+    ) -> dict:
         """
         Intelligent Routing with Resilience.
         Automatically retries on provider failure with exponential backoff.
@@ -454,30 +499,38 @@ class LLMProxy:
         # Translation: Alfred -> Provider
         messages = [{"role": m.role, "content": m.content} for m in request.messages]
         kwargs = {
-            "model": request.model, "messages": messages,
-            "temperature": request.temperature, "top_p": 1.0, 
-            "acompletion": True # Asynchronous non-blocking call
+            "model": request.model,
+            "messages": messages,
+            "temperature": request.temperature,
+            "top_p": 1.0,
+            "acompletion": True,  # Asynchronous non-blocking call
         }
-        if request.max_tokens: kwargs["max_tokens"] = request.max_tokens
-        if api_keys: kwargs.update(api_keys)
+        if request.max_tokens:
+            kwargs["max_tokens"] = request.max_tokens
+        if api_keys:
+            kwargs.update(api_keys)
 
         # Execution with Tracing & Retries
         if TENACITY_AVAILABLE:
+
             @retry(
                 stop=stop_after_attempt(3),
                 wait=wait_exponential(multiplier=1, min=2, max=10),
                 before_sleep=before_sleep_log(retry_logger, logging.WARNING),
-                reraise=True
+                reraise=True,
             )
-            async def _call(): return await completion(**kwargs)
+            async def _call():
+                return await completion(**kwargs)
+
             response = await _call()
         else:
             response = await completion(**kwargs)
 
-        return response.model_dump() if hasattr(response, 'model_dump') else dict(response)
+        return response.model_dump() if hasattr(response, "model_dump") else dict(response)
 
 
 # --- 6. The Exception Desk: Manual Overrides ---
+
 
 class ApprovalManager:
     """Handles the 'Human-in-the-Loop' governance workflow."""
@@ -485,25 +538,43 @@ class ApprovalManager:
     def __init__(self, session: Session):
         self.session = session
 
-    def create_request(self, user: User, requested_credits: Decimal, reason: str, 
-                       priority: ProjectPriority = ProjectPriority.HIGH, team_id: Optional[str] = None) -> ApprovalRequest:
+    def create_request(
+        self,
+        user: User,
+        requested_credits: Decimal,
+        reason: str,
+        priority: ProjectPriority = ProjectPriority.HIGH,
+        team_id: Optional[str] = None,
+    ) -> ApprovalRequest:
         """Registers a formal intent to consume more than the allocated budget."""
         import uuid as uuid_module
+
         approval = ApprovalRequest(
-            user_id=user.id, team_id=uuid_module.UUID(team_id) if team_id else None,
-            requested_credits=requested_credits, reason=reason, priority=priority, status="pending"
+            user_id=user.id,
+            team_id=uuid_module.UUID(team_id) if team_id else None,
+            requested_credits=requested_credits,
+            reason=reason,
+            priority=priority,
+            status="pending",
         )
         self.session.add(approval)
         self.session.commit()
         return approval
 
-    def approve(self, approval_id: str, approver_id: str, approved_credits: Optional[Decimal] = None) -> ApprovalRequest:
+    def approve(
+        self, approval_id: str, approver_id: str, approved_credits: Optional[Decimal] = None
+    ) -> ApprovalRequest:
         """Finalizes an audit-compliant quota injection."""
         import uuid as uuid_module
-        approval = self.session.exec(select(ApprovalRequest).where(ApprovalRequest.id == uuid_module.UUID(approval_id))).first()
-        if not approval: raise ValueError("Invalid workflow ID.")
 
-        approval.status = "approved"; approval.approved_by = uuid_module.UUID(approver_id)
+        approval = self.session.exec(
+            select(ApprovalRequest).where(ApprovalRequest.id == uuid_module.UUID(approval_id))
+        ).first()
+        if not approval:
+            raise ValueError("Invalid workflow ID.")
+
+        approval.status = "approved"
+        approval.approved_by = uuid_module.UUID(approver_id)
         approval.approved_credits = approved_credits or approval.requested_credits
         approval.resolved_at = datetime.now(timezone.utc)
 
@@ -514,19 +585,22 @@ class ApprovalManager:
             user.updated_at = datetime.now(timezone.utc)
             self.session.add(user)
 
-        self.session.add(approval); self.session.commit()
+        self.session.add(approval)
+        self.session.commit()
         return approval
 
-    def allocate_vacation_liquidity(self, user_id: uuid.UUID, team_id: uuid.UUID, requested_quota: Decimal):
+    def allocate_vacation_liquidity(
+        self, user_id: uuid.UUID, team_id: uuid.UUID, requested_quota: Decimal
+    ):
         """Allocate vacation liquidity for non-critical requests."""
-        from .models import User, TeamMemberLink, UserStatus
+        from .models import TeamMemberLink, User, UserStatus
 
         # Fetch team members on vacation
         vacation_members = self.session.exec(
             select(User).where(
                 User.status == UserStatus.ON_VACATION,
                 TeamMemberLink.team_id == team_id,
-                TeamMemberLink.user_id == User.id
+                TeamMemberLink.user_id == User.id,
             )
         ).all()
 
@@ -548,3 +622,19 @@ class ApprovalManager:
             self.session.commit()
             return True
         return False
+
+
+def allocate_vacation_liquidity(session: Session, user_id, team_id, requested_quota: Decimal):
+    """Compatibility wrapper: allow tests and callers to call a module-level function.
+
+    Args:
+        session: SQLModel/SQLAlchemy session
+        user_id: UUID of the requesting user
+        team_id: UUID of the team
+        requested_quota: amount requested from vacation liquidity
+
+    Returns:
+        bool indicating whether allocation succeeded
+    """
+    mgr = ApprovalManager(session)
+    return mgr.allocate_vacation_liquidity(user_id, team_id, requested_quota)

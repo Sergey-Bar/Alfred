@@ -10,7 +10,8 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.logic import AuthManager, QuotaManager
-from app.models import ProjectPriority, User, UserStatus, TeamMemberLink
+from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
+
 
 class TestVacationSharing:
     """Tests for vacation quota sharing functionality."""
@@ -30,7 +31,7 @@ class TestVacationSharing:
             used_tokens=Decimal("0.00"),
             status=UserStatus.ON_VACATION,
             vacation_start=datetime.now(timezone.utc) - timedelta(days=1),
-            vacation_end=datetime.now(timezone.utc) + timedelta(days=7)
+            vacation_end=datetime.now(timezone.utc) + timedelta(days=7),
         )
         session.add(vacation_user)
         session.commit()
@@ -49,9 +50,7 @@ class TestVacationSharing:
 
         # Should be able to use vacation share
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("50.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("50.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is True
@@ -73,9 +72,7 @@ class TestVacationSharing:
 
         # Should not be allowed (no vacation members)
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("50.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("50.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is False
@@ -83,6 +80,7 @@ class TestVacationSharing:
 
     def test_vacation_share_respects_percentage_limit(self, session, test_user, test_team):
         from app.logic import AuthManager
+
         # Set team vacation share to 5%
         test_team.vacation_share_percentage = Decimal("5.00")
         test_team.common_pool = Decimal("1000.00")  # 5% = 50 credits max
@@ -100,7 +98,7 @@ class TestVacationSharing:
             api_key_hash=api_key_hash,
             personal_quota=Decimal("1000.00"),
             used_tokens=Decimal("0.00"),
-            status=UserStatus.ON_VACATION
+            status=UserStatus.ON_VACATION,
         )
         session.add(vacation_user)
         session.commit()
@@ -118,19 +116,16 @@ class TestVacationSharing:
 
         # Request within limit should succeed
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("40.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("40.00"), priority=ProjectPriority.NORMAL
         )
         assert result.allowed is True
 
         # Request exceeding limit should fail
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.NORMAL
         )
         assert result.allowed is False
+
 
 class TestQuotaDeduction:
     """Tests for quota deduction functionality."""
@@ -139,11 +134,7 @@ class TestQuotaDeduction:
         initial_used = test_user.used_tokens
         manager = QuotaManager(session)
 
-        manager.deduct_quota(
-            user=test_user,
-            cost=Decimal("50.00"),
-            source="personal"
-        )
+        manager.deduct_quota(user=test_user, cost=Decimal("50.00"), source="personal")
 
         session.refresh(test_user)
         assert test_user.used_tokens == initial_used + Decimal("50.00")
@@ -159,10 +150,7 @@ class TestQuotaDeduction:
         manager = QuotaManager(session)
 
         manager.deduct_quota(
-            user=test_user,
-            cost=Decimal("100.00"),
-            source="team_pool",
-            team=test_team
+            user=test_user, cost=Decimal("100.00"), source="team_pool", team=test_team
         )
 
         session.refresh(test_team)
@@ -176,6 +164,7 @@ class TestQuotaDeduction:
 
         session.refresh(test_user)
         assert test_user.personal_quota == initial_quota + Decimal("500.00")
+
 
 class TestPriorityBypass:
     """Tests for priority bypass functionality."""
@@ -194,9 +183,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.CRITICAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.CRITICAL
         )
 
         assert result.allowed is True
@@ -217,9 +204,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.NORMAL
         )
 
         # Should fail without team members on vacation
@@ -240,9 +225,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.HIGH
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.HIGH
         )
 
         # HIGH is not CRITICAL, so should not bypass
@@ -263,28 +246,29 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.CRITICAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.CRITICAL
         )
 
         assert result.allowed is True
         assert result.source == "priority_bypass"
         assert "critical" in result.message.lower() or "bypass" in result.message.lower()
 
+
 # Added test for vacation liquidity sharing logic
 def test_allocate_vacation_liquidity(session, test_user, test_team):
     """Test vacation liquidity sharing logic."""
     from app.logic import allocate_vacation_liquidity
-    from app.models import User, UserStatus, TeamMemberLink
+    from app.models import TeamMemberLink, User, UserStatus
 
-    # Create vacation user
+    # Create vacation user (ensure required fields like api_key_hash are present)
+    _, api_key_hash = AuthManager.generate_api_key()
     vacation_user = User(
         email="vacation@example.com",
         name="Vacation User",
+        api_key_hash=api_key_hash,
         personal_quota=Decimal("1000.00"),
         used_tokens=Decimal("0.00"),
-        status=UserStatus.ON_VACATION
+        status=UserStatus.ON_VACATION,
     )
     session.add(vacation_user)
     session.commit()

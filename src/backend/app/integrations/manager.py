@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: NotificationManager is the central orchestrator for all notification providers (Slack, Teams, Telegram, WhatsApp), supporting pub/sub, event filtering, async batch sending, and graceful error handling.
@@ -25,7 +24,6 @@ from .whatsapp import create_whatsapp_notifier
 EventHandler = Callable[[NotificationEvent], None]
 
 
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Implements event-driven notification manager with provider registration, event filtering, async batch sending, and pub/sub for custom handlers.
@@ -36,24 +34,24 @@ EventHandler = Callable[[NotificationEvent], None]
 class NotificationManager:
     """
     Central notification manager with pub/sub event system.
-    
+
     Features:
     - Multiple notification providers (Slack, Teams, etc.)
     - Event type filtering per provider
     - Async batch sending
     - Event subscription system
     - Graceful degradation on failures
-    
+
     Usage:
         manager = NotificationManager()
         manager.add_provider(SlackNotifier(webhook_url="..."))
         manager.add_provider(TeamsNotifier(webhook_url="..."))
-        
+
         # Subscribe to events
         @manager.on(EventType.QUOTA_EXCEEDED)
         def handle_quota_exceeded(event):
             print(f"Quota exceeded for {event.user_name}")
-        
+
         # Emit events
         await manager.emit(NotificationEvent(
             event_type=EventType.QUOTA_EXCEEDED,
@@ -83,13 +81,11 @@ class NotificationManager:
         return [p for p in self._providers if p.is_configured]
 
     def add_provider(
-        self,
-        provider: NotificationProvider,
-        event_filter: Optional[Set[EventType]] = None
+        self, provider: NotificationProvider, event_filter: Optional[Set[EventType]] = None
     ) -> None:
         """
         Register a notification provider.
-        
+
         Args:
             provider: The notification provider instance
             event_filter: Optional set of event types this provider should handle.
@@ -102,7 +98,7 @@ class NotificationManager:
     def remove_provider(self, provider_name: str) -> bool:
         """
         Remove a provider by name.
-        
+
         Returns:
             True if removed, False if not found
         """
@@ -114,9 +110,7 @@ class NotificationManager:
         return False
 
     def _should_notify_provider(
-        self,
-        provider: NotificationProvider,
-        event: NotificationEvent
+        self, provider: NotificationProvider, event: NotificationEvent
     ) -> bool:
         """Check if a provider should handle this event."""
         # Check provider-level support
@@ -133,12 +127,13 @@ class NotificationManager:
     def on(self, *event_types: EventType) -> Callable:
         """
         Decorator to subscribe to specific event types.
-        
+
         Usage:
             @manager.on(EventType.QUOTA_EXCEEDED, EventType.QUOTA_WARNING)
             def handle_quota_events(event):
                 print(f"Quota event: {event.title}")
         """
+
         def decorator(handler: EventHandler) -> EventHandler:
             if not event_types:
                 # Subscribe to all events
@@ -147,16 +142,15 @@ class NotificationManager:
                 for event_type in event_types:
                     self._subscribers[event_type].append(handler)
             return handler
+
         return decorator
 
     def subscribe(
-        self,
-        handler: EventHandler,
-        event_types: Optional[List[EventType]] = None
+        self, handler: EventHandler, event_types: Optional[List[EventType]] = None
     ) -> None:
         """
         Subscribe a handler to events.
-        
+
         Args:
             handler: The callback function
             event_types: List of event types to subscribe to. If None, subscribes to all.
@@ -168,13 +162,11 @@ class NotificationManager:
                 self._subscribers[event_type].append(handler)
 
     def unsubscribe(
-        self,
-        handler: EventHandler,
-        event_types: Optional[List[EventType]] = None
+        self, handler: EventHandler, event_types: Optional[List[EventType]] = None
     ) -> None:
         """
         Unsubscribe a handler from events.
-        
+
         Args:
             handler: The callback function to remove
             event_types: List of event types to unsubscribe from. If None, removes from all.
@@ -207,18 +199,16 @@ class NotificationManager:
                 pass
 
     async def emit(
-        self,
-        event: NotificationEvent,
-        providers: Optional[List[str]] = None
+        self, event: NotificationEvent, providers: Optional[List[str]] = None
     ) -> Dict[str, NotificationResult]:
         """
         Emit a notification event to all (or specified) providers.
-        
+
         Args:
             event: The notification event to send
             providers: Optional list of provider names to send to.
                       If None, sends to all configured providers.
-        
+
         Returns:
             Dict mapping provider name to result
         """
@@ -246,14 +236,11 @@ class NotificationManager:
                     provider=provider.name,
                     event_id=event.event_id,
                     success=success,
-                    error=None if success else "Send returned False"
+                    error=None if success else "Send returned False",
                 )
             except Exception as e:
                 results[provider.name] = NotificationResult(
-                    provider=provider.name,
-                    event_id=event.event_id,
-                    success=False,
-                    error=str(e)
+                    provider=provider.name, event_id=event.event_id, success=False, error=str(e)
                 )
 
         # Track failed events for potential retry
@@ -264,17 +251,15 @@ class NotificationManager:
         return results
 
     async def emit_batch(
-        self,
-        events: List[NotificationEvent],
-        providers: Optional[List[str]] = None
+        self, events: List[NotificationEvent], providers: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, NotificationResult]]:
         """
         Emit multiple events to providers.
-        
+
         Args:
             events: List of events to send
             providers: Optional list of provider names
-        
+
         Returns:
             Dict mapping event_id to Dict mapping provider name to result
         """
@@ -289,7 +274,7 @@ class NotificationManager:
     async def retry_failed(self) -> int:
         """
         Retry sending failed events.
-        
+
         Returns:
             Number of events successfully retried
         """
@@ -318,7 +303,7 @@ class NotificationManager:
     async def close(self) -> None:
         """Close all provider connections."""
         for provider in self._providers:
-            close_method = getattr(provider, 'close', None)
+            close_method = getattr(provider, "close", None)
             if close_method and asyncio.iscoroutinefunction(close_method):
                 await close_method()
 
@@ -352,7 +337,7 @@ def setup_notifications(
 ) -> NotificationManager:
     """
     Setup notification manager with providers from configuration.
-    
+
     Args:
         slack_webhook_url: Slack incoming webhook URL
         slack_alerts_webhook_url: Slack webhook for critical alerts
@@ -367,7 +352,7 @@ def setup_notifications(
         whatsapp_recipient_number: Default recipient phone number
         whatsapp_alerts_recipient_number: Separate number for critical alerts
         whatsapp_template_name: Pre-approved template name
-    
+
     Returns:
         Configured NotificationManager instance
     """
@@ -415,13 +400,14 @@ def setup_notifications(
 
 # Convenience functions for emitting common events
 
+
 async def emit_quota_warning(
     user_id: str,
     user_name: str,
     user_email: str,
     quota_remaining: float,
     quota_total: float,
-    percentage_used: float
+    percentage_used: float,
 ) -> Dict[str, NotificationResult]:
     """Emit a quota warning notification."""
     manager = get_notification_manager()
@@ -437,8 +423,8 @@ async def emit_quota_warning(
         data={
             "quota_remaining": f"{quota_remaining:.2f} credits",
             "quota_total": f"{quota_total:.2f} credits",
-            "percentage_used": f"{percentage_used:.1f}%"
-        }
+            "percentage_used": f"{percentage_used:.1f}%",
+        },
     )
 
     return await manager.emit(event)
@@ -449,7 +435,7 @@ async def emit_quota_exceeded(
     user_name: str,
     user_email: str,
     requested_credits: float,
-    available_credits: float
+    available_credits: float,
 ) -> Dict[str, NotificationResult]:
     """Emit a quota exceeded notification."""
     manager = get_notification_manager()
@@ -465,8 +451,8 @@ async def emit_quota_exceeded(
         data={
             "requested_credits": f"{requested_credits:.2f}",
             "available_credits": f"{available_credits:.2f}",
-            "shortfall": f"{(requested_credits - available_credits):.2f}"
-        }
+            "shortfall": f"{(requested_credits - available_credits):.2f}",
+        },
     )
 
     return await manager.emit(event)
@@ -478,7 +464,7 @@ async def emit_approval_requested(
     user_email: str,
     requested_credits: float,
     reason: str,
-    team_name: Optional[str] = None
+    team_name: Optional[str] = None,
 ) -> Dict[str, NotificationResult]:
     """Emit an approval request notification."""
     manager = get_notification_manager()
@@ -492,10 +478,7 @@ async def emit_approval_requested(
         user_email=user_email,
         team_name=team_name,
         severity="info",
-        data={
-            "requested_credits": f"{requested_credits:.2f}",
-            "reason": reason
-        }
+        data={"requested_credits": f"{requested_credits:.2f}", "reason": reason},
     )
 
     return await manager.emit(event)
@@ -508,7 +491,7 @@ async def emit_approval_resolved(
     approved: bool,
     credits: float,
     approver_name: str,
-    reason: Optional[str] = None
+    reason: Optional[str] = None,
 ) -> Dict[str, NotificationResult]:
     """Emit an approval resolution notification."""
     manager = get_notification_manager()
@@ -529,8 +512,8 @@ async def emit_approval_resolved(
             "credits": f"{credits:.2f}",
             "approver": approver_name,
             "status": status,
-            **({"rejection_reason": reason} if reason and not approved else {})
-        }
+            **({"rejection_reason": reason} if reason and not approved else {}),
+        },
     )
 
     return await manager.emit(event)
@@ -541,7 +524,7 @@ async def emit_vacation_status_change(
     user_name: str,
     user_email: str,
     on_vacation: bool,
-    team_name: Optional[str] = None
+    team_name: Optional[str] = None,
 ) -> Dict[str, NotificationResult]:
     """Emit a vacation status change notification."""
     manager = get_notification_manager()
@@ -560,8 +543,8 @@ async def emit_vacation_status_change(
         severity="info",
         data={
             "status": "on_vacation" if on_vacation else "active",
-            "vacation_sharing": "enabled" if on_vacation else "disabled"
-        }
+            "vacation_sharing": "enabled" if on_vacation else "disabled",
+        },
     )
 
     return await manager.emit(event)
@@ -577,11 +560,11 @@ async def emit_token_transfer(
     amount: float,
     message: Optional[str] = None,
     sender_remaining: Optional[float] = None,
-    recipient_new_total: Optional[float] = None
+    recipient_new_total: Optional[float] = None,
 ) -> Dict[str, NotificationResult]:
     """
     Emit credit reallocation notifications to both sender and recipient.
-    
+
     Sends two notifications:
     1. TOKEN_TRANSFER_SENT to sender (credits reallocated out)
     2. TOKEN_TRANSFER_RECEIVED to recipient (credits received)
@@ -602,13 +585,13 @@ async def emit_token_transfer(
             "amount": f"{amount:.2f}",
             "recipient_name": recipient_name,
             "recipient_email": recipient_email,
-            **({
-                "remaining_quota": f"{sender_remaining:.2f}"
-            } if sender_remaining is not None else {}),
-            **({
-                "message": message
-            } if message else {})
-        }
+            **(
+                {"remaining_quota": f"{sender_remaining:.2f}"}
+                if sender_remaining is not None
+                else {}
+            ),
+            **({"message": message} if message else {}),
+        },
     )
 
     # Notification for recipient
@@ -624,13 +607,13 @@ async def emit_token_transfer(
             "amount": f"{amount:.2f}",
             "sender_name": sender_name,
             "sender_email": sender_email,
-            **({
-                "new_quota_total": f"{recipient_new_total:.2f}"
-            } if recipient_new_total is not None else {}),
-            **({
-                "message": message
-            } if message else {})
-        }
+            **(
+                {"new_quota_total": f"{recipient_new_total:.2f}"}
+                if recipient_new_total is not None
+                else {}
+            ),
+            **({"message": message} if message else {}),
+        },
     )
 
     # Emit both events

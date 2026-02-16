@@ -7,6 +7,12 @@ Context: Required to point Playwright to the local frontend and backend services
 
 import pytest
 from playwright.sync_api import Page
+from test_credentials import (
+    TEST_USER_EMAIL,
+    TEST_USER_PASSWORD,
+    ADMIN_EMAIL,
+    ADMIN_PASSWORD,
+)
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args, base_url):
@@ -25,8 +31,8 @@ def pytest_configure(config):
 def logged_in_page(page: Page):
     """Fixture that logs in the user and returns the page."""
     page.goto("/login")
-    page.fill('input[type="email"]', "test@example.com")
-    page.fill('input[type="password"]', "password123")
+    page.fill('input[type="email"]', TEST_USER_EMAIL)
+    page.fill('input[type="password"]', TEST_USER_PASSWORD)
     page.click('button[type="submit"]')
     page.wait_for_url("**/dashboard")
     return page
@@ -35,8 +41,8 @@ def logged_in_page(page: Page):
 def admin_logged_in_page(page: Page):
     """Fixture that logs in as admin and returns the page."""
     page.goto("/login")
-    page.fill('input[type="email"]', "admin@example.com")
-    page.fill('input[type="password"]', "admin123")
+    page.fill('input[type="email"]', ADMIN_EMAIL)
+    page.fill('input[type="password"]', ADMIN_PASSWORD)
     page.click('button[type="submit"]')
     page.wait_for_url("**/dashboard")
     return page

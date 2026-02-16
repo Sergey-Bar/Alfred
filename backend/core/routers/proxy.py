@@ -102,6 +102,46 @@ async def chat_completions(
     # 4. Security Scrubbing
     InputValidator.validate_chat_messages(request.messages)
 
+    # 4.5. Safety Pipeline Check
+    # [AI GENERATED] Model: Claude Opus 4.5
+    # Logic: Run comprehensive safety checks (PII, secrets, injection) before LLM call
+    # Why: Enterprise compliance requires content filtering (GDPR, HIPAA, SOC2)
+    # Root Cause: Prompts may contain sensitive data or malicious injection attempts
+    # Context: Integrated safety pipeline with configurable enforcement modes
+    from ..safety import SafetyPipeline, SafetyPolicy
+    from ..exceptions import SafetyViolationException
+    
+    # Get org policy (default for now, TODO: load from OrgSettings)
+    safety_policy = SafetyPolicy.default()
+    safety_pipeline = SafetyPipeline(safety_policy)
+    
+    # Combine all messages into text for scanning
+    prompt_text = "\n".join(m.content for m in request.messages)
+    
+    # Run safety checks
+    safety_result = await safety_pipeline.check(
+        text=prompt_text,
+        user_id=str(user.id),
+        org_id=str(user.organization_id) if hasattr(user, 'organization_id') else None,
+        allow_redaction=True
+    )
+    
+    # Handle violations
+    if not safety_result.allowed:
+        from ..exceptions import SafetyViolationException
+        raise SafetyViolationException(
+            message=safety_result.message,
+            violations=safety_result.violations,
+            enforcement_mode=safety_result.enforcement_mode.value
+        )
+    
+    # If redacted, update the request with redacted text
+    if safety_result.redacted_text:
+        # Replace the last user message with redacted version
+        # (Simple implementation: replace entire prompt)
+        request.messages[-1].content = safety_result.redacted_text
+        logger.info(f"Request redacted for user {user.id}: {len(safety_result.violations)} violations")
+
     # 5. Inference Orchestration
     # Forward the request to the upstream provider (OpenAI, Anthropic, Google, etc.)
     # The LLMProxy handles connectivity, timeouts, and exponential backoff.
