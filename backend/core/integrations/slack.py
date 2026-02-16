@@ -14,13 +14,13 @@ from .base import EventType, NotificationEvent, NotificationProvider
 class SlackNotifier(NotificationProvider):
     """
     Slack notification provider using Incoming Webhooks.
-    
+
     Supports:
     - Incoming Webhooks (simple setup)
     - Rich Block Kit messages
     - Channel-specific routing
     - User mentions via email lookup
-    
+
     Configuration:
         SLACK_WEBHOOK_URL: Default webhook URL
         SLACK_WEBHOOK_URL_ALERTS: Webhook for critical alerts (optional)
@@ -37,21 +37,21 @@ class SlackNotifier(NotificationProvider):
 
     # Event type to color mapping (for attachment sidebar)
     EVENT_COLORS = {
-        EventType.QUOTA_WARNING: "#FFA500",      # Orange
-        EventType.QUOTA_EXCEEDED: "#FF0000",     # Red
-        EventType.QUOTA_RESET: "#36A64F",        # Green
-        EventType.TOKEN_TRANSFER_SENT: "#439FE0",    # Blue
-        EventType.TOKEN_TRANSFER_RECEIVED: "#36A64F", # Green
-        EventType.APPROVAL_REQUESTED: "#439FE0", # Blue
+        EventType.QUOTA_WARNING: "#FFA500",  # Orange
+        EventType.QUOTA_EXCEEDED: "#FF0000",  # Red
+        EventType.QUOTA_RESET: "#36A64F",  # Green
+        EventType.TOKEN_TRANSFER_SENT: "#439FE0",  # Blue
+        EventType.TOKEN_TRANSFER_RECEIVED: "#36A64F",  # Green
+        EventType.APPROVAL_REQUESTED: "#439FE0",  # Blue
         EventType.APPROVAL_APPROVED: "#36A64F",  # Green
         EventType.APPROVAL_REJECTED: "#FF0000",  # Red
-        EventType.USER_VACATION_START: "#9B59B6", # Purple
+        EventType.USER_VACATION_START: "#9B59B6",  # Purple
         EventType.USER_VACATION_END: "#36A64F",  # Green
-        EventType.USER_SUSPENDED: "#FF0000",     # Red
+        EventType.USER_SUSPENDED: "#FF0000",  # Red
         EventType.TEAM_POOL_WARNING: "#FFA500",  # Orange
-        EventType.TEAM_POOL_DEPLETED: "#FF0000", # Red
-        EventType.SYSTEM_ERROR: "#FF0000",       # Red
-        EventType.HIGH_LATENCY: "#FFA500",       # Orange
+        EventType.TEAM_POOL_DEPLETED: "#FF0000",  # Red
+        EventType.SYSTEM_ERROR: "#FF0000",  # Red
+        EventType.HIGH_LATENCY: "#FFA500",  # Orange
     }
 
     def __init__(
@@ -60,11 +60,11 @@ class SlackNotifier(NotificationProvider):
         alerts_webhook_url: Optional[str] = None,
         bot_token: Optional[str] = None,
         default_channel: Optional[str] = None,
-        timeout: float = 10.0
+        timeout: float = 10.0,
     ):
         """
         Initialize Slack notifier.
-        
+
         Args:
             webhook_url: Primary Slack webhook URL
             alerts_webhook_url: Separate webhook for critical alerts
@@ -112,63 +112,43 @@ class SlackNotifier(NotificationProvider):
         blocks = [
             {
                 "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": f"{emoji} {event.title}",
-                    "emoji": True
-                }
+                "text": {"type": "plain_text", "text": f"{emoji} {event.title}", "emoji": True},
             },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": event.message
-                }
-            }
+            {"type": "section", "text": {"type": "mrkdwn", "text": event.message}},
         ]
 
         # Add context fields
         context_elements = []
 
         if event.user_name:
-            context_elements.append({
-                "type": "mrkdwn",
-                "text": f":bust_in_silhouette: *User:* {event.user_name}"
-            })
+            context_elements.append(
+                {"type": "mrkdwn", "text": f":bust_in_silhouette: *User:* {event.user_name}"}
+            )
 
         if event.team_name:
-            context_elements.append({
-                "type": "mrkdwn",
-                "text": f":busts_in_silhouette: *Team:* {event.team_name}"
-            })
+            context_elements.append(
+                {"type": "mrkdwn", "text": f":busts_in_silhouette: *Team:* {event.team_name}"}
+            )
 
-        context_elements.append({
-            "type": "mrkdwn",
-            "text": f":clock1: {event.timestamp.strftime('%Y-%m-%d %H:%M UTC')}"
-        })
+        context_elements.append(
+            {"type": "mrkdwn", "text": f":clock1: {event.timestamp.strftime('%Y-%m-%d %H:%M UTC')}"}
+        )
 
         if context_elements:
-            blocks.append({
-                "type": "context",
-                "elements": context_elements
-            })
+            blocks.append({"type": "context", "elements": context_elements})
 
         # Add data fields if present
         if event.data:
             fields = []
             for key, value in list(event.data.items())[:10]:  # Limit to 10 fields
-                fields.append({
-                    "type": "mrkdwn",
-                    "text": f"*{key.replace('_', ' ').title()}:*\n{value}"
-                })
+                fields.append(
+                    {"type": "mrkdwn", "text": f"*{key.replace('_', ' ').title()}:*\n{value}"}
+                )
 
             # Split fields into groups of 2 for side-by-side display
             for i in range(0, len(fields), 2):
-                section_fields = fields[i:i+2]
-                blocks.append({
-                    "type": "section",
-                    "fields": section_fields
-                })
+                section_fields = fields[i : i + 2]
+                blocks.append({"type": "section", "fields": section_fields})
 
         # Add divider at the end
         blocks.append({"type": "divider"})
@@ -187,9 +167,9 @@ class SlackNotifier(NotificationProvider):
                 {
                     "color": color,
                     "footer": f"Alfred | Event ID: {event.event_id[:8]}",
-                    "ts": int(event.timestamp.timestamp())
+                    "ts": int(event.timestamp.timestamp()),
                 }
-            ]
+            ],
         }
 
         return payload
@@ -250,7 +230,7 @@ def create_slack_notifier(
 ) -> Optional[SlackNotifier]:
     """
     Create a Slack notifier if configured.
-    
+
     Returns None if no configuration is provided.
     """
     if not any([webhook_url, bot_token]):

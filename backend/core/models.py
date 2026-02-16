@@ -5,17 +5,18 @@
 # Root Cause: No persistent schema for test data sets.
 # Context: Used by test_data_management router for CRUD and compliance. Future: add indexes, masking, and audit fields.
 
-from sqlmodel import SQLModel, Field
-from typing import Dict, Any, Optional
 import logging
-from datetime import datetime, timezone
 import uuid
-from sqlalchemy import Column, JSON
-from typing import ClassVar
-from sqlalchemy.ext.declarative import declared_attr
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+from sqlalchemy import JSON, Column
+from sqlmodel import Field, SQLModel
+
 
 class BaseModel(SQLModel):
     pass
+
 
 class TestDataSet(BaseModel):
     __tablename__ = "test_data_sets"
@@ -38,7 +39,11 @@ class AnalyticsEventDB(BaseModel):
     user: Optional[str] = Field(default=None, index=True, max_length=100)
     dataset: Optional[str] = Field(default=None, index=True, max_length=100)
     value: Optional[float] = Field(default=None)
-    event_metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    event_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
+
+
 """
 Alfred - Enterprise AI Credit Governance Platform
 Database Models & Schema Definitions
@@ -59,15 +64,15 @@ It bridges the gap between Python objects and relational database rows, handling
 # Model Suitability: For SQLModel/Pydantic patterns, GPT-4.1 is sufficient; for advanced data modeling, a more advanced model may be preferred.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
-
 # --- Enumerations for Strong Typing ---
+
 
 class UserStatus(str, Enum):
     # [AI GENERATED]
@@ -106,6 +111,7 @@ class ProjectPriority(str, Enum):
 
 # --- Association / Junction Tables ---
 
+
 class TeamMemberLink(BaseModel):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
@@ -120,17 +126,14 @@ class TeamMemberLink(BaseModel):
     __tablename__ = "team_member_links"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    team_id: Optional[uuid.UUID] = Field(
-        default=None, foreign_key="teams.id", primary_key=True
-    )
-    user_id: Optional[uuid.UUID] = Field(
-        default=None, foreign_key="users.id", primary_key=True
-    )
+    team_id: Optional[uuid.UUID] = Field(default=None, foreign_key="teams.id", primary_key=True)
+    user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", primary_key=True)
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_admin: bool = Field(default=False, description="Allows managing other members in this team")
 
 
 # --- Core Domain Models ---
+
 
 class Team(BaseModel):
     # [AI GENERATED]
@@ -151,15 +154,25 @@ class Team(BaseModel):
     description: Optional[str] = Field(default=None, max_length=1000)
 
     # Financial Ledger
-    common_pool: Decimal = Field(default=Decimal("10000.00"), max_digits=12, decimal_places=2, description="Total allocated team budget")
-    used_pool: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Cumulative spend across the team pool")
+    common_pool: Decimal = Field(
+        default=Decimal("10000.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Total allocated team budget",
+    )
+    used_pool: Decimal = Field(
+        default=Decimal("0.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Cumulative spend across the team pool",
+    )
 
     # Governance Constraints
     vacation_share_percentage: Decimal = Field(
         default=Decimal("10.00"),
         max_digits=5,
         decimal_places=2,
-        description="Cap on how much of the pool is accessible via the 'Vacation Sharing' mechanism"
+        description="Cap on how much of the pool is accessible via the 'Vacation Sharing' mechanism",
     )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -176,7 +189,9 @@ class Team(BaseModel):
     @property
     def vacation_share_limit(self) -> Decimal:
         """Constraint calculation for automated vacation sharing."""
-        logging.debug(f"Calculating vacation_share_limit: available_pool={self.available_pool}, vacation_share_percentage={self.vacation_share_percentage}")
+        logging.debug(
+            f"Calculating vacation_share_limit: available_pool={self.available_pool}, vacation_share_percentage={self.vacation_share_percentage}"
+        )
         return (self.available_pool * self.vacation_share_percentage) / Decimal("100.00")
 
     @vacation_share_limit.setter
@@ -204,24 +219,39 @@ class User(BaseModel):
     api_key_hash: str = Field(max_length=255, description="Argon2 or PBKDF2 hash of the API secret")
 
     # Access Control
-    is_admin: bool = Field(default=False, description="Grants access to organization-wide administrative APIs")
+    is_admin: bool = Field(
+        default=False, description="Grants access to organization-wide administrative APIs"
+    )
 
     # Quota Management
-    personal_quota: Decimal = Field(default=Decimal("1000.00"), max_digits=12, decimal_places=2, description="Monthly credit allowance")
-    used_tokens: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Burned credits")
+    personal_quota: Decimal = Field(
+        default=Decimal("1000.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Monthly credit allowance",
+    )
+    used_tokens: Decimal = Field(
+        default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Burned credits"
+    )
 
     status: UserStatus = Field(default=UserStatus.ACTIVE)
     default_priority: ProjectPriority = Field(default=ProjectPriority.NORMAL)
 
     # Privacy Features
-    strict_privacy_default: bool = Field(default=False, description="Automatically redacts request content from logs for this user")
+    strict_privacy_default: bool = Field(
+        default=False, description="Automatically redacts request content from logs for this user"
+    )
 
     # Flexible Metadata
-    preferences_json: Optional[str] = Field(default=None, description="Schema-less storage for UI settings/themes")
+    preferences_json: Optional[str] = Field(
+        default=None, description="Schema-less storage for UI settings/themes"
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_request_at: Optional[datetime] = Field(default=None, description="High-water mark for user activity")
+    last_request_at: Optional[datetime] = Field(
+        default=None, description="High-water mark for user activity"
+    )
 
     # ORM Navigation
     teams: List[Team] = Relationship(back_populates="members", link_model=TeamMemberLink)
@@ -256,7 +286,9 @@ class RequestLog(BaseModel):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
 
     # Inference Metadata
-    model: str = Field(max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)")
+    model: str = Field(
+        max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)"
+    )
     provider: str = Field(max_length=50, description="Backend platform (openai, anthropic, etc.)")
 
     # Token Intelligence (Granular usage tracking)
@@ -269,20 +301,20 @@ class RequestLog(BaseModel):
 
     quota_source: str = Field(
         max_length=50,
-        description="Audit string identifying the budget used (e.g., 'personal', 'team_pool')"
+        description="Audit string identifying the budget used (e.g., 'personal', 'team_pool')",
     )
 
     priority: ProjectPriority = Field(default=ProjectPriority.NORMAL)
-    strict_privacy: bool = Field(default=False, description="If true, request content was purged before storage")
+    strict_privacy: bool = Field(
+        default=False, description="If true, request content was purged before storage"
+    )
 
     # Content Storage (Conditional)
     messages_json: Optional[str] = Field(
-        default=None,
-        description="Full request payload (Purged if strict_privacy=True)"
+        default=None, description="Full request payload (Purged if strict_privacy=True)"
     )
     response_content: Optional[str] = Field(
-        default=None,
-        description="Full response payload (Purged if strict_privacy=True)"
+        default=None, description="Full response payload (Purged if strict_privacy=True)"
     )
 
     # Efficiency Analytics
@@ -290,12 +322,14 @@ class RequestLog(BaseModel):
         default=None,
         max_digits=6,
         decimal_places=4,
-        description="The 'Intelligence Density'—ratio of output comprehension to input verbosity"
+        description="The 'Intelligence Density'—ratio of output comprehension to input verbosity",
     )
 
     # Timing Data
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
-    latency_ms: Optional[int] = Field(default=None, description="Provider round-trip time in milliseconds")
+    latency_ms: Optional[int] = Field(
+        default=None, description="Provider round-trip time in milliseconds"
+    )
 
     # Relationships
     user: Optional[User] = Relationship(back_populates="requests")
@@ -328,9 +362,13 @@ class LeaderboardEntry(BaseModel):
     total_completion_tokens: int = Field(default=0, ge=0)
     total_cost_credits: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2)
 
-    avg_efficiency_score: Decimal = Field(default=0, description="Average efficiency score for the period")
+    avg_efficiency_score: Decimal = Field(
+        default=0, description="Average efficiency score for the period"
+    )
 
-    rank: Optional[int] = Field(default=None, ge=1, description="Calculated ordinal position in the org")
+    rank: Optional[int] = Field(
+        default=None, ge=1, description="Calculated ordinal position in the org"
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -366,7 +404,9 @@ class ApprovalRequest(BaseModel):
     # Audit Trail
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     approved_by: Optional[uuid.UUID] = Field(default=None, description="User ID of the reviewer")
-    approved_credits: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2, description="Final amount allocated")
+    approved_credits: Optional[Decimal] = Field(
+        default=None, max_digits=12, decimal_places=2, description="Final amount allocated"
+    )
     rejection_reason: Optional[str] = Field(default=None, max_length=500)
     resolved_at: Optional[datetime] = Field(default=None)
 
@@ -386,11 +426,15 @@ class AuditLog(BaseModel):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     actor_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
-    action: str = Field(max_length=200, description="Canonical action name (e.g. 'user.rotate_key')")
+    action: str = Field(
+        max_length=200, description="Canonical action name (e.g. 'user.rotate_key')"
+    )
     target_type: Optional[str] = Field(default=None, max_length=100)
     target_id: Optional[str] = Field(default=None, max_length=100)
-    
-    details_json: Optional[str] = Field(default=None, description="Opaque data representing the delta change")
+
+    details_json: Optional[str] = Field(
+        default=None, description="Opaque data representing the delta change"
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
 
 
@@ -437,14 +481,18 @@ class OrgSettings(BaseModel):
     # Conversion Ledger (The relative 'Weight' of a token)
     openai_gpt4_rate: Decimal = Field(default=Decimal("0.03"), max_digits=10, decimal_places=6)
     openai_gpt35_rate: Decimal = Field(default=Decimal("0.002"), max_digits=10, decimal_places=6)
-    anthropic_claude_rate: Decimal = Field(default=Decimal("0.025"), max_digits=10, decimal_places=6)
+    anthropic_claude_rate: Decimal = Field(
+        default=Decimal("0.025"), max_digits=10, decimal_places=6
+    )
     gemini_rate: Decimal = Field(default=Decimal("0.001"), max_digits=10, decimal_places=6)
     default_rate: Decimal = Field(default=Decimal("0.01"), max_digits=10, decimal_places=6)
 
     # Global Policy Switches
     allow_vacation_sharing: bool = Field(default=True)
     allow_priority_bypass: bool = Field(default=True)
-    max_vacation_share_percent: Decimal = Field(default=Decimal("10.00"), max_digits=5, decimal_places=2)
+    max_vacation_share_percent: Decimal = Field(
+        default=Decimal("10.00"), max_digits=5, decimal_places=2
+    )
 
     # Regulatory Compliance
     force_strict_privacy: bool = Field(default=False)
@@ -465,38 +513,46 @@ class OrgSettings(BaseModel):
 # Context: Used by new RBAC routers and permission checks. Future: can be extended for org/team scoping, hierarchical roles, and policy engines.
 # Model Suitability: GPT-4.1 is suitable for SQLModel/Pydantic RBAC patterns; for advanced policy engines, consider Claude 3 or Gemini 1.5.
 
+
 class Role(BaseModel):
     """
     RBAC Role definition (e.g., admin, manager, auditor, user).
     """
+
     __tablename__ = "roles"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
     # Future: org_id/team_id for scoping
 
+
 class Permission(BaseModel):
     """
     RBAC Permission definition (e.g., user:create, team:delete, audit:view).
     """
+
     __tablename__ = "permissions"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
 
+
 class UserRole(BaseModel):
     """
     Assignment of a Role to a User (many-to-many).
     """
+
     __tablename__ = "user_roles"
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
 class RolePermission(BaseModel):
     """
     Assignment of a Permission to a Role (many-to-many).
     """
+
     __tablename__ = "role_permissions"
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     permission_id: uuid.UUID = Field(foreign_key="permissions.id", primary_key=True)
@@ -531,7 +587,7 @@ class ChatCompletionRequest(BaseModel):
     messages: List[ChatMessage]
     temperature: Optional[float] = Field(default=1.0, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=None, ge=1)
-    
+
     # Internal Alfred Logic
     project_priority: Optional[ProjectPriority] = Field(default=None)
 
@@ -600,6 +656,7 @@ class QuotaErrorResponse(BaseModel):
     message: str
     approval_process: Dict[str, Any]
 
+
 # Added fields for enhanced governance workflows
 class QuotaInjectionRequest(BaseModel):
     __tablename__ = "quota_injection_requests"
@@ -624,36 +681,39 @@ class QuotaInjectionRequest(BaseModel):
 class SafetyIncident(BaseModel):
     """
     Safety Incident Log.
-    
+
     Immutable audit trail for all safety violations detected by the pipeline.
     Used for compliance reporting, analytics, and security monitoring.
     """
+
     __tablename__ = "safety_incidents"
-    
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
-    
+
     # Context
     user_id: Optional[uuid.UUID] = Field(default=None, index=True, foreign_key="users.id")
     org_id: Optional[uuid.UUID] = Field(default=None, index=True)
     request_id: Optional[str] = Field(default=None, index=True, max_length=100)
-    
+
     # Violation details
     violation_category: str = Field(index=True, max_length=50)  # pii, secret, injection, blocklist
-    violation_type: str = Field(index=True, max_length=100)  # ssn, openai_api_key, ignore_instructions, etc.
+    violation_type: str = Field(
+        index=True, max_length=100
+    )  # ssn, openai_api_key, ignore_instructions, etc.
     severity: str = Field(index=True, max_length=20)  # low, medium, high, critical
     confidence: float = Field()
     description: str = Field(max_length=500)
-    
+
     # Action taken
     enforcement_mode: str = Field(index=True, max_length=20)  # block, redact, warn, allow
     request_allowed: bool = Field(index=True)
     was_redacted: bool = Field(default=False)
-    
+
     # Metadata (do NOT log actual PII/secrets)
     violation_count: int = Field(default=1)
     provider: Optional[str] = Field(default=None, max_length=100)
-    
+
     # Additional context (JSON)
     metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON, nullable=True))
 
@@ -668,48 +728,50 @@ class SafetyIncident(BaseModel):
 class SafetyPolicyDB(BaseModel):
     """
     Safety Policy Configuration.
-    
+
     Stores organization-specific safety policy settings.
     Loaded by safety pipeline to determine enforcement modes.
     """
+
     __tablename__ = "safety_policies"
-    
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     org_id: uuid.UUID = Field(index=True, unique=True)
-    
+
     # PII settings
     pii_enabled: bool = Field(default=True)
     pii_enforcement: str = Field(default="block", max_length=20)  # block, redact, warn, allow
     pii_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
     pii_allow_redaction: bool = Field(default=True)
-    
+
     # Secret settings
     secret_enabled: bool = Field(default=True)
     secret_enforcement: str = Field(default="block", max_length=20)
     secret_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
     secret_check_entropy: bool = Field(default=True)
     secret_entropy_threshold: float = Field(default=4.5)
-    
+
     # Injection settings
     injection_enabled: bool = Field(default=True)
     injection_enforcement: str = Field(default="block", max_length=20)
-    injection_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    injection_types: Optional[List[str]] = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
     injection_min_severity: str = Field(default="high", max_length=20)
     injection_block_threshold: str = Field(default="high", max_length=20)
-    
+
     # Custom blocklist
     blocklist_enabled: bool = Field(default=True)
     blocklist_patterns: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     blocklist_enforcement: str = Field(default="warn", max_length=20)
-    
+
     # Global settings
     log_violations: bool = Field(default=True)
     notify_on_critical: bool = Field(default=True)
     strict_mode: bool = Field(default=False)
     allow_user_override: bool = Field(default=False)
-    
+
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
-

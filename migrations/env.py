@@ -4,25 +4,30 @@ This loads `src/backend` onto sys.path and uses `app.models.SQLModel.metadata`
 as the target metadata. It reads the DB URL from `DATABASE_URL` env var
 and falls back to a local SQLite file for convenience.
 """
+
 from __future__ import with_statement
+
 import os
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import create_engine, pool
 
 # ensure backend package is importable
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(repo_root, "src", "backend"))
 
-fileConfig(os.path.join(repo_root, "src", "backend", "config", "logging.ini")) if os.path.exists(os.path.join(repo_root, "src", "backend", "config", "logging.ini")) else None
+(
+    fileConfig(os.path.join(repo_root, "src", "backend", "config", "logging.ini"))
+    if os.path.exists(os.path.join(repo_root, "src", "backend", "config", "logging.ini"))
+    else None
+)
 
 try:
     # import SQLModel metadata
     from app import models
+
     target_metadata = models.SQLModel.metadata
 except Exception:
     target_metadata = None

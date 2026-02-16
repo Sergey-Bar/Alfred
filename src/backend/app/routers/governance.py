@@ -9,6 +9,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
+import time
+
+from sqlalchemy import func
+
+from ..logging_config import get_logger
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlmodel import Session, select
@@ -33,6 +38,8 @@ from ..schemas import (
     TokenTransferResponse,
 )
 from .websocket import manager as ws_manager
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["Governance & Credit Reallocation"])
 
@@ -69,6 +76,8 @@ async def transfer_tokens(
     This enables dynamic budget management when project needs change.
     Notifications will be sent to both parties via configured channels.
     """
+    start = time.perf_counter()
+
     # 1. Identify Recipient
     recipient = None
     if transfer.to_user_id:
@@ -133,6 +142,17 @@ async def transfer_tokens(
         )
     )
 
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info(
+        "token_transfer",
+        extra_data={
+            "from": str(user.id),
+            "to": str(recipient.id) if recipient else None,
+            "amount": float(transfer_amount),
+            "duration_ms": round(duration_ms, 2),
+        },
+    )
+
     return TokenTransferResponse(
         transfer_id=str(token_transfer.id),
         sender_name=user.name,
@@ -150,6 +170,8 @@ async def get_transfer_history(
     user: User = Depends(get_current_user), session: Session = Depends(get_session), limit: int = 20
 ):
     """Get credit reallocation history for the current user."""
+    start = time.perf_counter()
+
     sent = session.exec(
         select(TokenTransfer)
         .where(TokenTransfer.sender_id == user.id)
@@ -187,6 +209,9 @@ async def get_transfer_history(
         format_transfer(t, False) for t in received
     ]
     history.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("transfer_history", extra_data={"count": len(history), "duration_ms": round(duration_ms,2)})
 
     return {"transfers": history[:limit]}
 
@@ -259,6 +284,8 @@ async def get_pending_approvals(
     user: User = Depends(get_current_user), session: Session = Depends(get_session)
 ):
     """Lists pending requests for all teams where the current user has 'Admin' privileges."""
+    start = time.perf_counter()
+
     if not user.is_admin:
         # Check if they are a team admin
         admin_links = session.exec(
@@ -278,11 +305,14 @@ async def get_pending_approvals(
         ).all()
         managed_user_ids = {l.user_id for l in member_links}
 
-        all_pending = session.exec(
-            select(ApprovalRequest)
-            .where(ApprovalRequest.status == "pending")
-            .where(ApprovalRequest.user_id.in_(managed_user_ids))
-        ).all()
+        if not managed_user_ids:
+            all_pending = []
+        else:
+            all_pending = session.exec(
+                select(ApprovalRequest)
+                .where(ApprovalRequest.status == "pending")
+                .where(ApprovalRequest.user_id.in_(managed_user_ids))
+            ).all()
     else:
         # Global Admin: See everything
         all_pending = session.exec(
@@ -291,7 +321,13 @@ async def get_pending_approvals(
 
     # Pre-fetch identities
     target_ids = {a.user_id for a in all_pending}
-    u_map = {u.id: u for u in session.exec(select(User).where(User.id.in_(target_ids))).all()}
+    if not target_ids:
+        u_map = {}
+    else:
+        u_map = {u.id: u for u in session.exec(select(User).where(User.id.in_(target_ids))).all()}
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("pending_approvals", extra_data={"count": len(all_pending), "duration_ms": round(duration_ms,2)})
 
     return [
         ApprovalResponse(

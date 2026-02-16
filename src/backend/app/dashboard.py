@@ -32,6 +32,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Numeric, String, cast
 from sqlalchemy.sql import func, text
 from sqlmodel import Session, and_, func, select
+import time
+
+from ..logging_config import get_logger
 
 from .dependencies import get_current_user, get_session, require_admin
 from .models import ApprovalRequest, RequestLog, Team, TeamMemberLink, TokenTransfer, User
@@ -52,6 +55,8 @@ from .schemas import (
 # Logic: Defines a FastAPI APIRouter for all dashboard endpoints, namespaced under /v1/dashboard.
 # Why: Keeps analytics endpoints modular and discoverable.
 # Root Cause: FastAPI best practice is to use routers for domain separation.
+logger = get_logger(__name__)
+
 router = APIRouter(prefix="/v1/dashboard", tags=["Dashboard"])
 
 
@@ -79,6 +84,8 @@ async def get_overview_stats(
     Aggregates data across the entire platform.
     Uses COALESCE and SQL aggregates to minimize round-trips.
     """
+    start = time.perf_counter()
+
     total_users = session.exec(select(func.count(cast(User.id, String)))).one()
     total_teams = session.exec(select(func.count(cast(Team.id, String)))).one()
 
@@ -102,6 +109,9 @@ async def get_overview_stats(
 
     # Backlog Tracing
     pending = session.exec(select(func.count(cast(ApprovalRequest.id, String)))).one() or 0
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("overview_stats", extra_data={"total_users": total_users or 0, "duration_ms": round(duration_ms,2)})
 
     return OverviewStats(
         total_users=total_users or 0,
@@ -128,6 +138,8 @@ async def get_user_usage_stats(
     Root Cause: Query-per-user is inefficient; bulk mapping is used for performance.
     Context: Uses Decimal for financial precision. Limit param restricts result set.
     """
+    start = time.perf_counter()
+
     # Replace floating-point operations with Decimal for financial precision
     request_stats = session.exec(
         select(
@@ -189,6 +201,8 @@ async def get_user_usage_stats(
                 status=user.status.value,
             )
         )
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("user_usage_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms,2)})
 
     return result
 
@@ -198,6 +212,8 @@ async def get_team_pool_stats(
     current_user: User = Depends(require_admin), session: Session = Depends(get_session)
 ):
     """Aggregated Team Liquidity Monitoring."""
+    start = time.perf_counter()
+
     teams = session.exec(select(Team).order_by(func.desc(cast(Team.used_pool, Numeric)))).all()
 
     # N+1 Mitigation: Resolve member counts via IN query
@@ -232,6 +248,9 @@ async def get_team_pool_stats(
         )
 
     return result
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("team_pool_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms,2)})
+
 
 
 @router.get("/trends", response_model=List[CostTrendPoint])
@@ -242,6 +261,8 @@ async def get_cost_trends(
 ):
     """Performance Velocity Tracking."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    start = time.perf_counter()
 
     # Bulk fetch logs within window
     logs = session.exec(
@@ -276,6 +297,8 @@ async def get_cost_trends(
         current += timedelta(days=1)
 
     return result
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("cost_trends", extra_data={"days": days, "points": len(result), "duration_ms": round(duration_ms,2)})
 
 
 @router.get("/models", response_model=List[ModelUsageStats])
@@ -286,6 +309,8 @@ async def get_model_usage(
 ):
     """Vendor Concentration Analysis."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    start = time.perf_counter()
 
     logs = session.exec(select(RequestLog).where(RequestLog.created_at >= cutoff)).all()
 
@@ -322,6 +347,8 @@ async def get_model_usage(
         )
 
     return result
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("model_usage", extra_data={"days": days, "models": len(result), "duration_ms": round(duration_ms,2)})
 
 
 @router.get("/leaderboard", response_model=List[DashboardLeaderboardEntry])
@@ -332,41 +359,59 @@ async def get_efficiency_leaderboard(
     limit: int = Query(default=10, le=50),
 ):
     """Gamified 'Effective Prompting' Ranking."""
+    start = time.perf_counter()
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    users = session.exec(select(User)).all()
+
+    # Aggregate logs by user in a single query to avoid N+1
+    stmt = (
+        select(
+            cast(RequestLog.user_id, String),
+            func.coalesce(func.sum(RequestLog.prompt_tokens), 0),
+            func.coalesce(func.sum(RequestLog.completion_tokens), 0),
+            func.count(RequestLog.id),
+            func.coalesce(func.sum(RequestLog.total_tokens), 0),
+        )
+        .where(RequestLog.created_at >= cutoff)
+        .group_by(cast(RequestLog.user_id, String))
+    )
+    rows = session.exec(stmt).all()
+
+    if not rows:
+        return []
+
+    user_ids = [uuid.UUID(r[0]) for r in rows if r[0]]
+    users = {u.id: u for u in session.exec(select(User).where(User.id.in_(user_ids))).all()}
 
     user_stats = []
-    for user in users:
-        # Optimized for correctness over raw speed - aggregates per user
-        logs = session.exec(
-            select(RequestLog).where(
-                and_(RequestLog.user_id == user.id, RequestLog.created_at >= cutoff)
-            )
-        ).all()
-
-        if not logs:
+    for r in rows:
+        uid_str, sum_prompt, sum_completion, cnt, sum_total = r
+        if not uid_str:
             continue
+        uid = uuid.UUID(uid_str)
+        total_prompt = int(sum_prompt or 0)
+        total_completion = int(sum_completion or 0)
 
-        total_prompt = sum(log.prompt_tokens for log in logs)
-        total_completion = sum(log.completion_tokens for log in logs)
-
-        # Ratio Calculation: More output per unit of input = higher efficiency
         efficiency = Decimal("0.0")
         if total_prompt > 0:
             efficiency = Decimal(str(total_completion)) / Decimal(str(total_prompt))
 
+        u = users.get(uid)
         user_stats.append(
             {
-                "user_id": str(user.id),
-                "name": user.name,
+                "user_id": str(uid),
+                "name": u.name if u else "Unknown",
                 "efficiency_score": efficiency,
-                "total_requests": len(logs),
-                "total_tokens": sum(log.total_tokens for log in logs),
+                "total_requests": int(cnt or 0),
+                "total_tokens": int(sum_total or 0),
             }
         )
 
-    # Ranking logic
     user_stats.sort(key=lambda x: x["efficiency_score"], reverse=True)
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("efficiency_leaderboard", extra_data={"rows": len(user_stats), "duration_ms": round(duration_ms,2)})
+
     return [
         DashboardLeaderboardEntry(
             rank=i,
@@ -466,6 +511,9 @@ async def get_approval_stats(
         for n, c in sorted(requester_counts.items(), key=lambda x: x[1], reverse=True)[:5]
     ]
 
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("approval_stats", extra_data={"pending": pending, "duration_ms": round(duration_ms,2)})
+
     return ApprovalStats(
         total_pending=pending,
         total_approved_7d=approved_7d,
@@ -484,6 +532,8 @@ async def get_transfer_stats(
 ):
     """Audit Log for Credit Reallocations."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    start = time.perf_counter()
+
     transfers = session.exec(
         select(TokenTransfer)
         .where(TokenTransfer.created_at >= cutoff)
@@ -523,3 +573,5 @@ async def get_transfer_stats(
     return TransferStats(
         total_transfers=len(transfers), total_amount=total_amount, recent_transfers=transfer_list
     )
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info("transfer_stats", extra_data={"total_transfers": len(transfers), "duration_ms": round(duration_ms,2)})

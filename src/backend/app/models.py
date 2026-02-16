@@ -169,8 +169,12 @@ class TeamMemberLink(SQLModel, table=True):
 
     __tablename__ = "team_member_links"
 
-    team_id: Optional[uuid.UUID] = Field(default=None, foreign_key="teams.id", primary_key=True)
-    user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", primary_key=True)
+    team_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="teams.id", primary_key=True, index=True
+    )
+    user_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="users.id", primary_key=True, index=True
+    )
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_admin: bool = Field(default=False, description="Allows managing other members in this team")
 

@@ -41,7 +41,7 @@ def log_audit(
     # Context: Call for all admin/privileged actions. Failure to audit is logged as a security event.
     """
     Append-Only Audit Entry Generator.
-    
+
     Args:
         session: Active database session.
         actor_user_id: The ID of the administrator performing the action.
@@ -53,7 +53,7 @@ def log_audit(
     try:
         # Serialize metadata for persistent storage
         details_json = json.dumps(details) if details is not None else None
-        
+
         entry = AuditLog(
             actor_user_id=actor_user_id,
             action=action,
@@ -61,16 +61,17 @@ def log_audit(
             target_id=target_id,
             details_json=details_json,
         )
-        
-        # We use an isolated commit to guarantee the audit trail is written 
+
+        # We use an isolated commit to guarantee the audit trail is written
         # regardless of the outcome of the primary transaction.
         session.add(entry)
         session.commit()
-        
+
     except Exception:
         # Resilience: Failure to audit must not crash the primary business flow,
         # but it must be logged to the standard system logger as a security event.
         import logging
+
         logging.getLogger("alfred.audit").exception(
             f"SECURITY ALERT: Failed to record audit log for action '{action}' by {actor_user_id}"
         )

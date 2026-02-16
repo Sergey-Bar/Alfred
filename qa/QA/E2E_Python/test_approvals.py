@@ -8,9 +8,10 @@ Context: Ensures that the transition to Python-based testing covers critical bus
 import pytest
 from playwright.sync_api import Page, expect
 
+
 @pytest.mark.describe("Approval Requests")
 class TestApprovals:
-    
+
     @pytest.fixture(autouse=True)
     def setup(self, page: Page):
         self.page = page
@@ -34,19 +35,21 @@ class TestApprovals:
 
     def test_should_create_new_approval_request(self):
         # Using a more robust selector for buttons
-        self.page.click('button:has-text("Request"), button:has-text("New"), button:has-text("Create")')
-        
+        self.page.click(
+            'button:has-text("Request"), button:has-text("New"), button:has-text("Create")'
+        )
+
         dialog = self.page.locator('form, [role="dialog"]')
         expect(dialog).to_be_visible()
-        
+
         amount_input = dialog.locator('input[type="number"], input[name*="amount"]').first
         if amount_input.is_visible(timeout=2000):
             amount_input.fill("100")
-            
+
         reason_input = dialog.locator('textarea, input[name*="reason"]').first
         if reason_input.is_visible(timeout=2000):
             reason_input.fill("E2E test approval request (Python)")
-            
+
     def test_should_filter_approvals_by_status(self):
         status_filter = self.page.locator('select, button:has-text("Status")').first
         if status_filter.is_visible(timeout=5000):
@@ -58,9 +61,9 @@ class TestApprovals:
         approve_button = self.page.locator('button:has-text("Approve")').first
         if approve_button.is_visible(timeout=5000):
             approve_button.click()
-            
+
             confirm_button = self.page.locator('button:has-text("Confirm"), button:has-text("Yes")')
             if confirm_button.is_visible(timeout=2000):
                 confirm_button.click()
-                
+
             expect(self.page.locator("text=/success|approved/i")).to_be_visible(timeout=5000)

@@ -51,6 +51,10 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from .lifespan import alfred_lifespan
+from .database import engine, get_db_session
+
+# Expose `get_session` for test fixtures that expect `app.main.get_session`
+get_session = get_db_session
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)

@@ -8,11 +8,12 @@ Context: Required to point Playwright to the local frontend and backend services
 import pytest
 from playwright.sync_api import Page
 from test_credentials import (
-    TEST_USER_EMAIL,
-    TEST_USER_PASSWORD,
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
+    TEST_USER_EMAIL,
+    TEST_USER_PASSWORD,
 )
+
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args, base_url):
@@ -22,10 +23,12 @@ def browser_context_args(browser_context_args, base_url):
         "viewport": {"width": 1280, "height": 720},
     }
 
+
 def pytest_configure(config):
     """Set default base URL if not provided via command line."""
     if not config.getoption("--base-url"):
         config.option.base_url = "http://localhost:5173"
+
 
 @pytest.fixture
 def logged_in_page(page: Page):
@@ -36,6 +39,7 @@ def logged_in_page(page: Page):
     page.click('button[type="submit"]')
     page.wait_for_url("**/dashboard")
     return page
+
 
 @pytest.fixture
 def admin_logged_in_page(page: Page):

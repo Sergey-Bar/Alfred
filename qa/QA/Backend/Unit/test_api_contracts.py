@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Tests API response contracts for key endpoints, asserting required fields and types for frontend and client compatibility.
@@ -21,7 +20,17 @@ def test_get_current_user_contract(test_client: TestClient, admin_api_key):
     assert resp.status_code == 200
     data = resp.json()
     # Required keys in UserResponse
-    expected_keys = {"id", "email", "name", "status", "personal_quota", "used_tokens", "available_quota", "default_priority", "preferences"}
+    expected_keys = {
+        "id",
+        "email",
+        "name",
+        "status",
+        "personal_quota",
+        "used_tokens",
+        "available_quota",
+        "default_priority",
+        "preferences",
+    }
     assert expected_keys.issubset(set(data.keys()))
 
 

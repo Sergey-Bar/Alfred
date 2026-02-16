@@ -2,9 +2,9 @@
 Alfred Error Management & Standardized Response Framework
 
 [ARCHITECTURAL ROLE]
-This module provides the global exception handling infrastructure for the Alfred 
-platform. It ensures that all errors—whether predicted (custom exceptions) or 
-unhandled (runtime crashes)—are transformed into a standardized, observable, 
+This module provides the global exception handling infrastructure for the Alfred
+platform. It ensures that all errors—whether predicted (custom exceptions) or
+unhandled (runtime crashes)—are transformed into a standardized, observable,
 and machine-readable JSON format compatible with enterprise API standards.
 
 # [AI GENERATED]
@@ -32,6 +32,7 @@ logger = get_logger(__name__)
 # Core Exception Hierarchy
 # -------------------------------------------------------------------
 
+
 class AlfredException(Exception):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
@@ -41,8 +42,8 @@ class AlfredException(Exception):
     # Context: All custom exceptions should inherit from this class.
     """
     Primary Platform Exception.
-    
-    All business-logic exceptions should inherit from this class to ensure 
+
+    All business-logic exceptions should inherit from this class to ensure
     they are correctly intercepted by the 'alfred_exception_handler'.
     """
 
@@ -51,7 +52,7 @@ class AlfredException(Exception):
         message: str,
         code: str = "internal_error",
         status_code: int = 500,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ):
         self.message = message
         self.code = code
@@ -69,9 +70,9 @@ class QuotaExceededException(AlfredException):
     # Context: Used by quota manager and governance logic.
     """
     Financial Guardrail Violation.
-    
-    Raised when the QuotaManager determines the user has insufficient 
-    credits for a requested operation. Includes JIT instructions for 
+
+    Raised when the QuotaManager determines the user has insufficient
+    credits for a requested operation. Includes JIT instructions for
     the approval workflow.
     """
 
@@ -79,16 +80,13 @@ class QuotaExceededException(AlfredException):
         self,
         message: str = "Org-Quota Exceeded: Insufficient credits available.",
         quota_remaining: float = 0,
-        approval_instructions: Optional[Dict[str, Any]] = None
+        approval_instructions: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(
             message=message,
             code="quota_exceeded",
             status_code=403,
-            details={
-                "quota_remaining": quota_remaining,
-                "approval_process": approval_instructions
-            }
+            details={"quota_remaining": quota_remaining, "approval_process": approval_instructions},
         )
 
 
@@ -102,11 +100,7 @@ class AuthenticationException(AlfredException):
     """Identity Verification Failure (Invalid API Key or SSO Token)."""
 
     def __init__(self, message: str = "Identity Verification Required"):
-        super().__init__(
-            message=message,
-            code="authentication_required",
-            status_code=401
-        )
+        super().__init__(message=message, code="authentication_required", status_code=401)
 
 
 class AuthorizationException(AlfredException):
@@ -119,11 +113,7 @@ class AuthorizationException(AlfredException):
     """RBAC Violation (User exists but lacks required permissions)."""
 
     def __init__(self, message: str = "Access Denied: Insufficient Permissions"):
-        super().__init__(
-            message=message,
-            code="permission_denied",
-            status_code=403
-        )
+        super().__init__(message=message, code="permission_denied", status_code=403)
 
 
 class ResourceNotFoundException(AlfredException):
@@ -140,7 +130,7 @@ class ResourceNotFoundException(AlfredException):
             message=f"{resource_type} not found: {resource_id}",
             code="not_found",
             status_code=404,
-            details={"resource_type": resource_type, "resource_id": resource_id}
+            details={"resource_type": resource_type, "resource_id": resource_id},
         )
 
 
@@ -158,7 +148,7 @@ class ValidationException(AlfredException):
             message=message,
             code="validation_error",
             status_code=400,
-            details={"field": field} if field else {}
+            details={"field": field} if field else {},
         )
 
 
@@ -176,7 +166,7 @@ class RateLimitException(AlfredException):
             message=f"Traffic Control: Rate limit exceeded. Retry in {retry_after}s.",
             code="rate_limit_exceeded",
             status_code=429,
-            details={"retry_after": retry_after}
+            details={"retry_after": retry_after},
         )
 
 
@@ -194,10 +184,7 @@ class LLMProviderException(AlfredException):
             message=f"Upstream Provider Error [{provider}]: {message}",
             code="llm_provider_error",
             status_code=502,
-            details={
-                "provider": provider,
-                "original_error": original_error
-            }
+            details={"provider": provider, "original_error": original_error},
         )
 
 
@@ -211,20 +198,19 @@ class SafetyViolationException(AlfredException):
     """Safety Policy Violation (PII, Secrets, Prompt Injection)."""
 
     def __init__(
-        self, 
-        message: str, 
-        violations: Optional[list] = None,
-        enforcement_mode: str = "block"
+        self, message: str, violations: Optional[list] = None, enforcement_mode: str = "block"
     ):
         super().__init__(
             message=message,
             code="safety_violation",
             status_code=400,
             details={
-                "violations": [v.to_dict() if hasattr(v, 'to_dict') else v for v in (violations or [])],
+                "violations": [
+                    v.to_dict() if hasattr(v, "to_dict") else v for v in (violations or [])
+                ],
                 "enforcement_mode": enforcement_mode,
-                "violation_count": len(violations or [])
-            }
+                "violation_count": len(violations or []),
+            },
         )
 
 
@@ -238,16 +224,13 @@ class ConfigurationException(AlfredException):
     """Platform Misconfiguration (Missing Vault ENV, etc)."""
 
     def __init__(self, message: str):
-        super().__init__(
-            message=message,
-            code="configuration_error",
-            status_code=500
-        )
+        super().__init__(message=message, code="configuration_error", status_code=500)
 
 
 # -------------------------------------------------------------------
 # Unified Response Models
 # -------------------------------------------------------------------
+
 
 class ErrorResponse(BaseModel):
     # [AI GENERATED]
@@ -258,7 +241,7 @@ class ErrorResponse(BaseModel):
     # Context: Used by all exception handlers.
     """
     Standardized Error Payload.
-    
+
     This schema is guaranteed for all non-2xx responses.
     The 'request_id' is critical for cross-referencing logs in production.
     """
@@ -273,10 +256,8 @@ class ErrorResponse(BaseModel):
 # Global Middleware Interceptors
 # -------------------------------------------------------------------
 
-async def alfred_exception_handler(
-    request: Request,
-    exc: AlfredException
-) -> JSONResponse:
+
+async def alfred_exception_handler(request: Request, exc: AlfredException) -> JSONResponse:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Handles all custom business-logic exceptions, logs details, returns standardized error response.
@@ -292,8 +273,8 @@ async def alfred_exception_handler(
             "app_code": exc.code,
             "status": exc.status_code,
             "details": exc.details,
-            "endpoint": request.url.path
-        }
+            "endpoint": request.url.path,
+        },
     )
 
     return JSONResponse(
@@ -303,15 +284,12 @@ async def alfred_exception_handler(
             code=exc.code,
             message=exc.message,
             request_id=request_id,
-            details=exc.details if exc.details else None
-        ).model_dump(exclude_none=True)
+            details=exc.details if exc.details else None,
+        ).model_dump(exclude_none=True),
     )
 
 
-async def http_exception_handler(
-    request: Request,
-    exc: HTTPException
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Handles FastAPI's built-in HTTPException, normalizes error codes, logs, and returns standard error response.
@@ -323,9 +301,15 @@ async def http_exception_handler(
 
     # Normalize standard HTTP codes to platform-specific error keys
     code_map = {
-        400: "bad_request", 401: "unauthorized", 403: "forbidden",
-        404: "not_found", 405: "method_not_allowed", 422: "unprocessable_entity",
-        429: "rate_limit_exceeded", 500: "internal_error", 502: "bad_gateway"
+        400: "bad_request",
+        401: "unauthorized",
+        403: "forbidden",
+        404: "not_found",
+        405: "method_not_allowed",
+        422: "unprocessable_entity",
+        429: "rate_limit_exceeded",
+        500: "internal_error",
+        502: "bad_gateway",
     }
 
     code = code_map.get(exc.status_code, "unknown_error")
@@ -333,23 +317,19 @@ async def http_exception_handler(
 
     logger.warning(
         f"Framework HTTP Exception: {message}",
-        extra_data={"status": exc.status_code, "path": request.url.path}
+        extra_data={"status": exc.status_code, "path": request.url.path},
     )
 
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
-            error=code,
-            code=code,
-            message=message,
-            request_id=request_id
-        ).model_dump(exclude_none=True)
+            error=code, code=code, message=message, request_id=request_id
+        ).model_dump(exclude_none=True),
     )
 
 
 async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError
+    request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
@@ -368,7 +348,7 @@ async def validation_exception_handler(
 
     logger.warning(
         "Schema Validation Failed",
-        extra_data={"validation_errors": errors, "path": request.url.path}
+        extra_data={"validation_errors": errors, "path": request.url.path},
     )
 
     return JSONResponse(
@@ -378,15 +358,12 @@ async def validation_exception_handler(
             code="validation_error",
             message="The request payload contained invalid data.",
             request_id=request_id,
-            details={"errors": errors}
-        ).model_dump(exclude_none=True)
+            details={"errors": errors},
+        ).model_dump(exclude_none=True),
     )
 
 
-async def generic_exception_handler(
-    request: Request,
-    exc: Exception
-) -> JSONResponse:
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Catch-all handler for unexpected exceptions, logs stack trace, returns generic error message.
@@ -395,16 +372,16 @@ async def generic_exception_handler(
     # Context: Registered globally in setup_exception_handlers().
     """
     Standard Catch-All Handler (Safety Net).
-    
-    Ensures that unexpected Python crashes do not expose internal 
+
+    Ensures that unexpected Python crashes do not expose internal
     logic or secrets in the response body.
     """
     request_id = request_id_var.get()
 
     logger.error(
         f"Unhandled Platform Crash: {str(exc)}",
-        exc_info=True, # Critical: Captures the stack trace for Sentry/CloudWatch
-        extra_data={"err_type": type(exc).__name__, "path": request.url.path}
+        exc_info=True,  # Critical: Captures the stack trace for Sentry/CloudWatch
+        extra_data={"err_type": type(exc).__name__, "path": request.url.path},
     )
 
     return JSONResponse(
@@ -413,8 +390,8 @@ async def generic_exception_handler(
             error="internal_server_error",
             code="internal_error",
             message="An unexpected platform error occurred. Our engineering team has been notified.",
-            request_id=request_id
-        ).model_dump(exclude_none=True)
+            request_id=request_id,
+        ).model_dump(exclude_none=True),
     )
 
 

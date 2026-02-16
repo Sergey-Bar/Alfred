@@ -2,10 +2,10 @@ import asyncio
 import uuid
 from typing import Any, Coroutine, Generator, Optional
 
+import app.database as _app_db
 from fastapi import Depends, Header
 from sqlmodel import Session, select
 
-from .database import engine
 from .exceptions import AuthenticationException, AuthorizationException
 from .integrations import sso_manager
 from .logging_config import get_logger
@@ -41,7 +41,7 @@ def create_background_task(coro: Coroutine[Any, Any, Any]) -> asyncio.Task:
 
 def get_session() -> Generator:
     """Injected database session utilizing the connection pool."""
-    with Session(engine) as session:
+    with Session(_app_db.engine) as session:
         yield session
 
 

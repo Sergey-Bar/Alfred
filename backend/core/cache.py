@@ -3,9 +3,9 @@ Alfred - Enterprise AI Credit Governance Platform
 High-Performance Caching Subsystem
 
 [ARCHITECTURAL ROLE]
-This module provides a critical latency-reduction layer between the API and 
+This module provides a critical latency-reduction layer between the API and
 the persistent storage (Database). It utilizes Redis for distributed caching,
-allowing the platform to scale horizontally while maintaining consistent 
+allowing the platform to scale horizontally while maintaining consistent
 performance for high-frequency operations like quota checks and leaderboard reads.
 
 # [AI GENERATED]
@@ -42,7 +42,7 @@ class CacheManager:
     # Context: Used by all modules needing cache access.
     """
     Stateful Cache Coordinator.
-    
+
     Handles connection lifecycle, serialization/deserialization of complex objects,
     and provides a unified interface for key-value storage operations.
     """
@@ -59,19 +59,25 @@ class CacheManager:
                     port=settings.redis_port,
                     db=settings.redis_db,
                     decode_responses=True,
-                    socket_connect_timeout=2, # Fast fail on connect
-                    socket_timeout=2          # Fast fail on command
+                    socket_connect_timeout=2,  # Fast fail on connect
+                    socket_timeout=2,  # Fast fail on command
                 )
                 # Heartbeat verification
                 self.redis.ping()
-                logger.info(f"Performance Optimization: Redis Cache Active @ {settings.redis_host}:{settings.redis_port}")
+                logger.info(
+                    f"Performance Optimization: Redis Cache Active @ {settings.redis_host}:{settings.redis_port}"
+                )
             except Exception as e:
-                logger.warning(f"Cache Degradation: Redis connection failed ({e}). Reverting to Database-Only mode.")
+                logger.warning(
+                    f"Cache Degradation: Redis connection failed ({e}). Reverting to Database-Only mode."
+                )
                 self.redis = None
         else:
             self.redis = None
             if settings.redis_enabled and not redis:
-                logger.error("Configuration Conflict: Redis enabled but 'redis-py' package missing.")
+                logger.error(
+                    "Configuration Conflict: Redis enabled but 'redis-py' package missing."
+                )
             else:
                 logger.info("Operational Mode: Caching Disabled (Direct-to-DB).")
 
@@ -123,7 +129,7 @@ class CacheManager:
     def invalidate_pattern(self, pattern: str) -> int:
         """
         Mass Invalidation via Pattern Matching.
-        Useful for clearing all caches related to a specific user or team 
+        Useful for clearing all caches related to a specific user or team
         when their permissions change.
         """
         if not self.redis:
@@ -137,7 +143,6 @@ class CacheManager:
             logger.warning(f"Cache Interruption (INVALIDATE): {e}")
 
         return 0
-
 
 
 # [AI GENERATED]
@@ -158,11 +163,12 @@ def cached(ttl: int = 300, key_prefix: str = ""):
     # Context: Use on repository or analytics methods that are read-heavy.
     """
     High-Order Memoization Decorator.
-    
+
     Automates the 'Cache-Aside' pattern for repository methods.
-    
+
     Note: Ensure that decorated function arguments are serializable (strings/ints).
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -187,4 +193,5 @@ def cached(ttl: int = 300, key_prefix: str = ""):
             return result
 
         return wrapper
+
     return decorator

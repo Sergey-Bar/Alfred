@@ -8,17 +8,18 @@ Context: Used by backend for compliance, and by frontend for admin/report UI. Fu
 Model Suitability: GPT-4.1 is suitable for FastAPI audit/permission APIs; for advanced compliance, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlmodel import Session
-from ..dependencies import get_session, require_admin
-from typing import List, Optional
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Body, Depends
+
+from ..dependencies import require_admin
 
 router = APIRouter(prefix="/v1/report_audit", tags=["Audit Logging & Permission Checks"])
 
 # --- In-memory audit log store (for demo) ---
 AUDIT_LOGS = []
+
 
 # --- API Endpoints ---
 @router.post("/log_access", dependencies=[Depends(require_admin)])
@@ -32,14 +33,16 @@ async def log_report_access(
         "report_id": report_id,
         "user_id": user_id,
         "action": action,
-        "timestamp": datetime.now(timezone.utc)
+        "timestamp": datetime.now(timezone.utc),
     }
     AUDIT_LOGS.append(entry)
     return {"logged": True, "entry": entry}
 
+
 @router.get("/logs", dependencies=[Depends(require_admin)])
 async def get_audit_logs():
     return AUDIT_LOGS
+
 
 @router.post("/check_permission", dependencies=[Depends(require_admin)])
 async def check_report_permission(

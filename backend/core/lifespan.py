@@ -2,9 +2,9 @@
 Alfred Platform Lifecycle Orchestration
 
 [ARCHITECTURAL ROLE]
-This module defines the modular blocks for the FastAPI application lifecycle. 
-It centralizes the "Bootstrapping" sequence—ensuring the database is in the 
-correct state, organization parameters are seeded, and external integration 
+This module defines the modular blocks for the FastAPI application lifecycle.
+It centralizes the "Bootstrapping" sequence—ensuring the database is in the
+correct state, organization parameters are seeded, and external integration
 sinks are properly bound before the application starts accepting traffic.
 
 # [AI GENERATED]
@@ -18,16 +18,16 @@ sinks are properly bound before the application starts accepting traffic.
 
 from contextlib import asynccontextmanager
 
-
 from sqlmodel import Session, SQLModel, select
-from .database import engine
 
 from .config import settings
+from .database import engine
 from .integrations import setup_notifications
 from .logging_config import get_logger
 from .models import OrgSettings
 
 logger = get_logger(__name__)
+
 
 def create_tables_if_needed(engine):
     # [AI GENERATED]
@@ -38,8 +38,8 @@ def create_tables_if_needed(engine):
     # Context: Called at startup in dev/test only.
     """
     Schema Synchronization Hook.
-    
-    Warning: This is only active in 'development' or 'test' environments. 
+
+    Warning: This is only active in 'development' or 'test' environments.
     Production schema changes must be orchestrated via Alembic migrations.
     """
     if settings.environment in ("development", "test"):
@@ -56,8 +56,8 @@ def initialize_org_settings(engine):
     # Context: Called at startup after DB is ready.
     """
     Governance Baseline Seeding.
-    
-    Ensures that the global OrgSettings entry is present. This record governs 
+
+    Ensures that the global OrgSettings entry is present. This record governs
     platform-wide behaviors like privacy modes and credit policy.
     """
     with Session(engine) as session:
@@ -79,8 +79,8 @@ def setup_notifications_if_enabled():
     # Context: Called at startup after org seeding.
     """
     Integration Subsystem Binding.
-    
-    Initializes the multi-channel notification manager with credentials 
+
+    Initializes the multi-channel notification manager with credentials
     sourced from the configuration layer.
     """
     if settings.notifications_enabled:
@@ -91,11 +91,14 @@ def setup_notifications_if_enabled():
                 slack_bot_token=settings.slack_bot_token,
                 teams_webhook_url=settings.teams_webhook_url,
                 # Additional notification sinks can be mapped here
-                telegram_bot_token=getattr(settings, 'telegram_bot_token', None),
+                telegram_bot_token=getattr(settings, "telegram_bot_token", None),
             )
             logger.info("Integrations: Notification subsystem online.")
         except Exception as e:
-            logger.error(f"Integrations Failure: Connectivity issues with notification sinks ({e}).")
+            logger.error(
+                f"Integrations Failure: Connectivity issues with notification sinks ({e})."
+            )
+
 
 @asynccontextmanager
 async def alfred_lifespan(app: FastAPI) -> AsyncGenerator:
@@ -107,8 +110,8 @@ async def alfred_lifespan(app: FastAPI) -> AsyncGenerator:
     # Context: Registered as the lifespan handler in main.py.
     """
     Stateful Lifespan Coordinator.
-    
-    Wraps the startup and shutdown sequence in a context manager to ensure 
+
+    Wraps the startup and shutdown sequence in a context manager to ensure
     resources are cleaned up correctly even if a crash occurs during boot.
     """
     logger.info(
@@ -116,8 +119,8 @@ async def alfred_lifespan(app: FastAPI) -> AsyncGenerator:
         extra_data={
             "v": settings.app_version,
             "tier": settings.environment,
-            "mode": "STRICT_PROD" if settings.is_production else "LAX_DEV"
-        }
+            "mode": "STRICT_PROD" if settings.is_production else "LAX_DEV",
+        },
     )
     try:
         # Pre-flight initialization sequence

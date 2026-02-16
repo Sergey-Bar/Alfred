@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Tests core API endpoints (health, root, user management) using FastAPI TestClient and Pytest. Handles SPA/static mode and asserts correct API responses.
@@ -16,7 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Check if static files exist (SPA mode)
-_static_dir = os.path.join(os.path.dirname(__file__), '..', 'static')
+_static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 _spa_mode = os.path.exists(_static_dir) and os.path.exists(os.path.join(_static_dir, "index.html"))
 
 
@@ -60,12 +59,8 @@ class TestUserEndpoints:
         """Test user creation returns API key."""
         response = test_client.post(
             "/v1/admin/users",
-            json={
-                "email": "newuser@example.com",
-                "name": "New User",
-                "personal_quota": 5000
-            }
-            , headers=admin_api_key
+            json={"email": "newuser@example.com", "name": "New User", "personal_quota": 5000},
+            headers=admin_api_key,
         )
         assert response.status_code == 200
         data = response.json()
@@ -77,21 +72,15 @@ class TestUserEndpoints:
         # Create first user
         test_client.post(
             "/v1/admin/users",
-            json={
-                "email": "duplicate@example.com",
-                "name": "First User"
-            },
-            headers=admin_api_key
+            json={"email": "duplicate@example.com", "name": "First User"},
+            headers=admin_api_key,
         )
 
         # Try to create duplicate
         response = test_client.post(
             "/v1/admin/users",
-            json={
-                "email": "duplicate@example.com",
-                "name": "Second User"
-            },
-            headers=admin_api_key
+            json={"email": "duplicate@example.com", "name": "Second User"},
+            headers=admin_api_key,
         )
         assert response.status_code == 400
 
@@ -102,10 +91,7 @@ class TestUserEndpoints:
 
     def test_get_current_user_invalid_key(self, test_client: TestClient):
         """Test getting user with invalid key returns 401."""
-        response = test_client.get(
-            "/v1/users/me",
-            headers={"Authorization": "Bearer invalid-key"}
-        )
+        response = test_client.get("/v1/users/me", headers={"Authorization": "Bearer invalid-key"})
         assert response.status_code == 401
 
 
@@ -116,10 +102,7 @@ class TestChatCompletions:
         """Test chat completions without auth returns 401."""
         response = test_client.post(
             "/v1/chat/completions",
-            json={
-                "model": "gpt-4",
-                "messages": [{"role": "user", "content": "Hello"}]
-            }
+            json={"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]},
         )
         assert response.status_code == 401
 
@@ -134,9 +117,9 @@ class TestTeamEndpoints:
             json={
                 "name": "Engineering Team",
                 "description": "The engineering department",
-                "common_pool": 50000
-            }
-            , headers=admin_api_key
+                "common_pool": 50000,
+            },
+            headers=admin_api_key,
         )
         assert response.status_code == 200
         data = response.json()

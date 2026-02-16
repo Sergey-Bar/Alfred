@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Provides authentication root endpoint for Alfred backend.
@@ -9,6 +8,7 @@
 from fastapi import APIRouter
 
 router = APIRouter()
+
 
 @router.get("/auth")
 async def auth_root():

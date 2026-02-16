@@ -5,19 +5,20 @@
 # Root Cause: Pytest may not set sys.path to package root when running from outside src/backend.
 # Context: This is safe and robust for monorepo and CI/CD.
 # Model Suitability: Standard import fix; GPT-4.1 is sufficient.
-import sys
 import os
-SRC_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend'))
+import sys
+
+SRC_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/backend"))
 if SRC_BACKEND not in sys.path:
     sys.path.insert(0, SRC_BACKEND)
 """
 Pytest configuration and fixtures for Alfred tests.
 """
 
+import logging
 import sys
 from decimal import Decimal
 from pathlib import Path
-import logging
 
 import pytest
 from sqlalchemy.pool import StaticPool
@@ -33,6 +34,12 @@ logger.debug("sys.path: %s", sys.path)
 # Use SQLite in-memory for tests (truly in-memory - no file)
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
+# Ensure test runtime env is visible to imported app modules early
+import os as _os
+
+_os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
+_os.environ.setdefault("ENVIRONMENT", "test")
+
 
 @pytest.fixture(scope="function")
 def engine():
@@ -41,11 +48,19 @@ def engine():
     engine = create_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool  # Critical: ensures single shared in-memory db
+        poolclass=StaticPool,  # Critical: ensures single shared in-memory db
     )
     # Import models to register them with SQLModel metadata
     from app import models  # noqa: F401
+
     SQLModel.metadata.create_all(engine)
+    # Ensure app modules use the test engine during tests
+    try:
+        import app.database as _app_db  # type: ignore
+
+        _app_db.engine = engine
+    except Exception:
+        pass
     yield engine
     SQLModel.metadata.drop_all(engine)
     engine.dispose()
@@ -72,7 +87,7 @@ def test_user(session):
         name="Test User",
         api_key_hash=api_key_hash,
         personal_quota=Decimal("1000.00"),
-        used_tokens=Decimal("0.00")
+        used_tokens=Decimal("0.00"),
     )
     session.add(user)
     session.commit()
@@ -95,7 +110,7 @@ def admin_api_key(session):
         name="Admin",
         api_key_hash=api_key_hash,
         is_admin=True,
-        personal_quota=Decimal("10000.00")
+        personal_quota=Decimal("10000.00"),
     )
     session.add(admin)
     session.commit()
@@ -112,7 +127,7 @@ def test_team(session):
         name="Test Team",
         description="A test team",
         common_pool=Decimal("10000.00"),
-        used_pool=Decimal("0.00")
+        used_pool=Decimal("0.00"),
     )
     session.add(team)
     session.commit()

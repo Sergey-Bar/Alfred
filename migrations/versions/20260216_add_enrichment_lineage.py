@@ -8,8 +8,9 @@ Why: Replace prior in-memory demo stores to ensure durability and auditing acros
 Root Cause: Demo lists were not persisted; production requires DB schema updates.
 Context: Run `alembic upgrade head` after placing this file (verify `down_revision` with existing history).
 """
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20260216_add_enrichment_lineage"
@@ -33,7 +34,9 @@ def upgrade() -> None:
     op.create_table(
         "enrichment_jobs",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column("pipeline_id", sa.Integer, sa.ForeignKey("enrichment_pipelines.id"), nullable=False),
+        sa.Column(
+            "pipeline_id", sa.Integer, sa.ForeignKey("enrichment_pipelines.id"), nullable=False
+        ),
         sa.Column("status", sa.String(length=50), nullable=False),
         sa.Column("started_at", sa.DateTime, nullable=False),
         sa.Column("finished_at", sa.DateTime, nullable=True),
