@@ -8,9 +8,10 @@ Context: Verification of SSO and third-party notification connectors.
 import pytest
 from playwright.sync_api import Page, expect
 
+
 @pytest.mark.describe("Integrations")
 class TestIntegrations:
-    
+
     @pytest.fixture(autouse=True)
     def setup(self, admin_logged_in_page: Page):
         self.page = admin_logged_in_page
@@ -27,25 +28,27 @@ class TestIntegrations:
 
     def test_should_configure_slack_integration(self):
         slack_card = self.page.locator("text=/slack/i").first
-        
+
         if slack_card.is_visible(timeout=5000):
             slack_card.click()
-            
+
             # Configuration form should appear
             expect(self.page.locator('form, [role="dialog"]')).to_be_visible(timeout=5000)
 
     def test_should_test_integration_connection(self):
         test_button = self.page.locator('button:has-text("Test"), button:has-text("Verify")').first
-        
+
         if test_button.is_visible(timeout=5000):
             test_button.click()
-            
+
             # Should show result
-            expect(self.page.locator("text=/success|connected|failed/i")).to_be_visible(timeout=10000)
+            expect(self.page.locator("text=/success|connected|failed/i")).to_be_visible(
+                timeout=10000
+            )
 
     def test_should_enable_disable_integration(self):
         toggle = self.page.locator('input[type="checkbox"], button[role="switch"]').first
-        
+
         if toggle.is_visible(timeout=5000):
             toggle.click()
             self.page.wait_for_timeout(1000)

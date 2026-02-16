@@ -14,24 +14,24 @@ from .base import EventType, NotificationEvent, NotificationProvider
 class WhatsAppNotifier(NotificationProvider):
     """
     WhatsApp notification provider using WhatsApp Business Cloud API.
-    
+
     Supports:
     - WhatsApp Business Cloud API (Meta)
     - Template messages (required for business-initiated conversations)
     - Text messages (for user-initiated conversation windows)
     - Interactive messages
-    
+
     Configuration:
         WHATSAPP_PHONE_NUMBER_ID: WhatsApp Business Phone Number ID
         WHATSAPP_ACCESS_TOKEN: Meta Graph API access token
         WHATSAPP_RECIPIENT_NUMBER: Default recipient phone number (with country code)
-    
+
     Setup:
         1. Create a Meta Business account
         2. Set up WhatsApp Business API in Meta Developer Console
         3. Get Phone Number ID and Access Token
         4. Create message templates in WhatsApp Manager (for business-initiated messages)
-    
+
     Note: WhatsApp requires pre-approved templates for business-initiated messages.
           Free-form text only works within 24h of user's last message.
     """
@@ -73,11 +73,11 @@ class WhatsAppNotifier(NotificationProvider):
         alerts_recipient_number: Optional[str] = None,
         template_name: Optional[str] = None,
         template_language: str = "en",
-        timeout: float = 10.0
+        timeout: float = 10.0,
     ):
         """
         Initialize WhatsApp notifier.
-        
+
         Args:
             phone_number_id: WhatsApp Business Phone Number ID
             access_token: Meta Graph API access token
@@ -102,11 +102,7 @@ class WhatsAppNotifier(NotificationProvider):
 
     @property
     def is_configured(self) -> bool:
-        return bool(
-            self.phone_number_id and
-            self.access_token and
-            self.recipient_number
-        )
+        return bool(self.phone_number_id and self.access_token and self.recipient_number)
 
     @property
     def api_url(self) -> str:
@@ -121,7 +117,7 @@ class WhatsAppNotifier(NotificationProvider):
                 headers={
                     "Authorization": f"Bearer {self.access_token}",
                     "Content-Type": "application/json",
-                }
+                },
             )
         return self._client
 
@@ -166,11 +162,7 @@ class WhatsAppNotifier(NotificationProvider):
 
         return "\n".join(lines)
 
-    def _build_text_payload(
-        self,
-        recipient: str,
-        event: NotificationEvent
-    ) -> Dict[str, Any]:
+    def _build_text_payload(self, recipient: str, event: NotificationEvent) -> Dict[str, Any]:
         """Build payload for text message."""
         text = self._format_text_message(event)
 
@@ -179,20 +171,13 @@ class WhatsAppNotifier(NotificationProvider):
             "recipient_type": "individual",
             "to": recipient,
             "type": "text",
-            "text": {
-                "preview_url": False,
-                "body": text
-            }
+            "text": {"preview_url": False, "body": text},
         }
 
-    def _build_template_payload(
-        self,
-        recipient: str,
-        event: NotificationEvent
-    ) -> Dict[str, Any]:
+    def _build_template_payload(self, recipient: str, event: NotificationEvent) -> Dict[str, Any]:
         """
         Build payload for template message.
-        
+
         Note: You need to create and approve a template in WhatsApp Manager first.
         Example template with variables:
         - {{1}} = Title
@@ -213,9 +198,7 @@ class WhatsAppNotifier(NotificationProvider):
             "type": "template",
             "template": {
                 "name": self.template_name,
-                "language": {
-                    "code": self.template_language
-                },
+                "language": {"code": self.template_language},
                 "components": [
                     {
                         "type": "body",
@@ -224,10 +207,10 @@ class WhatsAppNotifier(NotificationProvider):
                             {"type": "text", "text": event.message},
                             {"type": "text", "text": event.user_name or "System"},
                             {"type": "text", "text": timestamp},
-                        ]
+                        ],
                     }
-                ]
-            }
+                ],
+            },
         }
 
     async def send(self, event: NotificationEvent) -> bool:
@@ -257,10 +240,7 @@ class WhatsAppNotifier(NotificationProvider):
             if response.status_code in (400, 403) and self.template_name:
                 template_payload = self._build_template_payload(recipient, event)
 
-                template_response = await client.post(
-                    self.api_url,
-                    json=template_payload
-                )
+                template_response = await client.post(self.api_url, json=template_payload)
 
                 if template_response.status_code == 200:
                     result = template_response.json()
@@ -298,7 +278,7 @@ def create_whatsapp_notifier(
 ) -> Optional[WhatsAppNotifier]:
     """
     Create a WhatsApp notifier if configured.
-    
+
     Returns None if no configuration is provided.
     """
     if not phone_number_id or not access_token or not recipient_number:

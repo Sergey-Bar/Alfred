@@ -8,14 +8,15 @@ Context: Used by backend for enforcing access, and by frontend for admin configu
 Model Suitability: GPT-4.1 is suitable for FastAPI policy APIs; for advanced policy logic, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Path
-from sqlmodel import Session, select
-from ..models import User, Role, Permission
-from ..dependencies import get_session, require_admin
 import uuid
 from typing import List, Optional
 
+from fastapi import APIRouter, Body, Depends, HTTPException
+
+from ..dependencies import require_admin
+
 router = APIRouter(prefix="/v1/data_access", tags=["Data Access Controls"])
+
 
 # --- Data Access Policy Model (in-memory for now) ---
 # In production, move to DB model and migrations
@@ -28,8 +29,10 @@ class DataAccessPolicy:
         self.allowed_roles = allowed_roles  # list of role IDs
         self.allowed_users = allowed_users  # list of user IDs
 
+
 # Simulated policy store
 DATA_ACCESS_POLICIES = {}
+
 
 # --- API Endpoints ---
 @router.post("/policies", dependencies=[Depends(require_admin)])
@@ -45,19 +48,34 @@ async def create_policy(
     DATA_ACCESS_POLICIES[policy_id] = policy
     return {"id": policy_id, "name": name, "resource": resource}
 
+
 @router.get("/policies", dependencies=[Depends(require_admin)])
 async def list_policies():
     return [
-        {"id": p.id, "name": p.name, "resource": p.resource, "allowed_roles": p.allowed_roles, "allowed_users": p.allowed_users}
+        {
+            "id": p.id,
+            "name": p.name,
+            "resource": p.resource,
+            "allowed_roles": p.allowed_roles,
+            "allowed_users": p.allowed_users,
+        }
         for p in DATA_ACCESS_POLICIES.values()
     ]
+
 
 @router.get("/policies/{policy_id}", dependencies=[Depends(require_admin)])
 async def get_policy(policy_id: str):
     policy = DATA_ACCESS_POLICIES.get(policy_id)
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found.")
-    return {"id": policy.id, "name": policy.name, "resource": policy.resource, "allowed_roles": policy.allowed_roles, "allowed_users": policy.allowed_users}
+    return {
+        "id": policy.id,
+        "name": policy.name,
+        "resource": policy.resource,
+        "allowed_roles": policy.allowed_roles,
+        "allowed_users": policy.allowed_users,
+    }
+
 
 @router.delete("/policies/{policy_id}", dependencies=[Depends(require_admin)])
 async def delete_policy(policy_id: str):
@@ -65,6 +83,7 @@ async def delete_policy(policy_id: str):
         raise HTTPException(status_code=404, detail="Policy not found.")
     del DATA_ACCESS_POLICIES[policy_id]
     return {"message": "Policy deleted."}
+
 
 @router.post("/check_access", dependencies=[Depends(require_admin)])
 async def check_access(

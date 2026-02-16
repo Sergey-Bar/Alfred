@@ -6,10 +6,12 @@
 # Context: Extend with real DB queries, filtering, and user-specific analytics as needed.
 # Model Suitability: For advanced analytics, consider GPT-4 Turbo or Claude Sonnet.
 
+from typing import Dict, List
+
 from fastapi import APIRouter, Query
-from typing import List, Dict
 
 router = APIRouter()
+
 
 @router.get("/analytics/usage", response_model=List[Dict])
 def get_usage_analytics(period: str = Query("7d", enum=["7d", "30d", "90d"])):
@@ -20,5 +22,6 @@ def get_usage_analytics(period: str = Query("7d", enum=["7d", "30d", "90d"])):
         {"date": "2026-02-14", "dataset": "users", "views": 110, "unique_users": 28},
     ]
     return data
+
 
 # To use: include_router(usage_analytics.router) in main.py

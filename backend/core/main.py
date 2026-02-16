@@ -3,8 +3,8 @@ Alfred - Enterprise AI Credit Governance Platform
 Core API Gateway & Orchestration Engine (Modular Entry Point)
 
 [ARCHITECTURAL ROLE]
-This is the lean entry point for the Alfred platform. It orchestrates the 
-request lifecycle by mounting domain-specific routers and configuring 
+This is the lean entry point for the Alfred platform. It orchestrates the
+request lifecycle by mounting domain-specific routers and configuring
 application-wide middleware and lifespan events.
 
 # [AI GENERATED]
@@ -17,44 +17,31 @@ application-wide middleware and lifespan events.
 """
 
 import os
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlmodel import Session, SQLModel, select
-
-from .config import settings
-from .database import engine
-from .dependencies import get_session
-from .exceptions import setup_exception_handlers
-from .integrations import (
-    get_notification_manager,
-    setup_notifications,
-    setup_sso
-)
-from .logging_config import get_logger, setup_logging
-from .middleware import setup_middleware
-from .models import OrgSettings
-from .dashboard import router as dashboard_router
-from .routers import auth, proxy, users, teams, governance, system, websocket
-from .routers import admin_config
-from .routers import audit_log
-from .routers import rbac
-from .routers import notifications
-from .routers import import_export
-from .routers import custom_reports
-from .routers import metrics
-from .routers import data_export
-from .routers import usage_analytics
-from .lifespan import alfred_lifespan
 from redis.asyncio import Redis
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
+from .config import settings
+from .exceptions import setup_exception_handlers
+from .lifespan import alfred_lifespan
+from .logging_config import get_logger, setup_logging
+from .middleware import setup_middleware
+from .routers import (
+    custom_reports,
+    data_export,
+    governance,
+    import_export,
+    metrics,
+    notifications,
+    proxy,
+    usage_analytics,
+)
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
@@ -66,7 +53,7 @@ setup_logging(
     log_level=settings.log_level,
     log_format=settings.log_format,
     mask_pii=settings.mask_pii_in_logs,
-    log_file=settings.log_file
+    log_file=settings.log_file,
 )
 logger = get_logger(__name__)
 
@@ -89,7 +76,7 @@ except Exception:
 # Why: Redis is required for distributed rate limiting and caching.
 # Root Cause: Missing redis_url would cause runtime errors in rate limiter setup.
 # Context: Fails fast if misconfigured, improving developer feedback.
-if not hasattr(settings, 'redis_url'):
+if not hasattr(settings, "redis_url"):
     raise AttributeError("The 'redis_url' attribute is missing in settings. Please define it.")
 
 
@@ -105,7 +92,7 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=alfred_lifespan,
     docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None
+    redoc_url="/redoc" if not settings.is_production else None,
 )
 
 
@@ -126,7 +113,6 @@ try:
     logger.info("Redis-backed distributed rate limiting enabled.")
 except Exception as e:
     logger.error(f"Failed to initialize Redis-backed rate limiting: {e}")
-
 
 
 # [AI GENERATED]
@@ -154,7 +140,7 @@ if Instrumentator:
     instrumentator = Instrumentator(
         should_group_status_codes=False,
         excluded_handlers=["/metrics"],
-        should_ignore_untemplated=True
+        should_ignore_untemplated=True,
     )
     instrumentator.instrument(app).expose(app, endpoint="/metrics")
     logger.info("Prometheus metrics exposed at /metrics endpoint.")
@@ -176,7 +162,11 @@ setup_middleware(app)
 # Why: Prevents CSRF and data exfiltration from unauthorized origins.
 # Root Cause: Open CORS in production is a security risk.
 # Context: CORS origins are loaded from settings, fallback to default in dev.
-cors_origins = [o for o in settings.cors_origins if o != "*"] if settings.is_production else settings.cors_origins
+cors_origins = (
+    [o for o in settings.cors_origins if o != "*"]
+    if settings.is_production
+    else settings.cors_origins
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins or ["api.alfred.enterprise"],
@@ -270,6 +260,7 @@ app.include_router(usage_analytics.router, tags=["Usage Analytics"])
 # Root Cause: No API existed for dataset/field-level access controls.
 # Context: This router is required for roadmap compliance and should be extended for dynamic policy engines and audit logging.
 from .routers import data_access
+
 app.include_router(data_access.router, tags=["Data Access Controls"])
 
 # [AI GENERATED]
@@ -279,6 +270,7 @@ app.include_router(data_access.router, tags=["Data Access Controls"])
 # Root Cause: No API for anonymization/masking previously.
 # Context: This router is required for roadmap compliance and should be extended for dynamic masking and audit logging.
 from .routers import data_anonymization
+
 app.include_router(data_anonymization.router, tags=["Data Anonymization & Masking"])
 
 # [AI GENERATED]
@@ -288,6 +280,7 @@ app.include_router(data_anonymization.router, tags=["Data Anonymization & Maskin
 # Root Cause: No API for alerting or anomaly detection previously.
 # Context: This router is required for roadmap compliance and should be extended for real-time streaming and alert history/audit logging.
 from .routers import alerting
+
 app.include_router(alerting.router, tags=["Alerting & Anomaly Detection"])
 
 # [AI GENERATED]
@@ -297,6 +290,7 @@ app.include_router(alerting.router, tags=["Alerting & Anomaly Detection"])
 # Root Cause: No API for sharing dashboards/reports securely.
 # Context: This router is required for roadmap compliance and should be extended for audit logging and advanced permissions.
 from .routers import sharing
+
 app.include_router(sharing.router, tags=["Collaboration & Sharing"])
 
 
@@ -306,7 +300,7 @@ app.include_router(sharing.router, tags=["Collaboration & Sharing"])
 # Why: Enables seamless SPA navigation and asset delivery from the same server.
 # Root Cause: SPAs require all non-API routes to return index.html for client-side routing.
 # Context: Excludes API and metrics routes from SPA fallback. Returns 404 for missing assets.
-static_dir = os.path.join(os.path.dirname(__file__), '..', 'static')
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
     assets_dir = os.path.join(static_dir, "assets")
     if os.path.exists(assets_dir):
@@ -315,22 +309,31 @@ if os.path.exists(static_dir):
     @app.get("/{path:path}")
     async def serve_spa_fallback(path: str, request: Request):
         # Exclude API routes from SPA fallback
-        if path.startswith("v1/") or path.startswith("docs") or path.startswith("redoc") or path.startswith("metrics") or path.startswith("health"):
+        if (
+            path.startswith("v1/")
+            or path.startswith("docs")
+            or path.startswith("redoc")
+            or path.startswith("metrics")
+            or path.startswith("health")
+        ):
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
-        
+
         file_path = os.path.join(static_dir, path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
-        
+
         index_path = os.path.join(static_dir, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
-        
+
         return JSONResponse(status_code=404, content={"detail": "Static assets not found"})
+
 else:
+
     @app.get("/")
     async def api_root_fallback():
         return {"platform": "Alfred API Lite", "status": "running"}
+
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
@@ -339,6 +342,7 @@ else:
 # Root Cause: No API for managing or testing BI tool connectors.
 # Context: This router is required for roadmap compliance and should be extended for OAuth, live sync, and connector health monitoring.
 from .routers import bi_connectors
+
 app.include_router(bi_connectors.router, tags=["BI Tools Integration"])
 
 # [AI GENERATED]
@@ -348,6 +352,7 @@ app.include_router(bi_connectors.router, tags=["BI Tools Integration"])
 # Root Cause: No API for managing or previewing data prep/transformation jobs.
 # Context: This router is required for roadmap compliance and should be extended for workflow chaining and scheduling.
 from .routers import data_prep
+
 app.include_router(data_prep.router, tags=["Data Preparation & Transformation"])
 
 # [AI GENERATED]
@@ -357,6 +362,7 @@ app.include_router(data_prep.router, tags=["Data Preparation & Transformation"])
 # Root Cause: No API for advanced query validation or BI integration checks.
 # Context: This router is required for roadmap compliance and should be extended for live query execution and schema introspection.
 from .routers import query_validation
+
 app.include_router(query_validation.router, tags=["Advanced Query Validation & BI Integration"])
 
 # [AI GENERATED]
@@ -373,7 +379,18 @@ app.include_router(query_validation.router, tags=["Advanced Query Validation & B
 # Root Cause: No API existed to serve onboarding documentation; only static markdown was available.
 # Context: This router is required for roadmap compliance and should be extended for HTML/JSON rendering in the future.
 
-from .routers import report_audit, gitops_onboarding, data_quality, data_lineage, data_catalog, data_enrichment, data_governance, analytics, compliance, governance
+from .routers import (
+    analytics,
+    compliance,
+    data_catalog,
+    data_enrichment,
+    data_governance,
+    data_lineage,
+    data_quality,
+    gitops_onboarding,
+    report_audit,
+)
+
 app.include_router(report_audit.router, tags=["Audit Logging & Permission Checks"])
 app.include_router(gitops_onboarding.router, tags=["Onboarding & GitOps Docs"])
 app.include_router(data_quality.router, tags=["Data Quality Monitoring"])
@@ -399,4 +416,5 @@ app.include_router(governance._alias_router)
 # Context: This alias ensures test compatibility; remove if test suite changes.
 app.include_router(proxy.router, tags=["AI Gateway"])
 from .routers import compliance
+
 app.include_router(compliance.router, tags=["Compliance"])

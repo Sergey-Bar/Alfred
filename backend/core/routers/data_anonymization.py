@@ -8,13 +8,15 @@ Context: Used by backend for enforcing anonymization, and by frontend for admin 
 Model Suitability: GPT-4.1 is suitable for FastAPI anonymization APIs; for advanced privacy logic, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlmodel import Session
-from ..dependencies import get_session, require_admin
-from typing import List, Optional
 import uuid
+from typing import List, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException
+
+from ..dependencies import require_admin
 
 router = APIRouter(prefix="/v1/data_anonymization", tags=["Data Anonymization & Masking"])
+
 
 # --- In-memory policy store (for demo) ---
 class AnonymizationPolicy:
@@ -25,7 +27,9 @@ class AnonymizationPolicy:
         self.resource = resource  # e.g., dataset/table
         self.field_masking = field_masking  # dict: field -> method (redact/hash/pseudonymize)
 
+
 ANONYMIZATION_POLICIES = {}
+
 
 # --- API Endpoints ---
 @router.post("/policies", dependencies=[Depends(require_admin)])
@@ -40,6 +44,7 @@ async def create_policy(
     ANONYMIZATION_POLICIES[policy_id] = policy
     return {"id": policy_id, "name": name, "resource": resource}
 
+
 @router.get("/policies", dependencies=[Depends(require_admin)])
 async def list_policies():
     return [
@@ -47,12 +52,19 @@ async def list_policies():
         for p in ANONYMIZATION_POLICIES.values()
     ]
 
+
 @router.get("/policies/{policy_id}", dependencies=[Depends(require_admin)])
 async def get_policy(policy_id: str):
     policy = ANONYMIZATION_POLICIES.get(policy_id)
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found.")
-    return {"id": policy.id, "name": policy.name, "resource": policy.resource, "field_masking": policy.field_masking}
+    return {
+        "id": policy.id,
+        "name": policy.name,
+        "resource": policy.resource,
+        "field_masking": policy.field_masking,
+    }
+
 
 @router.delete("/policies/{policy_id}", dependencies=[Depends(require_admin)])
 async def delete_policy(policy_id: str):
@@ -60,6 +72,7 @@ async def delete_policy(policy_id: str):
         raise HTTPException(status_code=404, detail="Policy not found.")
     del ANONYMIZATION_POLICIES[policy_id]
     return {"message": "Policy deleted."}
+
 
 @router.post("/preview_masked_data", dependencies=[Depends(require_admin)])
 async def preview_masked_data(

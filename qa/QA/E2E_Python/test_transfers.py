@@ -8,9 +8,10 @@ Context: Verification of credit allocation and transfer mechanisms.
 import pytest
 from playwright.sync_api import Page, expect
 
+
 @pytest.mark.describe("Credit Transfers")
 class TestTransfers:
-    
+
     @pytest.fixture(autouse=True)
     def setup(self, logged_in_page: Page):
         self.page = logged_in_page
@@ -26,25 +27,29 @@ class TestTransfers:
 
     def test_should_open_transfer_creation_form(self):
         # Click create/new transfer button
-        self.page.click('button:has-text("Transfer"), button:has-text("New"), button:has-text("Create")')
+        self.page.click(
+            'button:has-text("Transfer"), button:has-text("New"), button:has-text("Create")'
+        )
 
         # Form should appear
         expect(self.page.locator('form, [role="dialog"]')).to_be_visible()
 
     def test_should_validate_transfer_form_fields(self):
-        self.page.click('button:has-text("Transfer"), button:has-text("New"), button:has-text("Create")')
+        self.page.click(
+            'button:has-text("Transfer"), button:has-text("New"), button:has-text("Create")'
+        )
 
         # Try to submit empty form
         submit_button = self.page.locator('button[type="submit"]').last
         submit_button.click()
 
         # Should show validation errors
-        expect(self.page.locator('input[required], select[required]').first).to_be_visible()
+        expect(self.page.locator("input[required], select[required]").first).to_be_visible()
 
     def test_should_filter_transfers_by_date_range(self):
         # Look for date picker or filter inputs
         date_input = self.page.locator('input[type="date"], input[placeholder*="date"]').first
-        
+
         if date_input.is_visible(timeout=5000):
             date_input.fill("2024-01-01")
             # Table should update

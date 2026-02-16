@@ -8,20 +8,26 @@ Context: Used by frontend custom report builder and scheduler. Future: add BI in
 Model Suitability: For REST API and prototyping, GPT-4.1 is sufficient; for advanced analytics, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Response
-from typing import List
 from datetime import datetime
+from typing import List
 from uuid import uuid4
-from ..schemas import (
-    CustomReportCreate, CustomReportResponse, CustomReportRunRequest, CustomReportRunResult, ReportFormat
-)
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+
 from ..dependencies import require_admin
+from ..schemas import (
+    CustomReportCreate,
+    CustomReportResponse,
+    CustomReportRunRequest,
+    CustomReportRunResult,
+)
 
 router = APIRouter(prefix="/v1/reports", tags=["Custom Reports"])
 
 # In-memory store for demo (replace with DB in production)
 REPORTS = {}
 RUNS = {}
+
 
 @router.post("/", response_model=CustomReportResponse, dependencies=[Depends(require_admin)])
 def create_report(report: CustomReportCreate):
@@ -37,22 +43,28 @@ def create_report(report: CustomReportCreate):
         "recipients": report.recipients,
         "created_at": now,
         "last_run": None,
-        "status": "idle"
+        "status": "idle",
     }
     return CustomReportResponse(**REPORTS[rid])
+
 
 @router.get("/", response_model=List[CustomReportResponse], dependencies=[Depends(require_admin)])
 def list_reports():
     return [CustomReportResponse(**r) for r in REPORTS.values()]
 
-@router.post("/{report_id}/run", response_model=CustomReportRunResult, dependencies=[Depends(require_admin)])
+
+@router.post(
+    "/{report_id}/run", response_model=CustomReportRunResult, dependencies=[Depends(require_admin)]
+)
 def run_report(report_id: str, req: CustomReportRunRequest):
     if report_id not in REPORTS:
         raise HTTPException(status_code=404, detail="Report not found")
     run_id = str(uuid4())
     now = datetime.utcnow()
     # Simulate report execution (replace with real logic)
-    output_url = f"/static/reports/{report_id}_{run_id}.{req.format or REPORTS[report_id]['format']}"
+    output_url = (
+        f"/static/reports/{report_id}_{run_id}.{req.format or REPORTS[report_id]['format']}"
+    )
     RUNS[run_id] = {
         "report_id": report_id,
         "run_id": run_id,
@@ -60,16 +72,20 @@ def run_report(report_id: str, req: CustomReportRunRequest):
         "output_url": output_url,
         "started_at": now,
         "finished_at": now,
-        "error": None
+        "error": None,
     }
     REPORTS[report_id]["last_run"] = now
     return CustomReportRunResult(**RUNS[run_id])
 
-@router.get("/{report_id}", response_model=CustomReportResponse, dependencies=[Depends(require_admin)])
+
+@router.get(
+    "/{report_id}", response_model=CustomReportResponse, dependencies=[Depends(require_admin)]
+)
 def get_report(report_id: str):
     if report_id not in REPORTS:
         raise HTTPException(status_code=404, detail="Report not found")
     return CustomReportResponse(**REPORTS[report_id])
+
 
 @router.delete("/{report_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_report(report_id: str):
@@ -77,6 +93,11 @@ def delete_report(report_id: str):
         del REPORTS[report_id]
     return Response(status_code=204)
 
-@router.get("/{report_id}/runs", response_model=List[CustomReportRunResult], dependencies=[Depends(require_admin)])
+
+@router.get(
+    "/{report_id}/runs",
+    response_model=List[CustomReportRunResult],
+    dependencies=[Depends(require_admin)],
+)
 def list_report_runs(report_id: str):
     return [CustomReportRunResult(**r) for r in RUNS.values() if r["report_id"] == report_id]

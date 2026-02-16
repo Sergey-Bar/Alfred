@@ -34,39 +34,35 @@ def create_db_engine() -> Engine:
     # Context: Called once at startup; engine is reused everywhere.
     """
     SQLAlchemy Engine Configuration Factory.
-    
+
     Creates a high-performance engine based on the environment settings.
     In development/test (SQLite), it disables 'check_same_thread' to allow
     multi-threaded access patterns typical of FastAPI.
-    
+
     In production (Postgres/MySQL), it uses a robust connection pool.
-    
+
     Returns:
         Engine: A configured SQLAlchemy/SQLModel engine instance.
     """
     # SQLite-specific multi-threading configuration
     connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
-    
+
     # Engine parameters
     engine_kwargs = {
         "echo": settings.database_echo,
         "connect_args": connect_args,
-        "pool_pre_ping": True
+        "pool_pre_ping": True,
     }
-    
+
     # Performance tuning: Only apply pool limits to persistent databases (PostgreSQL/MySQL).
     # SQLite uses dedicated pooling strategies that don't support these parameters.
     if not settings.is_sqlite:
         engine_kwargs["pool_size"] = settings.database_pool_size
         engine_kwargs["max_overflow"] = settings.database_max_overflow
 
-    engine = create_engine(
-        settings.database_url,
-        **engine_kwargs
-    )
+    engine = create_engine(settings.database_url, **engine_kwargs)
 
     return engine
-
 
 
 # [AI GENERATED]
@@ -88,15 +84,15 @@ def get_session() -> Generator[Session, None, None]:
     # Context: Use in CLI tools, migrations, or jobs outside FastAPI request cycle.
     """
     Context-managed Synchronous Session.
-    
+
     Designed for use in standalone scripts, background workers, or CLI tools
     where FastAPI dependency injection is not available.
-    
+
     Guarantees:
     1. COMMIT if no exceptions occur.
     2. ROLLBACK if an error is raised.
     3. CLOSE regardless of the outcome.
-    
+
     Yields:
         Session: An active SQLModel session.
     """
@@ -120,16 +116,16 @@ def get_db_session() -> Generator[Session, None, None]:
     # Context: Use as Depends(get_db_session) in route handlers.
     """
     FastAPI Dependency: Database Session Provider.
-    
+
     Usage:
         @app.get("/users")
         def list_users(session: Session = Depends(get_db_session)):
             ...
-    
+
     This follows the 'Session-per-Request' pattern. Each HTTP request gets its
     own isolated database session which is automatically closed after the
     response is sent.
-    
+
     Yields:
         Session: A request-scoped database session.
     """

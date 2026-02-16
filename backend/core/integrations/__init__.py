@@ -1,4 +1,3 @@
-
 """
 Alfred Integrations
 External service integrations for notifications, webhooks, and SSO/OAuth2.
@@ -26,6 +25,7 @@ See `sso.py` for more details and usage examples.
 """
 
 from typing import Optional
+
 from .base import EventType, NotificationEvent, NotificationProvider
 from .manager import (
     NotificationManager,
@@ -39,13 +39,14 @@ from .manager import (
     setup_notifications,
 )
 from .slack import SlackNotifier
+from .sso import SSOManager, SSOProviderConfig
 from .teams import TeamsNotifier
 from .telegram import TelegramNotifier
 from .whatsapp import WhatsAppNotifier
-from .sso import SSOManager, SSOProviderConfig
 
 # Global SSO Manager Singleton
 sso_manager: Optional[SSOManager] = None
+
 
 def setup_sso(settings) -> Optional[SSOManager]:
     global sso_manager
@@ -54,10 +55,11 @@ def setup_sso(settings) -> Optional[SSOManager]:
             provider=settings.sso_provider,
             client_id=settings.sso_client_id,
             client_secret=settings.sso_client_secret or "",
-            issuer_url=settings.sso_issuer_url or ""
+            issuer_url=settings.sso_issuer_url or "",
         )
         sso_manager = SSOManager(config)
     return sso_manager
+
 
 __all__ = [
     "NotificationProvider",
@@ -79,4 +81,3 @@ __all__ = [
     "sso_manager",
     "setup_sso",
 ]
-

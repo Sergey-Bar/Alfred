@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Integration tests for end-to-end request flow, including user creation, quota checks, and chat completion with mocked LLM responses.
@@ -26,9 +25,10 @@ class TestChatCompletionFlow:
             json={
                 "email": "integration_test@example.com",
                 "name": "Integration Test User",
-                "personal_quota": 10000
-            }
-        , headers=admin_api_key)
+                "personal_quota": 10000,
+            },
+            headers=admin_api_key,
+        )
         assert response.status_code == 200
         api_key = response.json()["api_key"]
 
@@ -39,25 +39,20 @@ class TestChatCompletionFlow:
                 "object": "chat.completion",
                 "created": 1234567890,
                 "model": "gpt-4",
-                "choices": [{
-                    "index": 0,
-                    "message": {"role": "assistant", "content": "Hello!"},
-                    "finish_reason": "stop"
-                }],
-                "usage": {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 5,
-                    "total_tokens": 15
-                }
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "Hello!"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
             }
 
             response = test_client.post(
                 "/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "gpt-4",
-                    "messages": [{"role": "user", "content": "Hello"}]
-                }
+                json={"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]},
             )
 
             # Should succeed
@@ -74,9 +69,9 @@ class TestChatCompletionFlow:
             json={
                 "email": "low_quota@example.com",
                 "name": "Low Quota User",
-                "personal_quota": 1  # Very low quota
+                "personal_quota": 1,  # Very low quota
             },
-            headers=admin_api_key
+            headers=admin_api_key,
         )
         assert response.status_code == 200
         api_key = response.json()["api_key"]
@@ -87,8 +82,8 @@ class TestChatCompletionFlow:
             headers={"Authorization": f"Bearer {api_key}"},
             json={
                 "model": "gpt-4",
-                "messages": [{"role": "user", "content": "Hello " * 100}]  # Large message
-            }
+                "messages": [{"role": "user", "content": "Hello " * 100}],  # Large message
+            },
         )
 
         assert response.status_code == 403
@@ -105,21 +100,16 @@ class TestApprovalWorkflow:
         # Create a user
         response = test_client.post(
             "/v1/admin/users",
-            json={
-                "email": "approval_test@example.com",
-                "name": "Approval Test User"
-            }
-        , headers=admin_api_key)
+            json={"email": "approval_test@example.com", "name": "Approval Test User"},
+            headers=admin_api_key,
+        )
         api_key = response.json()["api_key"]
 
         # Submit approval request
         response = test_client.post(
             "/v1/approvals",
             headers={"Authorization": f"Bearer {api_key}"},
-            json={
-                "requested_credits": 500,
-                "reason": "Need more credits for project X"
-            }
+            json={"requested_credits": 500, "reason": "Need more credits for project X"},
         )
 
         assert response.status_code == 200
@@ -140,9 +130,10 @@ class TestPrivacyMode:
             json={
                 "email": "privacy_test@example.com",
                 "name": "Privacy Test User",
-                "personal_quota": 10000
-            }
-        , headers=admin_api_key)
+                "personal_quota": 10000,
+            },
+            headers=admin_api_key,
+        )
         api_key = response.json()["api_key"]
 
         with patch("app.logic.LLMProxy.forward_request", new_callable=AsyncMock) as mock_llm:
@@ -151,25 +142,24 @@ class TestPrivacyMode:
                 "object": "chat.completion",
                 "created": 1234567890,
                 "model": "gpt-4",
-                "choices": [{
-                    "index": 0,
-                    "message": {"role": "assistant", "content": "Response"},
-                    "finish_reason": "stop"
-                }],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "Response"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
             }
 
             # Request with strict privacy mode
             response = test_client.post(
                 "/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "X-Privacy-Mode": "strict"
-                },
+                headers={"Authorization": f"Bearer {api_key}", "X-Privacy-Mode": "strict"},
                 json={
                     "model": "gpt-4",
-                    "messages": [{"role": "user", "content": "Secret message"}]
-                }
+                    "messages": [{"role": "user", "content": "Secret message"}],
+                },
             )
 
             assert response.status_code == 200
@@ -183,36 +173,27 @@ class TestTeamManagement:
         # Create team
         response = test_client.post(
             "/v1/admin/teams",
-            json={
-                "name": "Dev Team",
-                "description": "Development team",
-                "common_pool": 50000
-            }
-        , headers=admin_api_key)
+            json={"name": "Dev Team", "description": "Development team", "common_pool": 50000},
+            headers=admin_api_key,
+        )
         assert response.status_code == 200
         team_id = response.json()["id"]
 
         # Create user
         response = test_client.post(
             "/v1/admin/users",
-            json={
-                "email": "team_member@example.com",
-                "name": "Team Member"
-            }
-        , headers=admin_api_key)
+            json={"email": "team_member@example.com", "name": "Team Member"},
+            headers=admin_api_key,
+        )
         api_key = response.json()["api_key"]
 
         # Get user ID
-        response = test_client.get(
-            "/v1/users/me",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
+        response = test_client.get("/v1/users/me", headers={"Authorization": f"Bearer {api_key}"})
         user_id = response.json()["id"]
 
         # Add user to team
         response = test_client.post(
-            f"/v1/admin/teams/{team_id}/members/{user_id}",
-            headers=admin_api_key
+            f"/v1/admin/teams/{team_id}/members/{user_id}", headers=admin_api_key
         )
         assert response.status_code == 200
 
@@ -228,7 +209,7 @@ class TestErrorResponses:
                 # Missing required 'name' field
                 "email": "missing_name@example.com"
             },
-            headers=admin_api_key
+            headers=admin_api_key,
         )
 
         assert response.status_code == 422

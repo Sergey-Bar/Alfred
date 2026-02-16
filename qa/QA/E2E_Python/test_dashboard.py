@@ -8,9 +8,10 @@ Context: Verification of dashboard layout and navigation.
 import pytest
 from playwright.sync_api import Page, expect
 
+
 @pytest.mark.describe("Dashboard")
 class TestDashboard:
-    
+
     def test_should_display_dashboard_with_main_components(self, logged_in_page: Page):
         expect(logged_in_page.locator("nav")).to_be_visible()
         expect(logged_in_page.locator("main")).to_be_visible()

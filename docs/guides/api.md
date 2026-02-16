@@ -2,10 +2,12 @@
 
 ## Authentication
 
+**Security note:** Example keys in these docs are placeholders only. Never paste real API keys, secrets, or production credentials into documentation, samples, or CI. Use repository secrets or environment variables for real credentials.
+
 ### API Key Authentication
 
 ```bash
-curl -H "Authorization: Bearer tp-xxxxxxxxxxxxx" \
+curl -H "Authorization: Bearer REDACTED_EXAMPLE_KEY" \
      http://localhost:8000/v1/users/me
 ```
 
@@ -25,6 +27,7 @@ curl -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
 OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 
 **Request:**
+
 ```json
 {
   "model": "gpt-4o",
@@ -33,6 +36,7 @@ OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 ```
 
 **Headers:**
+
 ```json
 {
   "Authorization": "Bearer token",
@@ -42,14 +46,15 @@ OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 }
 ```
 
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Authorization` | Yes | Bearer token (API key or JWT) |
-| `X-Privacy-Mode` | No | `strict` to disable logging |
-| `X-Project-ID` | No | Project ID for cost attribution |
-| `X-Priority` | No | `critical` for priority override |
+| Header           | Required | Description                      |
+| ---------------- | -------- | -------------------------------- |
+| `Authorization`  | Yes      | Bearer token (API key or JWT)    |
+| `X-Privacy-Mode` | No       | `strict` to disable logging      |
+| `X-Project-ID`   | No       | Project ID for cost attribution  |
+| `X-Priority`     | No       | `critical` for priority override |
 
 **Response:**
+
 ```json
 {
   "id": "chatcmpl-abc123",
@@ -73,6 +78,7 @@ OpenAI-compatible chat completions endpoint. Drop-in replacement for OpenAI SDK.
 Create a new user (admin only).
 
 **Request:**
+
 ```json
 {
   "email": "developer@company.com",
@@ -83,11 +89,12 @@ Create a new user (admin only).
 ```
 
 **Response:**
+
 ```json
 {
   "id": "user-123",
   "email": "developer@company.com",
-  "api_key": "tp-xxxxxxxxxxxxxxxx",
+  "api_key": "REDACTED_EXAMPLE_KEY",
   "personal_quota": 100000
 }
 ```
@@ -97,6 +104,7 @@ Create a new user (admin only).
 Get current user information and balance.
 
 **Response:**
+
 ```json
 {
   "id": "user-123",
@@ -122,6 +130,7 @@ Get detailed quota status.
 Update user status (active/vacation).
 
 **Request:**
+
 ```json
 {
   "status": "vacation"
@@ -137,6 +146,7 @@ Update default privacy preference.
 Update user quota (admin only).
 
 **Request:**
+
 ```json
 {
   "personal_quota": 150000,
@@ -151,6 +161,7 @@ Update user quota (admin only).
 Create a new team (admin only).
 
 **Request:**
+
 ```json
 {
   "name": "Data Science",
@@ -173,6 +184,7 @@ Get teams the current user belongs to.
 Transfer credits to another user.
 
 **Request:**
+
 ```json
 {
   "recipient_email": "colleague@company.com",
@@ -184,6 +196,7 @@ Transfer credits to another user.
 ```
 
 **Response:**
+
 ```json
 {
   "transfer_id": "txn-456",
@@ -203,12 +216,13 @@ Get transfer history.
 
 **Query Parameters:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `limit` | 20 | Max results |
-| `direction` | `both` | `incoming`, `outgoing`, or `both` |
+| Parameter   | Default | Description                       |
+| ----------- | ------- | --------------------------------- |
+| `limit`     | 20      | Max results                       |
+| `direction` | `both`  | `incoming`, `outgoing`, or `both` |
 
 **Response:**
+
 ```json
 {
   "transfers": [
@@ -233,6 +247,7 @@ Get transfer history.
 Request a quota increase.
 
 **Request:**
+
 ```json
 {
   "amount": 50000,
@@ -253,6 +268,7 @@ Approve a request (admin only).
 Reject a request (admin only).
 
 **Request:**
+
 ```json
 {
   "reason": "Budget constraints"
@@ -266,13 +282,14 @@ Reject a request (admin only).
 Get company reserve balance.
 
 **Response:**
+
 ```json
 {
   "company_reserve": 2500000,
   "available_for_request": 2000000,
   "held_for_rollover": 500000,
   "your_contribution_this_cycle": 15000,
-  "discount_rate": 0.20
+  "discount_rate": 0.2
 }
 ```
 
@@ -281,6 +298,7 @@ Get company reserve balance.
 Request credits from the company reserve.
 
 **Request:**
+
 ```json
 {
   "amount": 10000,
@@ -291,6 +309,7 @@ Request credits from the company reserve.
 ```
 
 **Response:**
+
 ```json
 {
   "request_id": "liq-789",
@@ -309,6 +328,7 @@ Request credits from the company reserve.
 Trigger manual rollover (admin only).
 
 **Request:**
+
 ```json
 {
   "dry_run": false,
@@ -317,6 +337,7 @@ Trigger manual rollover (admin only).
 ```
 
 **Response:**
+
 ```json
 {
   "rollover_id": "roll-2026-02",
@@ -335,15 +356,16 @@ Get usage analytics.
 
 **Query Parameters:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `period` | `30d` | Time period (7d, 30d, 90d) |
-| `group_by` | `team` | Grouping (team, user, model) |
+| Parameter  | Default | Description                  |
+| ---------- | ------- | ---------------------------- |
+| `period`   | `30d`   | Time period (7d, 30d, 90d)   |
+| `group_by` | `team`  | Grouping (team, user, model) |
 
 **Response:**
+
 ```json
 {
-  "period": {"start": "2026-01-13", "end": "2026-02-12"},
+  "period": { "start": "2026-01-13", "end": "2026-02-12" },
   "total_credits_used": 4500000,
   "total_cost_usd": 45000,
   "by_team": [
@@ -361,8 +383,8 @@ Get usage analytics.
     }
   ],
   "by_model": [
-    {"model": "gpt-4o", "credits": 2500000, "percentage": 55.5},
-    {"model": "claude-3-5-sonnet", "credits": 1200000, "percentage": 26.7}
+    { "model": "gpt-4o", "credits": 2500000, "percentage": 55.5 },
+    { "model": "claude-3-5-sonnet", "credits": 1200000, "percentage": 26.7 }
   ]
 }
 ```
@@ -374,11 +396,12 @@ Get efficiency leaderboard.
 **Query Parameters:**
 
 | Parameter | Default | Description |
-|-----------|---------|-------------|
-| `period` | `7d` | Time period |
-| `limit` | 10 | Max results |
+| --------- | ------- | ----------- |
+| `period`  | `7d`    | Time period |
+| `limit`   | 10      | Max results |
 
 **Response:**
+
 ```json
 {
   "period": "7d",
@@ -410,6 +433,7 @@ For automated user/team provisioning from identity providers.
 Create user via SCIM.
 
 **Request:**
+
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -418,9 +442,7 @@ Create user via SCIM.
     "givenName": "New",
     "familyName": "User"
   },
-  "emails": [
-    {"value": "newuser@company.com", "primary": true}
-  ],
+  "emails": [{ "value": "newuser@company.com", "primary": true }],
   "urn:alfred:params:scim:schemas:extension:2.0:User": {
     "defaultQuota": 100000,
     "team": "engineering",
@@ -434,14 +456,12 @@ Create user via SCIM.
 Provision team via SCIM.
 
 **Request:**
+
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
   "displayName": "Data Science Team",
-  "members": [
-    {"value": "user-123"},
-    {"value": "user-456"}
-  ],
+  "members": [{ "value": "user-123" }, { "value": "user-456" }],
   "urn:alfred:params:scim:schemas:extension:2.0:Group": {
     "sharedPool": 500000,
     "quotaPolicy": "proportional"
@@ -456,6 +476,7 @@ Provision team via SCIM.
 Trigger LDAP sync (admin only).
 
 **Response:**
+
 ```json
 {
   "sync_id": "sync-001",
@@ -479,6 +500,7 @@ Trigger HR system sync (admin only).
 Register a webhook endpoint.
 
 **Request:**
+
 ```json
 {
   "url": "https://your-app.com/alfred-webhook",
@@ -488,20 +510,20 @@ Register a webhook endpoint.
     "anomaly.detected",
     "approval.pending"
   ],
-  "secret": "whsec_xxxxx"
+  "secret": "REDACTED_WEBHOOK_SECRET"
 }
 ```
 
 ### Webhook Events
 
-| Event | Description |
-|-------|-------------|
-| `transfer.completed` | Credit transfer completed |
-| `quota.depleted` | User quota exhausted |
-| `quota.warning` | User at 80%+ quota |
-| `anomaly.detected` | Unusual usage pattern detected |
-| `approval.pending` | New approval request |
-| `approval.resolved` | Approval approved/rejected |
+| Event                | Description                    |
+| -------------------- | ------------------------------ |
+| `transfer.completed` | Credit transfer completed      |
+| `quota.depleted`     | User quota exhausted           |
+| `quota.warning`      | User at 80%+ quota             |
+| `anomaly.detected`   | Unusual usage pattern detected |
+| `approval.pending`   | New approval request           |
+| `approval.resolved`  | Approval approved/rejected     |
 
 ### Webhook Payload
 
@@ -515,7 +537,7 @@ Register a webhook endpoint.
     "quota_type": "personal",
     "depleted_at": "2026-02-12T15:29:45Z"
   },
-  "signature": "sha256=xxxxx"
+  "signature": "REDACTED_SIGNATURE"
 }
 ```
 
@@ -539,26 +561,26 @@ All errors follow a consistent format:
 
 ### Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `QUOTA_EXCEEDED` | 429 | User quota exhausted |
-| `TRANSFER_LIMIT` | 400 | Transfer exceeds daily limit |
-| `INVALID_PROJECT` | 400 | Project ID not found |
-| `MFA_REQUIRED` | 403 | High-value transfer needs MFA |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `PROVIDER_ERROR` | 502 | Upstream LLM provider error |
-| `UNAUTHORIZED` | 401 | Invalid or missing API key |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
+| Code              | HTTP Status | Description                   |
+| ----------------- | ----------- | ----------------------------- |
+| `QUOTA_EXCEEDED`  | 429         | User quota exhausted          |
+| `TRANSFER_LIMIT`  | 400         | Transfer exceeds daily limit  |
+| `INVALID_PROJECT` | 400         | Project ID not found          |
+| `MFA_REQUIRED`    | 403         | High-value transfer needs MFA |
+| `RATE_LIMITED`    | 429         | Too many requests             |
+| `PROVIDER_ERROR`  | 502         | Upstream LLM provider error   |
+| `UNAUTHORIZED`    | 401         | Invalid or missing API key    |
+| `FORBIDDEN`       | 403         | Insufficient permissions      |
+| `NOT_FOUND`       | 404         | Resource not found            |
 
 ## Rate Limits
 
-| Endpoint Category | Limit | Window |
-|-------------------|-------|--------|
-| Chat Completions | 1000/min | Per user |
-| Transfers | 20/hour | Per user |
-| Admin Operations | 100/min | Per API key |
-| SCIM Provisioning | 500/hour | Per tenant |
+| Endpoint Category | Limit    | Window      |
+| ----------------- | -------- | ----------- |
+| Chat Completions  | 1000/min | Per user    |
+| Transfers         | 20/hour  | Per user    |
+| Admin Operations  | 100/min  | Per API key |
+| SCIM Provisioning | 500/hour | Per tenant  |
 
 Rate limit headers are included in all responses:
 
@@ -579,7 +601,7 @@ import openai
 
 client = openai.OpenAI(
     base_url="http://localhost:8000/v1",
-    api_key="tp-your-alfred-key"
+    api_key="REDACTED_EXAMPLE_KEY"
 )
 
 response = client.chat.completions.create(
@@ -592,26 +614,29 @@ response = client.chat.completions.create(
 ### JavaScript/TypeScript
 
 ```typescript
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: 'http://localhost:8000/v1',
-  apiKey: 'tp-your-alfred-key',
+  baseURL: "http://localhost:8000/v1",
+  apiKey: "REDACTED_EXAMPLE_KEY",
 });
 
-const response = await client.chat.completions.create({
-  model: 'gpt-4o',
-  messages: [{ role: 'user', content: 'Hello!' }],
-}, {
-  headers: { 'X-Project-ID': 'PROJ-2026-AI' }
-});
+const response = await client.chat.completions.create(
+  {
+    model: "gpt-4o",
+    messages: [{ role: "user", content: "Hello!" }],
+  },
+  {
+    headers: { "X-Project-ID": "PROJ-2026-AI" },
+  },
+);
 ```
 
 ### cURL
 
 ```bash
 curl -X POST http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer tp-your-alfred-key" \
+  -H "Authorization: Bearer REDACTED_EXAMPLE_KEY" \
   -H "Content-Type: application/json" \
   -H "X-Project-ID: PROJ-2026-AI" \
   -d '{
@@ -622,4 +647,4 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 
 ---
 
-*See also: [Architecture](architecture.md) | [Enterprise Features](enterprise.md) | [Security](security.md)*
+_See also: [Architecture](architecture.md) | [Enterprise Features](enterprise.md) | [Security](security.md)_

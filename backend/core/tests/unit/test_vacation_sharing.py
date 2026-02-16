@@ -9,24 +9,22 @@
 Comprehensive tests for vacation sharing logic.
 """
 
+import os
+import sys
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../app')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../app")))
 
 
 from app.logic import AuthManager, QuotaManager
-from app.models import ProjectPriority, User, UserStatus, TeamMemberLink
+from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
 
 
 class TestVacationSharing:
     """Tests for vacation quota sharing functionality."""
 
     def test_vacation_share_available_when_member_on_vacation(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that vacation share is available when a team member is on vacation."""
         # Add test_user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -42,7 +40,7 @@ class TestVacationSharing:
             used_tokens=Decimal("0.00"),
             status=UserStatus.ON_VACATION,
             vacation_start=datetime.now(timezone.utc) - timedelta(days=1),
-            vacation_end=datetime.now(timezone.utc) + timedelta(days=7)
+            vacation_end=datetime.now(timezone.utc) + timedelta(days=7),
         )
         session.add(vacation_user)
         session.commit()
@@ -61,9 +59,7 @@ class TestVacationSharing:
 
         # Should be able to use vacation share
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("50.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("50.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is True
@@ -71,7 +67,6 @@ class TestVacationSharing:
         assert "vacation" in result.message.lower()
 
     def test_no_vacation_share_when_no_members_on_vacation(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that vacation share is not available when no members are on vacation."""
         # Add test_user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -87,16 +82,13 @@ class TestVacationSharing:
 
         # Should not be allowed (no vacation members)
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("50.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("50.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is False
         assert result.requires_approval is True
 
     def test_vacation_share_respects_percentage_limit(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that vacation share respects the team's vacation share percentage."""
         from app.logic import AuthManager
 
@@ -117,7 +109,7 @@ class TestVacationSharing:
             api_key_hash=api_key_hash,
             personal_quota=Decimal("1000.00"),
             used_tokens=Decimal("0.00"),
-            status=UserStatus.ON_VACATION
+            status=UserStatus.ON_VACATION,
         )
         session.add(vacation_user)
         session.commit()
@@ -135,17 +127,13 @@ class TestVacationSharing:
 
         # Request within limit should succeed
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("40.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("40.00"), priority=ProjectPriority.NORMAL
         )
         assert result.allowed is True
 
         # Request exceeding limit should fail
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.NORMAL
         )
         assert result.allowed is False
 
@@ -158,18 +146,13 @@ class TestQuotaDeduction:
         initial_used = test_user.used_tokens
         manager = QuotaManager(session)
 
-        manager.deduct_quota(
-            user=test_user,
-            cost=Decimal("50.00"),
-            source="personal"
-        )
+        manager.deduct_quota(user=test_user, cost=Decimal("50.00"), source="personal")
 
         session.refresh(test_user)
         assert test_user.used_tokens == initial_used + Decimal("50.00")
         assert test_user.last_request_at is not None
 
     def test_deduct_team_pool(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test deducting from team pool."""
         # Add user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -180,10 +163,7 @@ class TestQuotaDeduction:
         manager = QuotaManager(session)
 
         manager.deduct_quota(
-            user=test_user,
-            cost=Decimal("100.00"),
-            source="team_pool",
-            team=test_team
+            user=test_user, cost=Decimal("100.00"), source="team_pool", team=test_team
         )
 
         session.refresh(test_team)
@@ -204,7 +184,6 @@ class TestPriorityBypass:
     """Tests for priority bypass functionality."""
 
     def test_critical_priority_uses_team_pool(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that critical priority can bypass to team pool."""
         # Add user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -219,9 +198,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.CRITICAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.CRITICAL
         )
 
         assert result.allowed is True
@@ -229,7 +206,6 @@ class TestPriorityBypass:
         assert "critical" in result.message.lower() or "bypass" in result.message.lower()
 
     def test_normal_priority_cannot_bypass(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that normal priority cannot bypass to team pool."""
         # Add user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -244,9 +220,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.NORMAL
         )
 
         # Should fail without team members on vacation
@@ -254,7 +228,6 @@ class TestPriorityBypass:
         assert result.requires_approval is True
 
     def test_high_priority_treated_as_normal(self, session, test_user, test_team):
-        from app.models import TeamMemberLink
         """Test that high (non-critical) priority is treated as normal."""
         # Add user to team
         link = TeamMemberLink(team_id=test_team.id, user_id=test_user.id)
@@ -269,9 +242,7 @@ class TestPriorityBypass:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("100.00"),
-            priority=ProjectPriority.HIGH
+            user=test_user, estimated_cost=Decimal("100.00"), priority=ProjectPriority.HIGH
         )
 
         # HIGH is not CRITICAL, so should not bypass

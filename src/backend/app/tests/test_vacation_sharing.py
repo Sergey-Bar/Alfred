@@ -6,11 +6,8 @@
 # Context: Run in CI for every PR. Future: add edge cases for overlapping vacations and error handling.
 # Model Suitability: Vacation sharing test logic is standard; GPT-4.1 is sufficient.
 
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
-from ..logic import QuotaManager
-from ..models import ProjectPriority, TeamMemberLink, User, UserStatus
 
 class TestVacationSharing:
     """Comprehensive tests for vacation sharing logic."""
+
     # ...existing test code...

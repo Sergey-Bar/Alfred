@@ -14,18 +14,18 @@ from .base import EventType, NotificationEvent, NotificationProvider
 class TelegramNotifier(NotificationProvider):
     """
     Telegram notification provider using Bot API.
-    
+
     Supports:
     - Bot API for sending messages
     - Markdown formatting
     - Chat/Group/Channel targeting
     - Silent notifications
-    
+
     Configuration:
         TELEGRAM_BOT_TOKEN: Bot token from @BotFather
         TELEGRAM_CHAT_ID: Default chat/group/channel ID
         TELEGRAM_ALERTS_CHAT_ID: Separate chat for critical alerts (optional)
-    
+
     Setup:
         1. Create a bot via @BotFather on Telegram
         2. Get the bot token
@@ -69,11 +69,11 @@ class TelegramNotifier(NotificationProvider):
         alerts_chat_id: Optional[str] = None,
         parse_mode: str = "MarkdownV2",
         disable_notification: bool = False,
-        timeout: float = 10.0
+        timeout: float = 10.0,
     ):
         """
         Initialize Telegram notifier.
-        
+
         Args:
             bot_token: Telegram bot token from @BotFather
             chat_id: Default chat ID to send messages to
@@ -123,9 +123,28 @@ class TelegramNotifier(NotificationProvider):
     def _escape_markdown(self, text: str) -> str:
         """Escape special characters for MarkdownV2."""
         # Characters that need escaping in MarkdownV2
-        special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+        special_chars = [
+            "_",
+            "*",
+            "[",
+            "]",
+            "(",
+            ")",
+            "~",
+            "`",
+            ">",
+            "#",
+            "+",
+            "-",
+            "=",
+            "|",
+            "{",
+            "}",
+            ".",
+            "!",
+        ]
         for char in special_chars:
-            text = text.replace(char, f'\\{char}')
+            text = text.replace(char, f"\\{char}")
         return text
 
     def _format_message(self, event: NotificationEvent) -> str:
@@ -223,10 +242,7 @@ class TelegramNotifier(NotificationProvider):
                 "disable_notification": self.disable_notification,
             }
 
-            response = await client.post(
-                f"{self.api_url}/sendMessage",
-                json=payload
-            )
+            response = await client.post(f"{self.api_url}/sendMessage", json=payload)
 
             if response.status_code == 200:
                 result = response.json()
@@ -238,10 +254,7 @@ class TelegramNotifier(NotificationProvider):
                 payload["text"] = text_html
                 payload["parse_mode"] = "HTML"
 
-                fallback_response = await client.post(
-                    f"{self.api_url}/sendMessage",
-                    json=payload
-                )
+                fallback_response = await client.post(f"{self.api_url}/sendMessage", json=payload)
 
                 if fallback_response.status_code == 200:
                     result = fallback_response.json()
@@ -275,7 +288,7 @@ def create_telegram_notifier(
 ) -> Optional[TelegramNotifier]:
     """
     Create a Telegram notifier if configured.
-    
+
     Returns None if no configuration is provided.
     """
     if not bot_token or not chat_id:

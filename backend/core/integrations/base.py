@@ -15,38 +15,38 @@ class EventType(str, Enum):
     """Types of notification events."""
 
     # Quota events
-    QUOTA_WARNING = "quota_warning"          # User at 80%/90% of quota
-    QUOTA_EXCEEDED = "quota_exceeded"        # Quota limit reached
-    QUOTA_RESET = "quota_reset"              # Quota was reset/refilled
+    QUOTA_WARNING = "quota_warning"  # User at 80%/90% of quota
+    QUOTA_EXCEEDED = "quota_exceeded"  # Quota limit reached
+    QUOTA_RESET = "quota_reset"  # Quota was reset/refilled
 
     # Credit reallocation events
-    TOKEN_TRANSFER_SENT = "token_transfer_sent"         # User reallocated credits out
-    TOKEN_TRANSFER_RECEIVED = "token_transfer_received" # User received credits
+    TOKEN_TRANSFER_SENT = "token_transfer_sent"  # User reallocated credits out
+    TOKEN_TRANSFER_RECEIVED = "token_transfer_received"  # User received credits
 
     # Approval events
-    APPROVAL_REQUESTED = "approval_requested"   # New approval request
-    APPROVAL_APPROVED = "approval_approved"     # Request approved
-    APPROVAL_REJECTED = "approval_rejected"     # Request rejected
+    APPROVAL_REQUESTED = "approval_requested"  # New approval request
+    APPROVAL_APPROVED = "approval_approved"  # Request approved
+    APPROVAL_REJECTED = "approval_rejected"  # Request rejected
 
     # User events
-    USER_VACATION_START = "user_vacation_start"   # User went on vacation
-    USER_VACATION_END = "user_vacation_end"       # User returned from vacation
-    USER_SUSPENDED = "user_suspended"             # User account suspended
+    USER_VACATION_START = "user_vacation_start"  # User went on vacation
+    USER_VACATION_END = "user_vacation_end"  # User returned from vacation
+    USER_SUSPENDED = "user_suspended"  # User account suspended
 
     # Team events
     TEAM_POOL_WARNING = "team_pool_warning"  # Team pool at threshold
     TEAM_POOL_DEPLETED = "team_pool_depleted"  # Team pool empty
 
     # System events
-    SYSTEM_ERROR = "system_error"            # System/provider error
-    HIGH_LATENCY = "high_latency"            # API latency above threshold
+    SYSTEM_ERROR = "system_error"  # System/provider error
+    HIGH_LATENCY = "high_latency"  # API latency above threshold
 
 
 @dataclass
 class NotificationEvent:
     """
     Represents a notification event to be sent to providers.
-    
+
     Attributes:
         event_type: The type of event
         title: Short title/summary
@@ -61,6 +61,7 @@ class NotificationEvent:
         timestamp: When the event occurred
         event_id: Unique event identifier
     """
+
     event_type: EventType
     title: str
     message: str
@@ -95,7 +96,7 @@ class NotificationEvent:
 class NotificationProvider(ABC):
     """
     Abstract base class for notification providers.
-    
+
     Implement this interface to add support for new notification
     channels like Slack, Teams, Discord, Email, etc.
     """
@@ -116,10 +117,10 @@ class NotificationProvider(ABC):
     async def send(self, event: NotificationEvent) -> bool:
         """
         Send a notification.
-        
+
         Args:
             event: The notification event to send
-            
+
         Returns:
             True if sent successfully, False otherwise
         """
@@ -129,10 +130,10 @@ class NotificationProvider(ABC):
     async def send_batch(self, events: List[NotificationEvent]) -> Dict[str, bool]:
         """
         Send multiple notifications.
-        
+
         Args:
             events: List of events to send
-            
+
         Returns:
             Dict mapping event_id to success status
         """
@@ -142,10 +143,10 @@ class NotificationProvider(ABC):
         """
         Check if this provider supports a given event type.
         Override to filter events per provider.
-        
+
         Args:
             event_type: The type of event
-            
+
         Returns:
             True if the provider handles this event type
         """
@@ -155,10 +156,10 @@ class NotificationProvider(ABC):
         """
         Format the notification message.
         Override for provider-specific formatting.
-        
+
         Args:
             event: The notification event
-            
+
         Returns:
             Formatted message string
         """
@@ -174,7 +175,7 @@ class NotificationResult:
         event_id: str,
         success: bool,
         error: Optional[str] = None,
-        response_data: Optional[Dict[str, Any]] = None
+        response_data: Optional[Dict[str, Any]] = None,
     ):
         self.provider = provider
         self.event_id = event_id

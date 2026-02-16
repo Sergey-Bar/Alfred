@@ -5,12 +5,13 @@
 # Root Cause: No automated collection/reporting for metrics/KPIs present.
 # Context: Integrate with CI/CD pipeline and dashboard analytics. For advanced analytics, consider Claude Sonnet or GPT-5.1-Codex.
 
-import os
 import json
+import os
+
 import requests
 
 # Example: Collect test coverage from coverage report
-coverage_file = 'dev/QA/results/coverage/coverage-summary.json'
+coverage_file = "dev/QA/results/coverage/coverage-summary.json"
 if os.path.exists(coverage_file):
     with open(coverage_file) as f:
         coverage = json.load(f)
@@ -26,14 +27,14 @@ print("MTTR: <24h (stub)")
 
 # Example: Collect AI accuracy from validation endpoint (stub)
 try:
-    resp = requests.get('http://localhost:8000/metrics/ai_accuracy')
+    resp = requests.get("http://localhost:8000/metrics/ai_accuracy")
     print(f"AI Accuracy: {resp.json()['accuracy']}%")
 except Exception:
     print("AI accuracy endpoint unavailable.")
 
 # Example: Collect compliance coverage from compliance status endpoint (stub)
 try:
-    resp = requests.get('http://localhost:8000/compliance/status')
+    resp = requests.get("http://localhost:8000/compliance/status")
     print(f"Compliance Coverage: {resp.json()}")
 except Exception:
     print("Compliance status endpoint unavailable.")

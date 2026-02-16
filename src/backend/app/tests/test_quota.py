@@ -6,10 +6,8 @@
 # Context: Run in CI for every PR. Future: expand to cover edge cases and error handling.
 # Model Suitability: Quota logic test is standard; GPT-4.1 is sufficient.
 
-from decimal import Decimal
-from ..logic import CreditCalculator, EfficiencyScorer, QuotaManager
-from ..models import ProjectPriority, TeamMemberLink, User, UserStatus
 
 class TestCreditCalculator:
     """Tests for credit calculation."""
+
     # ...existing test code...

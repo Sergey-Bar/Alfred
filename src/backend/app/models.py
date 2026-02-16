@@ -5,11 +5,13 @@
 # Root Cause: No persistent schema for test data sets.
 # Context: Used by test_data_management router for CRUD and compliance. Future: add indexes, masking, and audit fields.
 
-from sqlmodel import SQLModel, Field
-from typing import Optional
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, JSON
+from typing import Optional
+
+from sqlalchemy import JSON, Column
+from sqlmodel import Field, SQLModel
+
 
 class TestDataSet(SQLModel, table=True):
     __tablename__ = "test_data_sets"
@@ -20,7 +22,10 @@ class TestDataSet(SQLModel, table=True):
     anonymized: bool = Field(default=True)
     data: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
     created_by: Optional[str] = Field(default=None, max_length=100)
-from sqlmodel import SQLModel, Field
+
+
+from sqlmodel import Field, SQLModel
+
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
@@ -37,6 +42,48 @@ class AnalyticsEventDB(SQLModel, table=True):
     dataset: Optional[str] = Field(default=None, index=True, max_length=100)
     value: Optional[float] = Field(default=None)
     event_metadata: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
+
+
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-5 mini)
+# Logic: Persistent models for Data Enrichment and Data Lineage to replace in-memory stores.
+# Why: Enrichment and lineage features were previously in-memory and lost data on restart; persistence is required for production and auditing.
+# Root Cause: Demo implementations used lists; real deployments require durable storage and queryability.
+# Context: These tables are lightweight and suitable for PostgreSQL. Use appropriate migrations (alembic) to add to existing schema.
+
+
+class EnrichmentPipelineDB(SQLModel, table=True):
+    __tablename__ = "enrichment_pipelines"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=255)
+    description: Optional[str] = Field(default=None)
+    source: str = Field(max_length=100)
+    target_dataset: str = Field(max_length=255)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    config: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
+
+
+class EnrichmentJobDB(SQLModel, table=True):
+    __tablename__ = "enrichment_jobs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    pipeline_id: int = Field(foreign_key="enrichment_pipelines.id", index=True)
+    status: str = Field(max_length=50)
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    finished_at: Optional[datetime] = Field(default=None)
+    result: Optional[str] = Field(default=None)
+
+
+class LineageEventDB(SQLModel, table=True):
+    __tablename__ = "lineage_events"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
+    dataset: str = Field(max_length=255, index=True)
+    operation: str = Field(max_length=100)
+    source_datasets: Optional[list] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    user: Optional[str] = Field(default=None, max_length=255)
+    details: Optional[str] = Field(default=None)
+
+
 """
 Alfred - Enterprise AI Credit Governance Platform
 Database Models & Schema Definitions
@@ -65,8 +112,8 @@ from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
-
 # --- Enumerations for Strong Typing ---
+
 
 class UserStatus(str, Enum):
     # [AI GENERATED]
@@ -81,6 +128,7 @@ class UserStatus(str, Enum):
     ON_VACATION: Signals that personal quota should be available to the team.
     SUSPENDED: Administrative block, prevents all API access.
     """
+
     ACTIVE = "active"
     ON_VACATION = "on_vacation"
     SUSPENDED = "suspended"
@@ -97,6 +145,7 @@ class ProjectPriority(str, Enum):
     Inference Priority Tiers.
     Determines the governance logic applied to a request (e.g., whether to dip into team pools).
     """
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -104,6 +153,7 @@ class ProjectPriority(str, Enum):
 
 
 # --- Association / Junction Tables ---
+
 
 class TeamMemberLink(SQLModel, table=True):
     # [AI GENERATED]
@@ -116,19 +166,21 @@ class TeamMemberLink(SQLModel, table=True):
     Many-to-Many Link for Users and Teams.
     Tracks membership and handles delegated administrative rights within a team.
     """
+
     __tablename__ = "team_member_links"
 
     team_id: Optional[uuid.UUID] = Field(
-        default=None, foreign_key="teams.id", primary_key=True
+        default=None, foreign_key="teams.id", primary_key=True, index=True
     )
     user_id: Optional[uuid.UUID] = Field(
-        default=None, foreign_key="users.id", primary_key=True
+        default=None, foreign_key="users.id", primary_key=True, index=True
     )
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_admin: bool = Field(default=False, description="Allows managing other members in this team")
 
 
 # --- Core Domain Models ---
+
 
 class Team(SQLModel, table=True):
     # [AI GENERATED]
@@ -142,6 +194,7 @@ class Team(SQLModel, table=True):
     The primary unit of 'Shared Liquidity'. Teams provide a safety net for users
     who have exhausted their personal quotas but are working on high-priority tasks.
     """
+
     __tablename__ = "teams"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -149,15 +202,25 @@ class Team(SQLModel, table=True):
     description: Optional[str] = Field(default=None, max_length=1000)
 
     # Financial Ledger
-    common_pool: Decimal = Field(default=Decimal("10000.00"), max_digits=12, decimal_places=2, description="Total allocated team budget")
-    used_pool: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Cumulative spend across the team pool")
+    common_pool: Decimal = Field(
+        default=Decimal("10000.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Total allocated team budget",
+    )
+    used_pool: Decimal = Field(
+        default=Decimal("0.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Cumulative spend across the team pool",
+    )
 
     # Governance Constraints
     vacation_share_percentage: Decimal = Field(
         default=Decimal("10.00"),
         max_digits=5,
         decimal_places=2,
-        description="Cap on how much of the pool is accessible via the 'Vacation Sharing' mechanism"
+        description="Cap on how much of the pool is accessible via the 'Vacation Sharing' mechanism",
     )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -188,6 +251,7 @@ class User(SQLModel, table=True):
     User Entity.
     The central actor of the system. Holds personal 'Org-Credits' and authentication hashes.
     """
+
     __tablename__ = "users"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -196,24 +260,39 @@ class User(SQLModel, table=True):
     api_key_hash: str = Field(max_length=255, description="Argon2 or PBKDF2 hash of the API secret")
 
     # Access Control
-    is_admin: bool = Field(default=False, description="Grants access to organization-wide administrative APIs")
+    is_admin: bool = Field(
+        default=False, description="Grants access to organization-wide administrative APIs"
+    )
 
     # Quota Management
-    personal_quota: Decimal = Field(default=Decimal("1000.00"), max_digits=12, decimal_places=2, description="Monthly credit allowance")
-    used_tokens: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Burned credits")
+    personal_quota: Decimal = Field(
+        default=Decimal("1000.00"),
+        max_digits=12,
+        decimal_places=2,
+        description="Monthly credit allowance",
+    )
+    used_tokens: Decimal = Field(
+        default=Decimal("0.00"), max_digits=12, decimal_places=2, description="Burned credits"
+    )
 
     status: UserStatus = Field(default=UserStatus.ACTIVE)
     default_priority: ProjectPriority = Field(default=ProjectPriority.NORMAL)
 
     # Privacy Features
-    strict_privacy_default: bool = Field(default=False, description="Automatically redacts request content from logs for this user")
+    strict_privacy_default: bool = Field(
+        default=False, description="Automatically redacts request content from logs for this user"
+    )
 
     # Flexible Metadata
-    preferences_json: Optional[str] = Field(default=None, description="Schema-less storage for UI settings/themes")
+    preferences_json: Optional[str] = Field(
+        default=None, description="Schema-less storage for UI settings/themes"
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_request_at: Optional[datetime] = Field(default=None, description="High-water mark for user activity")
+    last_request_at: Optional[datetime] = Field(
+        default=None, description="High-water mark for user activity"
+    )
 
     # ORM Navigation
     teams: List[Team] = Relationship(back_populates="members", link_model=TeamMemberLink)
@@ -242,13 +321,16 @@ class RequestLog(SQLModel, table=True):
     Request Execution Audit Trail.
     Stores the technical details of every AI interaction. Performance optimized for indexing.
     """
+
     __tablename__ = "request_logs"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
 
     # Inference Metadata
-    model: str = Field(max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)")
+    model: str = Field(
+        max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)"
+    )
     provider: str = Field(max_length=50, description="Backend platform (openai, anthropic, etc.)")
 
     # Token Intelligence (Granular usage tracking)
@@ -261,20 +343,20 @@ class RequestLog(SQLModel, table=True):
 
     quota_source: str = Field(
         max_length=50,
-        description="Audit string identifying the budget used (e.g., 'personal', 'team_pool')"
+        description="Audit string identifying the budget used (e.g., 'personal', 'team_pool')",
     )
 
     priority: ProjectPriority = Field(default=ProjectPriority.NORMAL)
-    strict_privacy: bool = Field(default=False, description="If true, request content was purged before storage")
+    strict_privacy: bool = Field(
+        default=False, description="If true, request content was purged before storage"
+    )
 
     # Content Storage (Conditional)
     messages_json: Optional[str] = Field(
-        default=None,
-        description="Full request payload (Purged if strict_privacy=True)"
+        default=None, description="Full request payload (Purged if strict_privacy=True)"
     )
     response_content: Optional[str] = Field(
-        default=None,
-        description="Full response payload (Purged if strict_privacy=True)"
+        default=None, description="Full response payload (Purged if strict_privacy=True)"
     )
 
     # Efficiency Analytics
@@ -282,12 +364,14 @@ class RequestLog(SQLModel, table=True):
         default=None,
         max_digits=6,
         decimal_places=4,
-        description="The 'Intelligence Density'—ratio of output comprehension to input verbosity"
+        description="The 'Intelligence Density'—ratio of output comprehension to input verbosity",
     )
 
     # Timing Data
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
-    latency_ms: Optional[int] = Field(default=None, description="Provider round-trip time in milliseconds")
+    latency_ms: Optional[int] = Field(
+        default=None, description="Provider round-trip time in milliseconds"
+    )
 
     # Relationships
     user: Optional[User] = Relationship(back_populates="requests")
@@ -304,6 +388,7 @@ class LeaderboardEntry(SQLModel, table=True):
     Aggregated Performance Metrics.
     Optimized for the Gamification dashboard. Updated asynchronously via background workers.
     """
+
     __tablename__ = "leaderboard"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -320,13 +405,11 @@ class LeaderboardEntry(SQLModel, table=True):
     total_completion_tokens: int = Field(default=0, ge=0)
     total_cost_credits: Decimal = Field(default=Decimal("0.00"), max_digits=12, decimal_places=2)
 
-    avg_efficiency_score: Decimal = Field(
-        default=Decimal("0.00"),
-        max_digits=6,
-        decimal_places=4
-    )
+    avg_efficiency_score: Decimal = Field(default=Decimal("0.00"), max_digits=6, decimal_places=4)
 
-    rank: Optional[int] = Field(default=None, ge=1, description="Calculated ordinal position in the org")
+    rank: Optional[int] = Field(
+        default=None, ge=1, description="Calculated ordinal position in the org"
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -345,6 +428,7 @@ class ApprovalRequest(SQLModel, table=True):
     Quota Exception Workflow.
     Used when a user needs a manual budget override for an approved business case.
     """
+
     __tablename__ = "approval_requests"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -362,7 +446,9 @@ class ApprovalRequest(SQLModel, table=True):
     # Audit Trail
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     approved_by: Optional[uuid.UUID] = Field(default=None, description="User ID of the reviewer")
-    approved_credits: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2, description="Final amount allocated")
+    approved_credits: Optional[Decimal] = Field(
+        default=None, max_digits=12, decimal_places=2, description="Final amount allocated"
+    )
     rejection_reason: Optional[str] = Field(default=None, max_length=500)
     resolved_at: Optional[datetime] = Field(default=None)
 
@@ -378,15 +464,20 @@ class AuditLog(SQLModel, table=True):
     Administrative Ledger.
     Records every high-privileged action for compliance (SOC2/ISO27001 readiness).
     """
+
     __tablename__ = "audit_logs"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     actor_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
-    action: str = Field(max_length=200, description="Canonical action name (e.g. 'user.rotate_key')")
+    action: str = Field(
+        max_length=200, description="Canonical action name (e.g. 'user.rotate_key')"
+    )
     target_type: Optional[str] = Field(default=None, max_length=100)
     target_id: Optional[str] = Field(default=None, max_length=100)
-    
-    details_json: Optional[str] = Field(default=None, description="Opaque data representing the delta change")
+
+    details_json: Optional[str] = Field(
+        default=None, description="Opaque data representing the delta change"
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
 
 
@@ -401,6 +492,7 @@ class TokenTransfer(SQLModel, table=True):
     Intra-Org Credit Reallocation.
     Tracks users sharing their own quotas with colleagues.
     """
+
     __tablename__ = "token_transfers"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -426,6 +518,7 @@ class OrgSettings(SQLModel, table=True):
     Global Governance Configuration.
     Database-backed overrides for system settings. Allows dynamic org-wide policy changes.
     """
+
     __tablename__ = "org_settings"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -433,14 +526,18 @@ class OrgSettings(SQLModel, table=True):
     # Conversion Ledger (The relative 'Weight' of a token)
     openai_gpt4_rate: Decimal = Field(default=Decimal("0.03"), max_digits=10, decimal_places=6)
     openai_gpt35_rate: Decimal = Field(default=Decimal("0.002"), max_digits=10, decimal_places=6)
-    anthropic_claude_rate: Decimal = Field(default=Decimal("0.025"), max_digits=10, decimal_places=6)
+    anthropic_claude_rate: Decimal = Field(
+        default=Decimal("0.025"), max_digits=10, decimal_places=6
+    )
     gemini_rate: Decimal = Field(default=Decimal("0.001"), max_digits=10, decimal_places=6)
     default_rate: Decimal = Field(default=Decimal("0.01"), max_digits=10, decimal_places=6)
 
     # Global Policy Switches
     allow_vacation_sharing: bool = Field(default=True)
     allow_priority_bypass: bool = Field(default=True)
-    max_vacation_share_percent: Decimal = Field(default=Decimal("10.00"), max_digits=5, decimal_places=2)
+    max_vacation_share_percent: Decimal = Field(
+        default=Decimal("10.00"), max_digits=5, decimal_places=2
+    )
 
     # Regulatory Compliance
     force_strict_privacy: bool = Field(default=False)
@@ -461,38 +558,46 @@ class OrgSettings(SQLModel, table=True):
 # Context: Used by new RBAC routers and permission checks. Future: can be extended for org/team scoping, hierarchical roles, and policy engines.
 # Model Suitability: GPT-4.1 is suitable for SQLModel/Pydantic RBAC patterns; for advanced policy engines, consider Claude 3 or Gemini 1.5.
 
+
 class Role(SQLModel, table=True):
     """
     RBAC Role definition (e.g., admin, manager, auditor, user).
     """
+
     __tablename__ = "roles"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
     # Future: org_id/team_id for scoping
 
+
 class Permission(SQLModel, table=True):
     """
     RBAC Permission definition (e.g., user:create, team:delete, audit:view).
     """
+
     __tablename__ = "permissions"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
 
+
 class UserRole(SQLModel, table=True):
     """
     Assignment of a Role to a User (many-to-many).
     """
+
     __tablename__ = "user_roles"
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
 class RolePermission(SQLModel, table=True):
     """
     Assignment of a Permission to a Role (many-to-many).
     """
+
     __tablename__ = "role_permissions"
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     permission_id: uuid.UUID = Field(foreign_key="permissions.id", primary_key=True)
@@ -507,6 +612,7 @@ class ChatMessage(SQLModel):
     # Root Cause: Schema drift breaks API contract.
     # Context: Used by ChatCompletionRequest and ChatChoice.
     """OpenAI-compatible message schema for the API layer."""
+
     role: str
     content: str
     name: Optional[str] = None
@@ -523,11 +629,12 @@ class ChatCompletionRequest(SQLModel):
     The unified request format for Alfred's governance proxy.
     Wraps standard OpenAI parameters with Alfred-specific governance headers.
     """
+
     model: str
     messages: List[ChatMessage]
     temperature: Optional[float] = Field(default=1.0, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=None, ge=1)
-    
+
     # Internal Alfred Logic
     project_priority: Optional[ProjectPriority] = Field(default=None)
 
@@ -540,6 +647,7 @@ class UsageInfo(SQLModel):
     # Root Cause: Usage info is required for billing and dashboards.
     # Context: Used by ChatCompletionResponse and analytics.
     """Token reporting following provider standards."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -553,6 +661,7 @@ class ChatChoice(SQLModel):
     # Root Cause: OpenAI API supports multiple choices per request.
     # Context: Used by ChatCompletionResponse.
     """Indicates one of the generated completion options."""
+
     index: int
     message: ChatMessage
     finish_reason: str
@@ -569,6 +678,7 @@ class ChatCompletionResponse(SQLModel):
     The unified response from the Alfred Gateway.
     Injects quota and cost information into the standard LLM response payload.
     """
+
     id: str
     object: str = "chat.completion"
     created: int
@@ -590,6 +700,7 @@ class QuotaErrorResponse(SQLModel):
     # Root Cause: Inconsistent error schemas break client logic.
     # Context: Used by governance and proxy routers.
     """Transparent messaging when a user's request is blocked by governance rules."""
+
     error: str
     code: str = "quota_exceeded"
     quota_remaining: float

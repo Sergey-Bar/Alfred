@@ -14,13 +14,13 @@ from .base import EventType, NotificationEvent, NotificationProvider
 class TeamsNotifier(NotificationProvider):
     """
     Microsoft Teams notification provider using Incoming Webhooks.
-    
+
     Supports:
     - Incoming Webhooks
     - Adaptive Cards for rich formatting
     - Channel-specific routing
     - Action buttons
-    
+
     Configuration:
         TEAMS_WEBHOOK_URL: Default webhook URL
         TEAMS_WEBHOOK_URL_ALERTS: Webhook for critical alerts (optional)
@@ -28,10 +28,10 @@ class TeamsNotifier(NotificationProvider):
 
     # Severity to color mapping (Adaptive Card accent colors)
     SEVERITY_COLORS = {
-        "info": "accent",      # Blue
+        "info": "accent",  # Blue
         "warning": "warning",  # Yellow/Orange
         "error": "attention",  # Red
-        "critical": "attention", # Red
+        "critical": "attention",  # Red
     }
 
     # Event type to theme color (hex for MessageCard fallback)
@@ -76,11 +76,11 @@ class TeamsNotifier(NotificationProvider):
         self,
         webhook_url: Optional[str] = None,
         alerts_webhook_url: Optional[str] = None,
-        timeout: float = 10.0
+        timeout: float = 10.0,
     ):
         """
         Initialize Teams notifier.
-        
+
         Args:
             webhook_url: Primary Teams webhook URL
             alerts_webhook_url: Separate webhook for critical alerts
@@ -129,84 +129,53 @@ class TeamsNotifier(NotificationProvider):
                 "weight": "bolder",
                 "size": "large",
                 "wrap": True,
-                "style": "heading"
+                "style": "heading",
             },
-            {
-                "type": "TextBlock",
-                "text": event.message,
-                "wrap": True,
-                "spacing": "medium"
-            }
+            {"type": "TextBlock", "text": event.message, "wrap": True, "spacing": "medium"},
         ]
 
         # Add a fact set for metadata
         facts = []
 
         if event.user_name:
-            facts.append({
-                "title": "User",
-                "value": event.user_name
-            })
+            facts.append({"title": "User", "value": event.user_name})
 
         if event.user_email:
-            facts.append({
-                "title": "Email",
-                "value": event.user_email
-            })
+            facts.append({"title": "Email", "value": event.user_email})
 
         if event.team_name:
-            facts.append({
-                "title": "Team",
-                "value": event.team_name
-            })
+            facts.append({"title": "Team", "value": event.team_name})
 
-        facts.append({
-            "title": "Time",
-            "value": event.timestamp.strftime("%Y-%m-%d %H:%M UTC")
-        })
+        facts.append({"title": "Time", "value": event.timestamp.strftime("%Y-%m-%d %H:%M UTC")})
 
-        facts.append({
-            "title": "Severity",
-            "value": event.severity.upper()
-        })
+        facts.append({"title": "Severity", "value": event.severity.upper()})
 
         if facts:
-            body.append({
-                "type": "FactSet",
-                "facts": facts,
-                "spacing": "medium"
-            })
+            body.append({"type": "FactSet", "facts": facts, "spacing": "medium"})
 
         # Add additional data if present
         if event.data:
             data_facts = []
             for key, value in list(event.data.items())[:8]:  # Limit fields
-                data_facts.append({
-                    "title": key.replace("_", " ").title(),
-                    "value": str(value)
-                })
+                data_facts.append({"title": key.replace("_", " ").title(), "value": str(value)})
 
             if data_facts:
-                body.append({
-                    "type": "TextBlock",
-                    "text": "Details",
-                    "weight": "bolder",
-                    "spacing": "large"
-                })
-                body.append({
-                    "type": "FactSet",
-                    "facts": data_facts
-                })
+                body.append(
+                    {"type": "TextBlock", "text": "Details", "weight": "bolder", "spacing": "large"}
+                )
+                body.append({"type": "FactSet", "facts": data_facts})
 
         # Add footer
-        body.append({
-            "type": "TextBlock",
-            "text": f"Event ID: {event.event_id[:8]} | Alfred",
-            "size": "small",
-            "isSubtle": True,
-            "spacing": "large",
-            "horizontalAlignment": "right"
-        })
+        body.append(
+            {
+                "type": "TextBlock",
+                "text": f"Event ID: {event.event_id[:8]} | Alfred",
+                "size": "small",
+                "isSubtle": True,
+                "spacing": "large",
+                "horizontalAlignment": "right",
+            }
+        )
 
         # Build the adaptive card
         adaptive_card = {
@@ -214,9 +183,7 @@ class TeamsNotifier(NotificationProvider):
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.4",
             "body": body,
-            "msteams": {
-                "width": "Full"
-            }
+            "msteams": {"width": "Full"},
         }
 
         return adaptive_card
@@ -233,9 +200,9 @@ class TeamsNotifier(NotificationProvider):
                 {
                     "contentType": "application/vnd.microsoft.card.adaptive",
                     "contentUrl": None,
-                    "content": adaptive_card
+                    "content": adaptive_card,
                 }
-            ]
+            ],
         }
 
         return payload
@@ -250,40 +217,30 @@ class TeamsNotifier(NotificationProvider):
                 "activityTitle": f"{icon} {event.title}",
                 "activitySubtitle": event.timestamp.strftime("%Y-%m-%d %H:%M UTC"),
                 "text": event.message,
-                "facts": []
+                "facts": [],
             }
         ]
 
         if event.user_name:
-            sections[0]["facts"].append({
-                "name": "User",
-                "value": event.user_name
-            })
+            sections[0]["facts"].append({"name": "User", "value": event.user_name})
 
         if event.team_name:
-            sections[0]["facts"].append({
-                "name": "Team",
-                "value": event.team_name
-            })
+            sections[0]["facts"].append({"name": "Team", "value": event.team_name})
 
-        sections[0]["facts"].append({
-            "name": "Severity",
-            "value": event.severity.upper()
-        })
+        sections[0]["facts"].append({"name": "Severity", "value": event.severity.upper()})
 
         # Add data as facts
         for key, value in list(event.data.items())[:5]:
-            sections[0]["facts"].append({
-                "name": key.replace("_", " ").title(),
-                "value": str(value)
-            })
+            sections[0]["facts"].append(
+                {"name": key.replace("_", " ").title(), "value": str(value)}
+            )
 
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
             "themeColor": theme_color,
             "summary": event.title,
-            "sections": sections
+            "sections": sections,
         }
 
         return payload
@@ -358,7 +315,7 @@ def create_teams_notifier(
 ) -> Optional[TeamsNotifier]:
     """
     Create a Teams notifier if configured.
-    
+
     Returns None if no configuration is provided.
     """
     if not webhook_url:

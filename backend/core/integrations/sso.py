@@ -24,6 +24,7 @@ class SSOProviderConfig(BaseModel):
     issuer_url: str
     scopes: str = "openid profile email"
 
+
 class SSOUserInfo(BaseModel):
     sub: str
     email: str
@@ -31,6 +32,7 @@ class SSOUserInfo(BaseModel):
     picture: Optional[str] = None
     provider: Optional[str] = None
     raw: Optional[Dict[str, Any]] = None
+
 
 class SSOManager:
     """
@@ -42,6 +44,7 @@ class SSOManager:
         sso = SSOManager(config)
         user_info = await sso.validate_token(token)
     """
+
     def __init__(self, config: SSOProviderConfig):
         self.config = config
 
@@ -64,7 +67,9 @@ class SSOManager:
             headers = {"Authorization": f"Bearer {token}"}
             userinfo_resp = await client.get(userinfo_endpoint, headers=headers)
             if userinfo_resp.status_code != 200:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid SSO token")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid SSO token"
+                )
             data = userinfo_resp.json()
             return SSOUserInfo(
                 sub=data.get("sub"),
@@ -72,8 +77,9 @@ class SSOManager:
                 name=data.get("name"),
                 picture=data.get("picture"),
                 provider=self.config.provider,
-                raw=data
+                raw=data,
             )
+
 
 # Example usage (in FastAPI dependency):
 #

@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Tests Pydantic settings/config loading, environment overrides, and validation logic for Alfred backend.
@@ -23,6 +22,7 @@ class TestSettings:
         """Test default settings values."""
         # Clear cache to get fresh settings
         from app.config import get_settings
+
         get_settings.cache_clear()
 
         settings = get_settings()
@@ -36,13 +36,12 @@ class TestSettings:
     def test_settings_from_env(self):
         """Test settings loaded from environment variables."""
         from app.config import get_settings
+
         get_settings.cache_clear()
 
-        with patch.dict(os.environ, {
-            "DEBUG": "true",
-            "RATE_LIMIT_REQUESTS": "50",
-            "LOG_LEVEL": "DEBUG"
-        }):
+        with patch.dict(
+            os.environ, {"DEBUG": "true", "RATE_LIMIT_REQUESTS": "50", "LOG_LEVEL": "DEBUG"}
+        ):
             get_settings.cache_clear()
             settings = get_settings()
 
@@ -129,7 +128,7 @@ class TestLogging:
             lineno=1,
             msg="Test message",
             args=(),
-            exc_info=None
+            exc_info=None,
         )
 
         output = formatter.format(record)
@@ -157,7 +156,7 @@ class TestLogging:
             lineno=1,
             msg="Test",
             args=(),
-            exc_info=None
+            exc_info=None,
         )
         record.extra_data = {"email": "user@example.com", "api_key": "secret_key_123"}
 
@@ -201,7 +200,7 @@ class TestExceptions:
         exc = QuotaExceededException(
             message="Quota exceeded",
             quota_remaining=100.5,
-            approval_instructions={"process": "Submit request"}
+            approval_instructions={"process": "Submit request"},
         )
 
         assert exc.status_code == 403
@@ -236,9 +235,7 @@ class TestExceptions:
         from app.exceptions import LLMProviderException
 
         exc = LLMProviderException(
-            provider="openai",
-            message="Rate limited",
-            original_error="Error: 429"
+            provider="openai", message="Rate limited", original_error="Error: 429"
         )
 
         assert exc.status_code == 502

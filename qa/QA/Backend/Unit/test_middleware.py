@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Tests FastAPI middleware (rate limiting) for correct enforcement, headers, and blocking logic using TestClient and patching settings.
@@ -24,12 +23,7 @@ class TestRateLimitMiddleware:
         from app.middleware import RateLimitMiddleware
 
         app = FastAPI()
-        app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_window=10,
-            window_seconds=60,
-            burst=5
-        )
+        app.add_middleware(RateLimitMiddleware, requests_per_window=10, window_seconds=60, burst=5)
 
         @app.get("/test")
         def test_endpoint():
@@ -58,7 +52,7 @@ class TestRateLimitMiddleware:
             RateLimitMiddleware,
             requests_per_window=3,
             window_seconds=60,
-            burst=0  # No burst allowance
+            burst=0,  # No burst allowance
         )
 
         @app.get("/test")
@@ -88,10 +82,7 @@ class TestRateLimitMiddleware:
 
         app = FastAPI()
         app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_window=1,  # Very low limit
-            window_seconds=60,
-            burst=0
+            RateLimitMiddleware, requests_per_window=1, window_seconds=60, burst=0  # Very low limit
         )
 
         @app.get("/health")
@@ -118,12 +109,7 @@ class TestRateLimitMiddleware:
         from app.middleware import RateLimitMiddleware
 
         app = FastAPI()
-        app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_window=1,
-            window_seconds=60,
-            burst=0
-        )
+        app.add_middleware(RateLimitMiddleware, requests_per_window=1, window_seconds=60, burst=0)
 
         @app.get("/test")
         def test_endpoint():
@@ -197,23 +183,18 @@ class TestEfficiencyScorer:
 
         # Normal case
         score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=1000,
-            completion_tokens=500
+            prompt_tokens=1000, completion_tokens=500
         )
         assert score == Decimal("0.5")
 
         # High efficiency (more output than input)
         score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=100,
-            completion_tokens=500
+            prompt_tokens=100, completion_tokens=500
         )
         assert score == Decimal("5.0")
 
         # Zero prompt tokens
-        score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=0,
-            completion_tokens=500
-        )
+        score = EfficiencyScorer.calculate_efficiency_score(prompt_tokens=0, completion_tokens=500)
         assert score == Decimal("0.00")
 
     def test_efficiency_score_rounding(self):
@@ -222,9 +203,6 @@ class TestEfficiencyScorer:
 
         from app.logic import EfficiencyScorer
 
-        score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=3,
-            completion_tokens=10
-        )
+        score = EfficiencyScorer.calculate_efficiency_score(prompt_tokens=3, completion_tokens=10)
         # Should be rounded to 4 decimal places
         assert score == Decimal("3.3333")

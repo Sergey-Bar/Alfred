@@ -8,12 +8,16 @@ Context: Used by backend for query validation, and by frontend for admin/analyst
 Model Suitability: GPT-4.1 is suitable for FastAPI validation APIs; for advanced query analysis, consider Claude 3 or Gemini 1.5.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlmodel import Session
-from ..dependencies import get_session, require_admin
-from typing import List, Optional
+from typing import Optional
 
-router = APIRouter(prefix="/v1/query_validation", tags=["Advanced Query Validation & BI Integration"])
+from fastapi import APIRouter, Body, Depends
+
+from ..dependencies import require_admin
+
+router = APIRouter(
+    prefix="/v1/query_validation", tags=["Advanced Query Validation & BI Integration"]
+)
+
 
 # --- API Endpoints ---
 @router.post("/validate", dependencies=[Depends(require_admin)])
@@ -31,6 +35,7 @@ async def validate_query(
     if connector and connector not in ["powerbi", "tableau", "looker"]:
         warnings.append(f"Connector '{connector}' is not officially supported.")
     return {"errors": errors, "warnings": warnings, "valid": not errors}
+
 
 @router.post("/bi_check", dependencies=[Depends(require_admin)])
 async def bi_integration_check(

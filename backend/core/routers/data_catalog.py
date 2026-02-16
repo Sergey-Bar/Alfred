@@ -1,4 +1,3 @@
-
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
 # Logic: Scaffold a FastAPI router for Data Catalog & Metadata Management, providing endpoints to register, retrieve, and search datasets and their metadata.
@@ -6,15 +5,17 @@
 # Root Cause: No API existed for managing or querying dataset metadata.
 # Context: This router provides endpoints for registering datasets, retrieving metadata, and searching by name/field. Future: integrate with persistent storage, add advanced search, and support metadata versioning. For advanced catalog features, consider using a more advanced model (Claude Opus).
 
-from fastapi import APIRouter, status, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 
 router = APIRouter()
 
 # In-memory store for demo purposes
 DATASETS = []
+
 
 class DatasetMetadata(BaseModel):
     id: int
@@ -25,6 +26,7 @@ class DatasetMetadata(BaseModel):
     created_at: datetime
     tags: Optional[List[str]] = None
 
+
 @router.post("/data-catalog/datasets", status_code=status.HTTP_201_CREATED)
 def register_dataset(dataset: DatasetMetadata):
     if any(d.id == dataset.id for d in DATASETS):
@@ -32,9 +34,11 @@ def register_dataset(dataset: DatasetMetadata):
     DATASETS.append(dataset)
     return {"message": "Dataset registered", "dataset_id": dataset.id}
 
+
 @router.get("/data-catalog/datasets", response_model=List[DatasetMetadata])
 def list_datasets():
     return DATASETS
+
 
 @router.get("/data-catalog/search", response_model=List[DatasetMetadata])
 def search_datasets(query: str):

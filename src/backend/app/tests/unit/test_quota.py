@@ -9,12 +9,13 @@
 Tests for quota management logic.
 """
 
+import os
+import sys
 from decimal import Decimal
 
-
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend/app')))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/backend/app"))
+)
 
 
 from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
@@ -27,9 +28,7 @@ class TestCreditCalculator:
     def test_calculate_cost_gpt4(self):
         """Test cost calculation for GPT-4."""
         cost = CreditCalculator.calculate_cost(
-            model="gpt-4",
-            prompt_tokens=1000,
-            completion_tokens=500
+            model="gpt-4", prompt_tokens=1000, completion_tokens=500
         )
         # Should be positive and reasonable
         assert cost > Decimal("0")
@@ -37,19 +36,17 @@ class TestCreditCalculator:
 
     def test_calculate_cost_gpt35(self):
         """Test cost calculation for GPT-3.5."""
-        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src/backend')))
-        from app.logic import CreditCalculator, EfficiencyScorer, QuotaManager
-        from app.models import ProjectPriority, TeamMemberLink, User, UserStatus
+        sys.path.insert(
+            0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/backend"))
+        )
+        from app.logic import CreditCalculator
+
         cost = CreditCalculator.calculate_cost(
-            model="gpt-3.5-turbo",
-            prompt_tokens=1000,
-            completion_tokens=500
+            model="gpt-3.5-turbo", prompt_tokens=1000, completion_tokens=500
         )
         # GPT-3.5 should be cheaper than GPT-4
         gpt4_cost = CreditCalculator.calculate_cost(
-            model="gpt-4",
-            prompt_tokens=1000,
-            completion_tokens=500
+            model="gpt-4", prompt_tokens=1000, completion_tokens=500
         )
         assert cost < gpt4_cost
 
@@ -67,9 +64,7 @@ class TestQuotaManager:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("10.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("10.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is True
@@ -85,9 +80,7 @@ class TestQuotaManager:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("10.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("10.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is False
@@ -109,9 +102,7 @@ class TestQuotaManager:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("10.00"),
-            priority=ProjectPriority.CRITICAL
+            user=test_user, estimated_cost=Decimal("10.00"), priority=ProjectPriority.CRITICAL
         )
 
         assert result.allowed is True
@@ -121,6 +112,7 @@ class TestQuotaManager:
         """Test vacation sharing when team members are on vacation."""
         # Create another user on vacation
         from app.logic import AuthManager
+
         _, hash2 = AuthManager.generate_api_key()
 
         vacation_user = User(
@@ -128,7 +120,7 @@ class TestQuotaManager:
             name="Vacation User",
             api_key_hash=hash2,
             personal_quota=Decimal("1000.00"),
-            status=UserStatus.ON_VACATION
+            status=UserStatus.ON_VACATION,
         )
         session.add(vacation_user)
         session.commit()
@@ -148,9 +140,7 @@ class TestQuotaManager:
         manager = QuotaManager(session)
 
         result = manager.check_quota(
-            user=test_user,
-            estimated_cost=Decimal("10.00"),
-            priority=ProjectPriority.NORMAL
+            user=test_user, estimated_cost=Decimal("10.00"), priority=ProjectPriority.NORMAL
         )
 
         assert result.allowed is True
@@ -172,24 +162,17 @@ class TestEfficiencyScorer:
 
     def test_calculate_efficiency_score(self):
         """Test efficiency score calculation."""
-        score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=100,
-            completion_tokens=50
-        )
+        score = EfficiencyScorer.calculate_efficiency_score(prompt_tokens=100, completion_tokens=50)
         assert score == Decimal("0.5000")
 
     def test_calculate_efficiency_score_zero_prompt(self):
         """Test efficiency with zero prompt tokens."""
-        score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=0,
-            completion_tokens=50
-        )
+        score = EfficiencyScorer.calculate_efficiency_score(prompt_tokens=0, completion_tokens=50)
         assert score == Decimal("0.00")
 
     def test_calculate_efficiency_high_ratio(self):
         """Test high efficiency ratio."""
         score = EfficiencyScorer.calculate_efficiency_score(
-            prompt_tokens=100,
-            completion_tokens=500
+            prompt_tokens=100, completion_tokens=500
         )
         assert score == Decimal("5.0000")

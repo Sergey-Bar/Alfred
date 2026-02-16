@@ -4,7 +4,7 @@ System Constants & Operational Thresholds
 
 [ARCHITECTURAL ROLE]
 Centralizes hard-coded values and business logic boundaries. Using a centralized
-constants module prevents 'Magic Number' anti-patterns and ensures consistency 
+constants module prevents 'Magic Number' anti-patterns and ensures consistency
 across the logic, middleware, and API layers.
 
 # [AI GENERATED]
@@ -29,7 +29,7 @@ class QuotaLimits(Enum):
     # Context: Used by governance and quota modules.
     """
     Business Logic Safeguards.
-    
+
     Defines the financial boundaries of the platform. These values drive the
     automated decision-making in the QuotaManager.
     """
@@ -60,7 +60,7 @@ class APILimits:
     # Context: Used by routers, middleware, and dashboard.
     """
     Inbound Traffic & Performance Constraints.
-    
+
     Ensures the reliability of the Gateway by preventing resource exhaustion
     and malformed payload processing.
     """
@@ -92,7 +92,7 @@ class CreditConversion:
     # Context: Used by quota, billing, and analytics modules.
     """
     Financial Quantization Parameters.
-    
+
     Defines the relationship between external vendor cost (USD)
     and internal organizational value (Org-Credits).
     """
