@@ -15,7 +15,7 @@ from typing import List, Optional
 # Context: Uses `get_session` dependency; ensure DB migrations are applied (alembic) to create new tables.
 from app.dependencies import get_session
 from app.models import EnrichmentJobDB, EnrichmentPipelineDB
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -51,8 +51,11 @@ def register_pipeline(pipeline: EnrichmentPipeline, session: Session = Depends(g
 
 
 @router.get("/data-enrichment/pipelines", response_model=List[EnrichmentPipeline])
-def list_pipelines(session: Session = Depends(get_session)):
-    rows = session.exec(select(EnrichmentPipelineDB)).all()
+def list_pipelines(
+    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+):
+    stmt = select(EnrichmentPipelineDB).offset(skip).limit(limit)
+    rows = session.exec(stmt).all()
     return [EnrichmentPipeline(**r.dict(exclude={"id", "created_at"})) for r in rows]
 
 
@@ -71,8 +74,13 @@ def run_enrichment_job(job: EnrichmentJob, session: Session = Depends(get_sessio
 
 
 @router.get("/data-enrichment/jobs", response_model=List[EnrichmentJob])
-def list_jobs(pipeline_id: Optional[int] = None, session: Session = Depends(get_session)):
-    stmt = select(EnrichmentJobDB)
+def list_jobs(
+    pipeline_id: Optional[int] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=2000),
+    session: Session = Depends(get_session),
+):
+    stmt = select(EnrichmentJobDB).offset(skip).limit(limit)
     if pipeline_id:
         stmt = stmt.where(EnrichmentJobDB.pipeline_id == pipeline_id)
     rows = session.exec(stmt).all()

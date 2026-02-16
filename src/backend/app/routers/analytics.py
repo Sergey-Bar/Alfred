@@ -20,6 +20,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
+from sqlalchemy import func
 
 from ..database import create_db_engine
 from ..models import AnalyticsEventDB
@@ -93,19 +94,35 @@ def query_analytics_events(
 def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(get_current_user)):
     check_analytics_access(user, event_type)
     with Session(engine) as session:
-        query = select(AnalyticsEventDB.value).where(
-            AnalyticsEventDB.event_type == event_type, AnalyticsEventDB.value != None
+        stmt = (
+            select(
+                func.count(AnalyticsEventDB.value),
+                func.coalesce(func.sum(AnalyticsEventDB.value), 0),
+                func.avg(AnalyticsEventDB.value),
+                func.max(AnalyticsEventDB.value),
+                func.min(AnalyticsEventDB.value),
+            )
+            .where(AnalyticsEventDB.event_type == event_type)
+            .where(AnalyticsEventDB.value != None)
         )
-        values = [v[0] for v in session.exec(query).all()]
-    result = {
-        "count": len(values),
-        "sum": sum(values) if values else 0,
-        "avg": sum(values) / len(values) if values else None,
-    }
+
+        row = session.exec(stmt).one_or_none()
+
+    # row -> (count, sum, avg, max, min)
+    if not row or row[0] == 0:
+        result = {"count": 0, "sum": 0, "avg": None}
+        if agg == "max":
+            result["max"] = None
+        if agg == "min":
+            result["min"] = None
+        return result
+
+    count_, sum_, avg_, max_, min_ = row
+    result = {"count": int(count_), "sum": float(sum_), "avg": float(avg_) if avg_ is not None else None}
     if agg == "max":
-        result["max"] = max(values) if values else None
+        result["max"] = float(max_) if max_ is not None else None
     if agg == "min":
-        result["min"] = min(values) if values else None
+        result["min"] = float(min_) if min_ is not None else None
     log_audit_event(user, "aggregate", {"event_type": event_type, "agg": agg})
     return result
 
@@ -116,17 +133,21 @@ def analytics_breakdown(
     by: str = "user", event_type: Optional[str] = None, user: str = Depends(get_current_user)
 ):
     check_analytics_access(user, event_type)
+    if by not in {"user", "dataset"}:
+        raise HTTPException(status_code=400, detail="Invalid breakdown dimension")
+
+    field = AnalyticsEventDB.user if by == "user" else AnalyticsEventDB.dataset
+
     with Session(engine) as session:
-        query = select(AnalyticsEventDB)
+        stmt = select(field, func.coalesce(func.sum(AnalyticsEventDB.value), 0)).where(
+            AnalyticsEventDB.value != None
+        )
         if event_type:
-            query = query.where(AnalyticsEventDB.event_type == event_type)
-        results = session.exec(query).all()
-    breakdown = {}
-    for e in results:
-        key = getattr(e, by, None)
-        if key:
-            breakdown.setdefault(key, 0)
-            breakdown[key] += e.value or 0
+            stmt = stmt.where(AnalyticsEventDB.event_type == event_type)
+        stmt = stmt.group_by(field)
+        rows = session.exec(stmt).all()
+
+    breakdown = {row[0]: float(row[1]) for row in rows if row[0] is not None}
     log_audit_event(user, "breakdown", {"by": by, "event_type": event_type})
     return breakdown
 

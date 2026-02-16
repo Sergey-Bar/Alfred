@@ -11,7 +11,7 @@ Model Suitability: GPT-4.1 is suitable for FastAPI RBAC patterns; for advanced p
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from ..dependencies import get_session, require_admin
@@ -33,8 +33,10 @@ async def create_role(role: Role, session: Session = Depends(get_session)):
 
 
 @router.get("/roles", response_model=List[Role], dependencies=[Depends(require_admin)])
-async def list_roles(session: Session = Depends(get_session)):
-    return session.exec(select(Role)).all()
+async def list_roles(
+    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+):
+    return session.exec(select(Role).offset(skip).limit(limit)).all()
 
 
 @router.delete("/roles/{role_id}", dependencies=[Depends(require_admin)])
@@ -60,8 +62,10 @@ async def create_permission(permission: Permission, session: Session = Depends(g
 
 
 @router.get("/permissions", response_model=List[Permission], dependencies=[Depends(require_admin)])
-async def list_permissions(session: Session = Depends(get_session)):
-    return session.exec(select(Permission)).all()
+async def list_permissions(
+    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+):
+    return session.exec(select(Permission).offset(skip).limit(limit)).all()
 
 
 @router.delete("/permissions/{permission_id}", dependencies=[Depends(require_admin)])

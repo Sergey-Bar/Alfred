@@ -9,7 +9,7 @@ from typing import List, Optional
 # Context: Requires DB migrations to create `lineage_events` table.
 from app.dependencies import get_session
 from app.models import LineageEventDB
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -44,8 +44,13 @@ def record_lineage_event(event: LineageEvent, session: Session = Depends(get_ses
 
 
 @router.get("/data-lineage/events", response_model=List[LineageEvent])
-def get_lineage_events(dataset: Optional[str] = None, session: Session = Depends(get_session)):
-    stmt = select(LineageEventDB)
+def get_lineage_events(
+    dataset: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(500, ge=1, le=5000),
+    session: Session = Depends(get_session),
+):
+    stmt = select(LineageEventDB).offset(skip).limit(limit)
     if dataset:
         stmt = stmt.where(LineageEventDB.dataset == dataset)
     rows = session.exec(stmt).all()
@@ -53,10 +58,19 @@ def get_lineage_events(dataset: Optional[str] = None, session: Session = Depends
 
 
 @router.get("/data-lineage/trace", response_model=List[LineageEvent])
-def trace_data_origin(dataset: str, session: Session = Depends(get_session)):
+def trace_data_origin(
+    dataset: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(2000, ge=1, le=20000),
+    session: Session = Depends(get_session),
+):
+    # Guard: dataset must be non-empty
+    if not dataset:
+        raise HTTPException(status_code=400, detail="dataset parameter is required")
+
     stmt = select(LineageEventDB).where(
         (LineageEventDB.dataset == dataset) | (LineageEventDB.source_datasets != None)
-    )
+    ).offset(skip).limit(limit)
     rows = session.exec(stmt).all()
     # Filter in-Python for source inclusion to avoid complex JSON queries here
     results = [
