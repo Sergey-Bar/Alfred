@@ -65,6 +65,13 @@ In short: The project is now modern, compliant, well-documented, and ready for f
 1. Roadmap enhancement with executive summary and KPIs
 2. Code review fixes for UUID and datetime compatibility issues
 
+# [2026-02-17]
+
+3. Optimized database queries by identifying and addressing N+1 patterns, adding indexes, and improving query performance.
+4. Improved Docker healthchecks by replacing network-based checks with TCP-based checks for reliability.
+5. Audited and improved logging by ensuring consistent log levels and adding missing loggers.
+6. Updated dependencies to their latest versions, ensuring compatibility and security.
+
 # [Unreleased]
 
 1. ✅ Redis-backed distributed rate limiting - Already implemented with SlowAPI and Redis

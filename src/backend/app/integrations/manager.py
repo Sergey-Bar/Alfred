@@ -10,15 +10,29 @@ Alfred Notification Manager
 Central coordinator for all notification providers with pub/sub event system.
 """
 
-import asyncio
-from collections import defaultdict
+import os
+import sys
 from typing import Callable, Dict, List, Optional, Set
 
-from .base import EventType, NotificationEvent, NotificationProvider, NotificationResult
-from .slack import create_slack_notifier
-from .teams import create_teams_notifier
-from .telegram import create_telegram_notifier
-from .whatsapp import create_whatsapp_notifier
+# Ensure src directory is in the Python path for standalone execution
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
+
+import asyncio
+from collections import defaultdict
+
+from rich.console import Console
+
+from src.backend.app.integrations.base import (
+    EventType,
+    NotificationEvent,
+    NotificationProvider,
+    NotificationResult,
+)
+from src.backend.app.integrations.slack import create_slack_notifier
+from src.backend.app.integrations.teams import create_teams_notifier
+from src.backend.app.integrations.telegram import create_telegram_notifier
+
+console = Console()
 
 # Type alias for event handlers
 EventHandler = Callable[[NotificationEvent], None]
@@ -50,7 +64,7 @@ class NotificationManager:
         # Subscribe to events
         @manager.on(EventType.QUOTA_EXCEEDED)
         def handle_quota_exceeded(event):
-            print(f"Quota exceeded for {event.user_name}")
+            console.print(f"[bold red]Quota exceeded[/bold red] for [cyan]{event.user_name}[/cyan]")
 
         # Emit events
         await manager.emit(NotificationEvent(
@@ -385,15 +399,15 @@ def setup_notifications(
         manager.add_provider(telegram_notifier)
 
     # Setup WhatsApp
-    whatsapp_notifier = create_whatsapp_notifier(
-        phone_number_id=whatsapp_phone_number_id,
-        access_token=whatsapp_access_token,
-        recipient_number=whatsapp_recipient_number,
-        alerts_recipient_number=whatsapp_alerts_recipient_number,
-        template_name=whatsapp_template_name,
-    )
-    if whatsapp_notifier:
-        manager.add_provider(whatsapp_notifier)
+    # whatsapp_notifier = create_whatsapp_notifier(
+    #     phone_number_id=whatsapp_phone_number_id,
+    #     access_token=whatsapp_access_token,
+    #     recipient_number=whatsapp_recipient_number,
+    #     alerts_recipient_number=whatsapp_alerts_recipient_number,
+    #     template_name=whatsapp_template_name,
+    # )
+    # if whatsapp_notifier:
+    #     manager.add_provider(whatsapp_notifier)
 
     return manager
 

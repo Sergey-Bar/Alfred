@@ -107,7 +107,6 @@ class SlackNotifier(NotificationProvider):
     def _build_blocks(self, event: NotificationEvent) -> List[Dict[str, Any]]:
         """Build Slack Block Kit blocks for rich formatting."""
         emoji = self.SEVERITY_EMOJI.get(event.severity, ":bell:")
-        color = self.EVENT_COLORS.get(event.event_type, "#808080")
 
         blocks = [
             {
@@ -158,14 +157,12 @@ class SlackNotifier(NotificationProvider):
     def _build_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build the Slack webhook payload."""
         blocks = self._build_blocks(event)
-        color = self.EVENT_COLORS.get(event.event_type, "#808080")
 
         payload = {
             "text": f"{event.title}: {event.message}",  # Fallback for notifications
             "blocks": blocks,
             "attachments": [
                 {
-                    "color": color,
                     "footer": f"Alfred | Event ID: {event.event_id[:8]}",
                     "ts": int(event.timestamp.timestamp()),
                 }

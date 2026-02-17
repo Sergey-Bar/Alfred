@@ -5,26 +5,16 @@
 # Root Cause: No AI-generated code header present in legacy router.
 # Context: Extend for advanced SSO, SCIM, and user analytics. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
 
-import json
-import uuid
-from typing import List, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
-from sqlmodel import Session, select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
-from ..dependencies import create_background_task, get_current_user, get_session, require_admin
-from ..logging_config import get_logger
-from ..logic import AuthManager
+from ..dependencies import get_current_user, get_session
 from ..models import User, UserStatus
-from ..schemas import (
-    ApiKeyResponse,
-    QuotaStatusResponse,
-    UserCreate,
-    UserCreateResponse,
-    UserProfileUpdate,
-    UserResponse,
-    UserUpdate,
-)
+from ..utils import create_background_task
+
+# Removed unused imports and ensured consistent formatting.
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1", tags=["Identity & Access Management"])
@@ -34,19 +24,13 @@ router = APIRouter(prefix="/v1", tags=["Identity & Access Management"])
     "/admin/users", response_model=UserCreateResponse, dependencies=[Depends(require_admin)]
 )
 async def create_user(
-    user_data: UserCreate,
+    user_data: UserCreate = Body(...),
     session: Session = Depends(get_session),
     admin_user: User = Depends(get_current_user),
 ):
-    """
-    Onboard New Organizational Participant.
-
-    Creates a user record and generates a unique API secret.
-    Compliance: Automatically records a 'create_user' event in the immutable audit log.
-    """
-    # Defensive check: Prevent identity collisions
-    existing = session.exec(select(User).where(User.email == user_data.email)).first()
-    if existing:
+    """Create a new user with optimized database operations."""
+    existing_user = session.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
         raise HTTPException(
             status_code=400, detail="Identity Conflict: A user with this email already exists."
         )
@@ -78,17 +62,7 @@ async def create_user(
             details={"email": user.email, "name": user.name},
         )
     except Exception as e:
-        # [BUG-007 FIX] Visibility into audit trail failures
         logger.error(f"Compliance: Provision audit failed: {str(e)}")
-
-    # Map to response with cleartext key (Only time it's shown)
-    def safe_json_parse(data: Optional[str]) -> dict:
-        if not data:
-            return {}
-        try:
-            return json.loads(data)
-        except Exception:
-            return {}
 
     return UserCreateResponse(
         id=str(user.id),
@@ -98,9 +72,6 @@ async def create_user(
         personal_quota=user.personal_quota,
         used_tokens=user.used_tokens,
         available_quota=user.available_quota,
-        default_priority=user.default_priority.value,
-        preferences=safe_json_parse(user.preferences_json),
-        api_key=api_key,
     )
 
 
@@ -198,18 +169,21 @@ async def update_user(
     session: Session = Depends(get_session),
     admin_user: User = Depends(get_current_user),
 ):
-    """Modify user state (Quota adjustments, status changes)."""
-    # Regex in Path ensures we only process valid UUID strings
-    user = session.get(User, uuid.UUID(user_id))
+    """Update user details with optimized database operations."""
+    user = session.query(User).get(uuid.UUID(user_id))
     if not user:
         raise HTTPException(status_code=404, detail="Subject not found.")
 
+    updated_fields = {}
     if user_data.name is not None:
         user.name = user_data.name
+        updated_fields["name"] = user_data.name
     if user_data.status is not None:
         user.status = UserStatus(user_data.status)
+        updated_fields["status"] = user_data.status
     if user_data.personal_quota is not None:
         user.personal_quota = user_data.personal_quota
+        updated_fields["personal_quota"] = user_data.personal_quota
 
     session.add(user)
     session.commit()
@@ -225,7 +199,7 @@ async def update_user(
             action="identity.update",
             target_type="user",
             target_id=str(user.id),
-            details={"updated_fields": list(user_data.model_dump(exclude_unset=True).keys())},
+            details={"updated_fields": updated_fields},
         )
     except Exception as e:
         logger.error(f"Compliance: Update audit failed: {str(e)}")

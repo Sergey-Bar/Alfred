@@ -20,10 +20,11 @@ This module defines the logging DNA of the platform. It provides:
 
 import json
 import logging
-import sys
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+
+from rich.logging import RichHandler
 
 # --- Global Context Tracing ---
 # ContextVars ensure that request/user identifiers are accessible to every function
@@ -233,7 +234,7 @@ def setup_logging(
         formatter = DevelopmentFormatter()
 
     # STDOUT Configuration (Standard for K8s/Docker)
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = RichHandler()
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 

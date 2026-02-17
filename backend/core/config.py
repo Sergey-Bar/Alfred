@@ -91,7 +91,7 @@ class Settings(BaseSettings):
         default=32, ge=16, le=64, description="Entropy length for generated secrets"
     )
     cors_origins: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8000"],
+        default=["http://localhost:3000", "https://alfred.ai"],
         description="Allowed origins for cross-origin resource sharing. Enforced in middleware",
     )
 

@@ -35,6 +35,11 @@ export const getDataQualityEvents = async (dataset) => {
 };
 
 export const getHighSeverityAlerts = async () => {
-    const res = await axios.get(`${API_BASE}/data-quality/alerts`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_BASE}/data-quality/alerts`);
+        return res.data;
+    } catch (error) {
+        console.error('Error fetching high severity alerts:', error);
+        throw new Error('Failed to fetch high severity alerts. Please try again later.');
+    }
 };

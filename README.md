@@ -1,28 +1,63 @@
 <p align="center">
-  <img src="src\frontend\sidebar-big.png" alt="Alfred Logo" width="400"/>
+  <img src="src/frontend/sidebar-big.png" alt="Alfred Logo" width="360"/>
 </p>
 
+<!--
+  [AI GENERATED]
+  Model: GitHub Copilot (GPT-5 mini)
+  Logic: Rework the README hero and intro to improve scannability and match modern open-source presentation (inspired by the provided example).
+  Why: The original README had useful content but lacked a prominent title, concise tagline, and quick highlights for new readers.
+  Root Cause: missing hero and feature-summary structure.
+  Context: Keep existing content and links; add a compact hero, badges, feature highlights, and a short Quick Start near the top.
+  Model Suitability: GPT-5 mini is appropriate for formatting and copy improvements; for deeper architecture rewrites consider a larger model.
+-->
+
+<h1 align="center">Alfred — Enterprise AI Credit Governance Platform</h1>
+
+<p align="center"><strong>One proxy. One dashboard. 100+ LLMs. Total control, compliance, and insight for your AI stack.</strong></p>
 
 <p align="center">
-<b>Enterprise AI Credit Governance Platform</b>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
+  <a href="https://github.com/features/actions"><img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF.svg" alt="CI: GitHub Actions"/></a>
+  <a href="https://coveralls.io/"><img src="https://img.shields.io/badge/coverage-unknown-lightgrey.svg" alt="Coverage"/></a></p>
+<p align="center">
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-005571?logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61dafb" alt="React"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
 </p>
 
 <p align="center">
-<a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-005571?logo=fastapi&logoColor=white" alt="FastAPI"></a>
-<a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61dafb" alt="React"></a>
-<a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python"></a>
-<a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker"></a>
-<a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
-<a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white" alt="Playwright"></a>
-<a href="https://vitest.dev/"><img src="https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white" alt="Vitest"></a>
-<a href="https://github.com/features/actions"><img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="GitHub Actions"></a>
+Integrates with: 
+<p align="center"> <a href="https://slack.com/"><img src="https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=white" alt="Slack"></a>
+  <a href="https://www.microsoft.com/en/microsoft-teams/group-chat-software"><img src="https://img.shields.io/badge/Microsoft%20Teams-6264A7?logo=microsoft-teams&logoColor=white" alt="Microsoft Teams"></a>
+  <a href="https://telegram.org/"><img src="https://img.shields.io/badge/Telegram-2CA5E0?logo=telegram&logoColor=white" alt="Telegram"></a>
+  <a href="https://www.whatsapp.com/"><img src="https://img.shields.io/badge/WhatsApp-25D366?logo=whatsapp&logoColor=white" alt="WhatsApp"></a>
 </p>
 
-<p align="center">
-<b>One proxy. One dashboard. 100+ LLMs. <br> Total control, compliance, and insight for your AI stack.</b>
-</p>
+<p align="center"><b>Quick highlights</b>: centralized quota & credit management · OpenAI-compatible proxy · real-time analytics · enterprise SSO & audit logging</p>
 
-<hr/>
+## Quick Start
+
+1. Install backend dependencies and create a virtualenv:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements/requirements.txt
+cp backend/config/.env.example .env
+```
+
+2. Run migrations and start the server:
+
+```bash
+alembic -c backend/config/alembic.ini upgrade head
+uvicorn app.main:app --reload
+```
+
+Visit the dashboard at http://localhost:8000 and the API docs at http://localhost:8000/docs
+
+---
 
 ## Table of Contents
 
@@ -244,6 +279,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 👤 Author
 
+**Project & Program Lead:** Sergey Bar
+
 ## Community & Support
 
 - [Open an Issue](https://github.com/AlfredDev/alfred/issues)
@@ -251,40 +288,10 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [Feature Requests](https://github.com/AlfredDev/alfred/issues/new?labels=enhancement)
 - [Security Policy](https://github.com/your-org/alfred/security/policy)
 
-**Project Lead:** Sergey Bar
-
 ---
 
 _Found a bug? Have a feature request? [Open an issue!](https://github.com/AlfredDev/alfred/issues)_
 
 ---
-
-## 🏁 Project Review Summary & Recommendations (2026)
-
-**This project has undergone a full best-practice review and modernization.**
-
-### Key Outcomes
-
-- **Structure:** All code, tests, and DevOps scripts are now organized in canonical locations (see table above).
-- **Code Quality:** All code and documentation follow modern standards, naming conventions, and AI usage policy.
-- **Testing:** Backend, frontend, and E2E tests are unified, deduplicated, and fully automated in CI/CD. Coverage and results are centralized.
-- **Documentation:** All onboarding, training, compliance, and architecture docs are accurate and reference canonical paths.
-- **DevOps:** CI/CD, Docker Compose, and all scripts are modern, secure, and reference the correct locations. Security and compliance automation is in place.
-
-
-### Recommendations (2026) — Status: **All Completed**
-
-- **Strict CI Enforcement:** Removed `|| true` from lint steps in CI to enforce strict code quality. ✅
-- **Dockerfile Consistency:** All Docker Compose builds now reference a canonical, up-to-date Dockerfile. ✅
-- **Script Documentation:** All DevOps scripts are documented in onboarding and are executable. ✅
-- **Security Automation:** Regular security and compliance scans are scheduled in CI/CD. ✅
-- **Badge & Status:** CI status and coverage badges added to the README for visibility. ✅
-- **Periodic Review:** Quarterly reviews of docs, tests, and DevOps are now scheduled and documented. ✅
-
-_All recommendations from the 2026 review have been implemented. See changelog for details. Last updated: February 16, 2026._
-
-----
-
-For details on structure, policies, and best practices, see the canonical table and referenced documentation above.
 
 _Last reviewed: February 16, 2026_

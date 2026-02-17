@@ -85,7 +85,7 @@ def setup_notifications_if_enabled():
     """
     if settings.notifications_enabled:
         try:
-            notification_manager = setup_notifications(
+            setup_notifications(
                 slack_webhook_url=settings.slack_webhook_url,
                 slack_alerts_webhook_url=settings.slack_alerts_webhook_url,
                 slack_bot_token=settings.slack_bot_token,

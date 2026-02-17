@@ -9,41 +9,37 @@ import json
 import os
 
 import requests
+from rich.console import Console
+from rich.progress import Progress
+
+console = Console()
 
 # Example: Collect test coverage from coverage report
 coverage_file = "dev/QA/results/coverage/coverage-summary.json"
 if os.path.exists(coverage_file):
     with open(coverage_file) as f:
         coverage = json.load(f)
-    print(f"Test Coverage: {coverage['total']['lines']['pct']}%")
+    console.print(f"[green]Test Coverage:[/green] {coverage['total']['lines']['pct']}%")
 else:
-    print("Coverage report not found.")
+    console.print("[red]Coverage report not found.[/red]")
 
-# Example: Collect deployment frequency from CI/CD logs (stub)
-print("Deployment Frequency: Weekly (stub)")
+console.print("[blue]Deployment Frequency:[/blue] Weekly (stub)")
+console.print("[blue]MTTR:[/blue] <24h (stub)")
 
-# Example: Collect MTTR from incident logs (stub)
-print("MTTR: <24h (stub)")
-
-# Example: Collect AI accuracy from validation endpoint (stub)
 try:
     resp = requests.get("http://localhost:8000/metrics/ai_accuracy")
-    print(f"AI Accuracy: {resp.json()['accuracy']}%")
+    console.print(f"[green]AI Accuracy:[/green] {resp.json()['accuracy']}%")
 except Exception:
-    print("AI accuracy endpoint unavailable.")
+    console.print("[red]AI accuracy endpoint unavailable.[/red]")
 
-# Example: Collect compliance coverage from compliance status endpoint (stub)
 try:
     resp = requests.get("http://localhost:8000/compliance/status")
-    print(f"Compliance Coverage: {resp.json()}")
+    console.print(f"[green]Compliance Coverage:[/green] {resp.json()}")
 except Exception:
-    print("Compliance status endpoint unavailable.")
+    console.print("[red]Compliance status endpoint unavailable.[/red]")
 
-# Example: Collect accessibility score from dashboard test (stub)
-print("Accessibility (WCAG): AA+ (stub)")
-
-# Example: Collect user feedback score from analytics (stub)
-print("User Feedback Score: >4.5/5 (stub)")
+console.print("[blue]Accessibility (WCAG):[/blue] AA+ (stub)")
+console.print("[blue]User Feedback Score:[/blue] >4.5/5 (stub)")
 
 # Output results for CI/CD pipeline
 # Extend for automated reporting and dashboard integration

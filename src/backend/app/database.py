@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from sqlalchemy.engine import Engine
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, create_engine, SQLModel
 
 from .config import settings
 
@@ -131,3 +131,7 @@ def get_db_session() -> Generator[Session, None, None]:
     """
     with Session(engine) as session:
         yield session
+
+# Base model for SQLAlchemy/SQLModel ORM
+class Base(SQLModel):
+    pass

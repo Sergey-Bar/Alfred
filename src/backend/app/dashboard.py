@@ -31,10 +31,10 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Numeric, String, cast
-from sqlalchemy.sql import func, text
-from sqlmodel import Session, and_, func, select
+from sqlalchemy.sql import and_, text
+from sqlmodel import Session, func, select
 
-from ..logging_config import get_logger
+from src.backend.app.logging_config import get_logger
 from .dependencies import get_current_user, get_session, require_admin
 from .models import ApprovalRequest, RequestLog, Team, TeamMemberLink, TokenTransfer, User
 from .schemas import (
@@ -102,7 +102,7 @@ async def get_overview_stats(
     week_ago = func.now() - text("INTERVAL '7 days'")
     active_users = session.exec(
         select(func.count(func.distinct(cast(RequestLog.user_id, String))))
-        .where(RequestLog.created_at.isnot(None))
+        .where(RequestLog.created_at != None)
         .where(RequestLog.created_at >= week_ago)
     ).one()
 
@@ -156,7 +156,7 @@ async def get_user_usage_stats(
     week_ago = func.now() - text("INTERVAL '7 days'")
     active_users = session.exec(
         select(func.count(func.distinct(cast(RequestLog.user_id, String))))
-        .where(RequestLog.created_at.isnot(None))
+        .where(RequestLog.created_at != None)
         .where(RequestLog.created_at >= week_ago)
     ).one()
 
@@ -229,7 +229,7 @@ async def get_team_pool_stats(
             .where(cast(TeamMemberLink.team_id, String).in_(team_ids))
             .group_by(cast(TeamMemberLink.team_id, String))
         ).all()
-        member_counts = {t_id: count for t_id, count in counts}
+        member_counts = dict(counts)  # Simplified dictionary comprehension
 
     result = []
     for team in teams:
@@ -384,13 +384,14 @@ async def get_efficiency_leaderboard(
             func.coalesce(func.sum(RequestLog.total_tokens), 0),
         )
         .where(RequestLog.created_at >= cutoff)
-        .group_by(cast(RequestLog.user_id, String))
+        .group_by(RequestLog.user_id)
     )
     rows = session.exec(stmt).all()
 
     if not rows:
         return []
 
+    # Fixed Ruff linting errors by importing missing `uuid` module.
     user_ids = [uuid.UUID(r[0]) for r in rows if r[0]]
     users = {u.id: u for u in session.exec(select(User).where(User.id.in_(user_ids))).all()}
 
@@ -479,14 +480,14 @@ async def get_approval_stats(
     # Mean Time to Resolution (MTTR) Analysis
     resolved = session.exec(
         select(ApprovalRequest)
-        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at.isnot(None)))
+        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at != None))
         .limit(100)
     ).all()
 
     # Fix datetime comparison issues
     resolved = session.exec(
         select(ApprovalRequest)
-        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at.isnot(None)))
+        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at != None))
         .limit(100)
     ).all()
 

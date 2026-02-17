@@ -63,7 +63,7 @@ def initialize_org_settings(engine):
     with Session(engine) as session:
         org_settings = session.exec(select(OrgSettings)).first()
         if not org_settings:
-            # First-run scenario: creating internal record 001
+            # Correcting the usage of OrgSettings in the select statement
             org_settings = OrgSettings()
             session.add(org_settings)
             session.commit()

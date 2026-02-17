@@ -86,7 +86,7 @@ ignore = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["dev/QA/Backend", "qa/QA/Backend", "tests"]
+testpaths = ["dev/QA/Backend", "qa/QA/Backend", "tests", "src/backend/app/tests"]
 pythonpath = ["src/backend", "dev/backend"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]

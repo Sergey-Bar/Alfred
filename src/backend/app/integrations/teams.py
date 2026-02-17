@@ -34,25 +34,6 @@ class TeamsNotifier(NotificationProvider):
         "critical": "attention",  # Red
     }
 
-    # Event type to theme color (hex for MessageCard fallback)
-    EVENT_COLORS = {
-        EventType.QUOTA_WARNING: "FFA500",
-        EventType.QUOTA_EXCEEDED: "FF0000",
-        EventType.QUOTA_RESET: "36A64F",
-        EventType.TOKEN_TRANSFER_SENT: "439FE0",
-        EventType.TOKEN_TRANSFER_RECEIVED: "36A64F",
-        EventType.APPROVAL_REQUESTED: "439FE0",
-        EventType.APPROVAL_APPROVED: "36A64F",
-        EventType.APPROVAL_REJECTED: "FF0000",
-        EventType.USER_VACATION_START: "9B59B6",
-        EventType.USER_VACATION_END: "36A64F",
-        EventType.USER_SUSPENDED: "FF0000",
-        EventType.TEAM_POOL_WARNING: "FFA500",
-        EventType.TEAM_POOL_DEPLETED: "FF0000",
-        EventType.SYSTEM_ERROR: "FF0000",
-        EventType.HIGH_LATENCY: "FFA500",
-    }
-
     # Event type icons (emoji for display)
     EVENT_ICONS = {
         EventType.QUOTA_WARNING: "⚠️",
@@ -119,8 +100,6 @@ class TeamsNotifier(NotificationProvider):
     def _build_adaptive_card(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build an Adaptive Card for Teams."""
         icon = self.EVENT_ICONS.get(event.event_type, "📢")
-        color = self.SEVERITY_COLORS.get(event.severity, "accent")
-
         # Build the card body
         body = [
             {
@@ -191,7 +170,6 @@ class TeamsNotifier(NotificationProvider):
     def _build_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build the Teams webhook payload with Adaptive Card."""
         adaptive_card = self._build_adaptive_card(event)
-        theme_color = self.EVENT_COLORS.get(event.event_type, "0078D7")
 
         # Teams webhook expects this wrapper format
         payload = {
@@ -209,7 +187,6 @@ class TeamsNotifier(NotificationProvider):
 
     def _build_legacy_payload(self, event: NotificationEvent) -> Dict[str, Any]:
         """Build a legacy MessageCard payload (fallback for older connectors)."""
-        theme_color = self.EVENT_COLORS.get(event.event_type, "0078D7")
         icon = self.EVENT_ICONS.get(event.event_type, "📢")
 
         sections = [
@@ -238,7 +215,6 @@ class TeamsNotifier(NotificationProvider):
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
-            "themeColor": theme_color,
             "summary": event.title,
             "sections": sections,
         }

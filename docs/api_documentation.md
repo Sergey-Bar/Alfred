@@ -60,7 +60,7 @@ This document provides details about the APIs available in the Alfred platform, 
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"entity_id": "user_123", "amount": 1000, "level": "team"}' \
-  http://localhost:8000/api/v1/credits/allocate
+  https://alfred.ai/api/v1/credits/allocate
 ```
 
 ### Transferring Credits
@@ -69,5 +69,5 @@ curl -X POST \
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"from_user_id": "user_123", "to_user_id": "user_456", "amount": 500}' \
-  http://localhost:8000/api/v1/credits/transfer
+  https://alfred.ai/api/v1/credits/transfer
 ```

@@ -463,7 +463,7 @@ class TokenTransfer(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
 
 
-class OrgSettings(BaseModel):
+class OrgSettings(SQLModel, table=True):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Stores org-wide governance and compliance settings, including rates and privacy.

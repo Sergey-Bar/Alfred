@@ -350,7 +350,7 @@ else:
 
     @app.get("/health")
     async def health_check():
-        return {"status": "healthy", "timestamp": "2026-02-15", "version": settings.app_version}
+        return {"status": "healthy", "timestamp": "2026-02-17", "version": settings.app_version}
 
     @app.get("/")
     async def api_root_fallback():
