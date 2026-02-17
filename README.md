@@ -1,9 +1,7 @@
 <p align="center">
-  <img src="dev/static/sidebar-big.png" alt="Alfred Logo" width="400"/>
+  <img src="src\frontend\sidebar-big.png" alt="Alfred Logo" width="400"/>
 </p>
 
-[![CI](https://github.com/SergeyBar/Alfred/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SergeyBar/Alfred/actions/workflows/ci.yml)
-[![Coverage Status](https://img.shields.io/badge/coverage--report-available-brightgreen?style=flat&logo=codecov)](dev/QA/results/coverage)
 
 <p align="center">
 <b>Enterprise AI Credit Governance Platform</b>

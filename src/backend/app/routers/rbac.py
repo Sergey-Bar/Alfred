@@ -34,7 +34,9 @@ async def create_role(role: Role, session: Session = Depends(get_session)):
 
 @router.get("/roles", response_model=List[Role], dependencies=[Depends(require_admin)])
 async def list_roles(
-    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    session: Session = Depends(get_session),
 ):
     return session.exec(select(Role).offset(skip).limit(limit)).all()
 
@@ -63,7 +65,9 @@ async def create_permission(permission: Permission, session: Session = Depends(g
 
 @router.get("/permissions", response_model=List[Permission], dependencies=[Depends(require_admin)])
 async def list_permissions(
-    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    session: Session = Depends(get_session),
 ):
     return session.exec(select(Permission).offset(skip).limit(limit)).all()
 

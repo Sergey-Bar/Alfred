@@ -82,6 +82,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "B008",  # function call in argument defaults (FastAPI Depends pattern)
 ]
 
 [tool.pytest.ini_options]

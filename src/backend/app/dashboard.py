@@ -24,6 +24,7 @@ common 'N+1 Query' trap when resolving User/Team names for large lists of logs.
 # Model Suitability: For analytics logic, GPT-4.1 is sufficient; for advanced forecasting, a more advanced model may be needed.
 """
 
+import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, List
@@ -32,10 +33,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Numeric, String, cast
 from sqlalchemy.sql import func, text
 from sqlmodel import Session, and_, func, select
-import time
 
 from ..logging_config import get_logger
-
 from .dependencies import get_current_user, get_session, require_admin
 from .models import ApprovalRequest, RequestLog, Team, TeamMemberLink, TokenTransfer, User
 from .schemas import (
@@ -111,7 +110,10 @@ async def get_overview_stats(
     pending = session.exec(select(func.count(cast(ApprovalRequest.id, String)))).one() or 0
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("overview_stats", extra_data={"total_users": total_users or 0, "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "overview_stats",
+        extra_data={"total_users": total_users or 0, "duration_ms": round(duration_ms, 2)},
+    )
 
     return OverviewStats(
         total_users=total_users or 0,
@@ -202,7 +204,9 @@ async def get_user_usage_stats(
             )
         )
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("user_usage_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "user_usage_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms, 2)}
+    )
 
     return result
 
@@ -249,8 +253,9 @@ async def get_team_pool_stats(
 
     return result
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("team_pool_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms,2)})
-
+    logger.info(
+        "team_pool_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms, 2)}
+    )
 
 
 @router.get("/trends", response_model=List[CostTrendPoint])
@@ -298,7 +303,10 @@ async def get_cost_trends(
 
     return result
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("cost_trends", extra_data={"days": days, "points": len(result), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "cost_trends",
+        extra_data={"days": days, "points": len(result), "duration_ms": round(duration_ms, 2)},
+    )
 
 
 @router.get("/models", response_model=List[ModelUsageStats])
@@ -348,7 +356,10 @@ async def get_model_usage(
 
     return result
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("model_usage", extra_data={"days": days, "models": len(result), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "model_usage",
+        extra_data={"days": days, "models": len(result), "duration_ms": round(duration_ms, 2)},
+    )
 
 
 @router.get("/leaderboard", response_model=List[DashboardLeaderboardEntry])
@@ -410,7 +421,10 @@ async def get_efficiency_leaderboard(
     user_stats.sort(key=lambda x: x["efficiency_score"], reverse=True)
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("efficiency_leaderboard", extra_data={"rows": len(user_stats), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "efficiency_leaderboard",
+        extra_data={"rows": len(user_stats), "duration_ms": round(duration_ms, 2)},
+    )
 
     return [
         DashboardLeaderboardEntry(
@@ -512,7 +526,9 @@ async def get_approval_stats(
     ]
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("approval_stats", extra_data={"pending": pending, "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "approval_stats", extra_data={"pending": pending, "duration_ms": round(duration_ms, 2)}
+    )
 
     return ApprovalStats(
         total_pending=pending,
@@ -574,4 +590,7 @@ async def get_transfer_stats(
         total_transfers=len(transfers), total_amount=total_amount, recent_transfers=transfer_list
     )
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("transfer_stats", extra_data={"total_transfers": len(transfers), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "transfer_stats",
+        extra_data={"total_transfers": len(transfers), "duration_ms": round(duration_ms, 2)},
+    )

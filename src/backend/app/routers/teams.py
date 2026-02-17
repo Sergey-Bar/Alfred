@@ -5,18 +5,16 @@
 # Root Cause: No AI-generated code header present in legacy router.
 # Context: Extend for advanced team analytics, SSO, and SCIM. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
 
+import time
 import uuid
 from typing import List
-import time
-
-from sqlalchemy import func
-
-from ..logging_config import get_logger
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..dependencies import get_current_user, get_session, require_admin
+from ..logging_config import get_logger
 from ..models import Team, TeamMemberLink, User
 from ..schemas import AddMemberByEmailRequest, TeamCreate, TeamMember, TeamResponse, TeamUpdate
 
@@ -89,7 +87,9 @@ async def list_teams(skip: int = 0, limit: int = 100, session: Session = Depends
         )
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("Listed teams", extra_data={"count": len(result), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "Listed teams", extra_data={"count": len(result), "duration_ms": round(duration_ms, 2)}
+    )
     return result
 
 
@@ -120,9 +120,12 @@ async def update_team(
     session.commit()
     session.refresh(team)
 
-    member_count = session.exec(
-        select(func.count(TeamMemberLink.user_id)).where(TeamMemberLink.team_id == team.id)
-    ).one() or 0
+    member_count = (
+        session.exec(
+            select(func.count(TeamMemberLink.user_id)).where(TeamMemberLink.team_id == team.id)
+        ).one()
+        or 0
+    )
 
     return TeamResponse(
         id=str(team.id),

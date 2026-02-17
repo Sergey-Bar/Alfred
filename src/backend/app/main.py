@@ -50,8 +50,8 @@ from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
+from .database import get_db_session
 from .lifespan import alfred_lifespan
-from .database import engine, get_db_session
 
 # Expose `get_session` for test fixtures that expect `app.main.get_session`
 get_session = get_db_session

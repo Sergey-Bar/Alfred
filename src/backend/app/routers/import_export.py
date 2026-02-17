@@ -11,7 +11,7 @@ Model Suitability: For REST API and file handling, GPT-4.1 is sufficient; for ad
 import csv
 import io
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, Query
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
 from sqlmodel import Session
 
 from ..dependencies import get_session, require_admin
@@ -23,7 +23,9 @@ router = APIRouter(prefix="/v1/import-export", tags=["Import/Export"])
 # --- Export Users ---
 @router.get("/users", dependencies=[Depends(require_admin)])
 async def export_users(
-    skip: int = Query(0, ge=0), limit: int = Query(1000, ge=1, le=10000), session: Session = Depends(get_session)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(1000, ge=1, le=10000),
+    session: Session = Depends(get_session),
 ):
     users = session.exec(User.select().offset(skip).limit(limit)).all()
     output = io.StringIO()
@@ -67,7 +69,9 @@ async def import_users(file: UploadFile = File(...), session: Session = Depends(
 # --- Export Teams ---
 @router.get("/teams", dependencies=[Depends(require_admin)])
 async def export_teams(
-    skip: int = Query(0, ge=0), limit: int = Query(1000, ge=1, le=10000), session: Session = Depends(get_session)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(1000, ge=1, le=10000),
+    session: Session = Depends(get_session),
 ):
     teams = session.exec(Team.select().offset(skip).limit(limit)).all()
     output = io.StringIO()

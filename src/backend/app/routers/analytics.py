@@ -19,8 +19,8 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlmodel import Session, select
 from sqlalchemy import func
+from sqlmodel import Session, select
 
 from ..database import create_db_engine
 from ..models import AnalyticsEventDB
@@ -118,7 +118,11 @@ def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(g
         return result
 
     count_, sum_, avg_, max_, min_ = row
-    result = {"count": int(count_), "sum": float(sum_), "avg": float(avg_) if avg_ is not None else None}
+    result = {
+        "count": int(count_),
+        "sum": float(sum_),
+        "avg": float(avg_) if avg_ is not None else None,
+    }
     if agg == "max":
         result["max"] = float(max_) if max_ is not None else None
     if agg == "min":

@@ -15,7 +15,7 @@ from typing import List, Optional
 # Context: Uses `get_session` dependency; ensure DB migrations are applied (alembic) to create new tables.
 from app.dependencies import get_session
 from app.models import EnrichmentJobDB, EnrichmentPipelineDB
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -52,7 +52,9 @@ def register_pipeline(pipeline: EnrichmentPipeline, session: Session = Depends(g
 
 @router.get("/data-enrichment/pipelines", response_model=List[EnrichmentPipeline])
 def list_pipelines(
-    skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=1000), session: Session = Depends(get_session)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    session: Session = Depends(get_session),
 ):
     stmt = select(EnrichmentPipelineDB).offset(skip).limit(limit)
     rows = session.exec(stmt).all()

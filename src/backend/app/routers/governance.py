@@ -5,21 +5,18 @@
 # Root Cause: No AI-generated code header present in legacy router.
 # Context: Extend for advanced audit logging, compliance, and governance analytics. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
 
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
-import time
-
-from sqlalchemy import func
-
-from ..logging_config import get_logger
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from ..dependencies import create_background_task, get_current_user, get_session
 from ..integrations import emit_approval_requested, emit_approval_resolved, emit_token_transfer
+from ..logging_config import get_logger
 from ..logic import EfficiencyScorer
 from ..metrics import approval_requests_total, credits_transferred_total
 from ..models import (
@@ -211,7 +208,9 @@ async def get_transfer_history(
     history.sort(key=lambda x: x["timestamp"], reverse=True)
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("transfer_history", extra_data={"count": len(history), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "transfer_history", extra_data={"count": len(history), "duration_ms": round(duration_ms, 2)}
+    )
 
     return {"transfers": history[:limit]}
 
@@ -327,7 +326,10 @@ async def get_pending_approvals(
         u_map = {u.id: u for u in session.exec(select(User).where(User.id.in_(target_ids))).all()}
 
     duration_ms = (time.perf_counter() - start) * 1000
-    logger.info("pending_approvals", extra_data={"count": len(all_pending), "duration_ms": round(duration_ms,2)})
+    logger.info(
+        "pending_approvals",
+        extra_data={"count": len(all_pending), "duration_ms": round(duration_ms, 2)},
+    )
 
     return [
         ApprovalResponse(

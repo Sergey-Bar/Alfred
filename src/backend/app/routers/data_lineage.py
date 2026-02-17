@@ -9,7 +9,7 @@ from typing import List, Optional
 # Context: Requires DB migrations to create `lineage_events` table.
 from app.dependencies import get_session
 from app.models import LineageEventDB
-from fastapi import APIRouter, Depends, status, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -68,9 +68,12 @@ def trace_data_origin(
     if not dataset:
         raise HTTPException(status_code=400, detail="dataset parameter is required")
 
-    stmt = select(LineageEventDB).where(
-        (LineageEventDB.dataset == dataset) | (LineageEventDB.source_datasets != None)
-    ).offset(skip).limit(limit)
+    stmt = (
+        select(LineageEventDB)
+        .where((LineageEventDB.dataset == dataset) | (LineageEventDB.source_datasets != None))
+        .offset(skip)
+        .limit(limit)
+    )
     rows = session.exec(stmt).all()
     # Filter in-Python for source inclusion to avoid complex JSON queries here
     results = [
