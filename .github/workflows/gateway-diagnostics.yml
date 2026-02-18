@@ -1,0 +1,39 @@
+name: Gateway diagnostics
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "services/gateway/**"
+
+jobs:
+  gateway-test-logs:
+    name: Run Gateway tests and upload logs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Run gateway tests
+        working-directory: services/gateway
+        run: |
+          go test ./... -v 2>&1 | tee gateway-tests.log || true
+
+      - name: Upload gateway test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-test-logs
+          path: services/gateway/gateway-tests.log

@@ -243,3 +243,27 @@ jobs:
           file: devops/merged/docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+  gateway-tests:
+    name: Gateway Go unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Run gateway unit tests
+        run: |
+          cd services/gateway
+          if [ ! -f go.sum ]; then
+            echo "go.sum missing in services/gateway. Run 'go mod tidy' locally and commit go.sum." >&2
+            exit 1
+          fi
+          # run linter if config exists
+          if [ -f services/gateway/.golangci.yml ]; then
+            echo "Running golangci-lint for services/gateway"
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.59.0
+            golangci-lint run ./... || (echo "golangci-lint found issues" && exit 1)
+          fi
+          go test ./... -v

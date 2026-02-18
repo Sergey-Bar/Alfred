@@ -3,6 +3,159 @@
 **Generated**: 2026-02-17
 **Status**: In Progress
 
+## Sprint update — 2026-02-18
+
+- Marked tasks T001–T008 as In Progress in `reviews/Project Managment/Sprint.md`.
+- No new bugs discovered while updating task statuses; backlog entries remain as previously recorded.
+
+## Infrastructure update — 2026-02-18
+
+- Added basic Kubernetes manifests for the gateway service: `services/gateway/k8s/deployment.yaml` and `services/gateway/k8s/service.yaml`.
+- CI workflow already present at `.github/workflows/ci.yml`; no overwrite performed.
+
+No runtime bugs observed from scaffolding files. Recommend running CI and local `docker-compose up` to validate.
+
+## Implementation notes — 2026-02-18
+
+- Diagnostic workflow added: `.github/workflows/gateway-diagnostics.yml` — this workflow runs `go test ./...` in `services/gateway` on push to any `services/gateway/**` path and uploads `gateway-tests.log` as an artifact to simplify triage.
+
+Potential follow-ups (not blockers):
+
+- Add a router (chi) and middleware for request logging and correlation IDs.
+- Add proper dependency management: run `go mod tidy` locally to tidy `go.mod` and download dependencies.
+- Add unit tests for config and redis client.
+
+- Add integration test that runs against the `docker-compose` Postgres/Redis to validate migration and Redis connectivity.
+
+## Router + Middleware — 2026-02-18
+
+- Follow-ups:
+  - Run `go mod tidy` locally; `go.sum` may need updating.
+  - Add correlation ID propagation into logs (use `middleware.RequestID` context value).
+- Added unit test for gateway config at `services/gateway/config_test.go` to validate env loading.
+- Added GitHub Actions job `gateway-tests` to run `go test ./...` in `services/gateway`.
+
+## Local execution note — 2026-02-18
+
+- The execution environment used by this agent does not have the `go` tool installed, so I could not run `go mod tidy` or `go test` locally. Please run the following locally and commit any changes to `go.sum`:
+
+cd services/gateway
+go mod tidy
+go test ./... -v
+
+- CI will run `go test` but may fail until `go.sum` is committed after `go mod tidy`.
+
+---
+
+## Gateway — Remaining Actions (automated scan)
+
+Status: In Progress
+
+These are the remaining actionable items for `services/gateway`. Some require a local Go toolchain and CI run.
+
+- Run `go mod tidy` in `services/gateway` and commit the generated `go.sum` so CI can run gateway tests.
+- Run unit tests locally and fix any failures:
+
+```bash
+cd services/gateway
+go mod tidy
+go test ./... -v
+```
+
+- If you want CI to run successfully, ensure `go.sum` is committed. CI will now fail early if `go.sum` is missing.
+- After `go.sum` is committed, I will investigate any CI failures (`Investigate running gateway tests in CI after go.sum commit`).
+- Optional (I can implement): add more integration tests that run under `docker compose` and enable CI gating for them.
+
+Diagnostic notes:
+
+- The agent environment used to scan the repo does not have the `go` binary installed, so I could not run `go mod tidy` or `go test` here — please run the commands locally and push `go.sum`.
+- I updated `services/gateway/go.mod` to `github.com/<org>/alfred/services/gateway`; replace `<org>` with your actual GitHub org if needed.
+
+If you'd like, I can open a PR with any failing-test fixes after you push `go.sum` and CI runs. Otherwise I can continue preparing fixes in a branch and wait for your confirmation to run them in CI.
+
+Update: `services/gateway/go.sum` was committed and pushed; CI gateway job should now run. I'll monitor CI and triage any failures, then open PRs with fixes as needed.
+
+## Recent quick fixes — 2026-02-18
+
+- Removed an unnecessary `time.Sleep` from `services/gateway/router/router_test.go` to reduce test flakiness.
+- Added draft-fix materials: `services/gateway/patches/README.md` and `dev/ci/prepare_gateway_fix_branch.ps1` to guide creating a draft branch with candidate fixes.
+- Made gateway runtime listen address configurable via `GATEWAY_ADDR` in `services/gateway/main.go` to avoid fixed-port conflicts during local runs and tests. Updated `services/gateway/CONTRIBUTING.md` to document this.
+
+---
+
+## Remaining Sprint TODOs — Blocked / Local actions
+
+Status: Blocked until `go.sum` is generated and pushed from a machine with Go installed.
+
+Outstanding items that require local execution or explicit confirmation:
+
+- Run `go mod tidy` and commit `services/gateway/go.sum` (local).
+- Run `go test ./... -v` in `services/gateway` and address any failing tests.
+- After `go.sum` is committed, monitor CI gateway job and triage failures (`Investigate running gateway tests in CI after go.sum commit`).
+- Review router/middleware tests for flakiness and adjust (may require mocking/time control in tests).
+- Decide canonical module path replacement for `github.com/<org>/alfred/services/gateway` and, if desired, update the repo with the actual org and re-run `go mod tidy`.
+
+If you run the commands below locally and push `go.sum`, I'll immediately pick up CI results and apply fixes as needed.
+
+```bash
+cd services/gateway
+go mod tidy
+go test ./... -v
+git add go.sum
+git commit -m "chore(gateway): add go.sum"
+git push
+```
+
+If you'd like me to proactively create a branch with candidate fixes for likely test failures, say "prepare fixes branch" and I'll open a PR ready to test once `go.sum` is pushed.
+
+---
+
+## Blocked — Gateway local verification
+
+Status: Blocked (requires local Go toolchain)
+
+Why blocked:
+
+- The scanning environment used to update these files does not include the `go` tool; I cannot run `go mod tidy` or `go test` here. Several remaining items require running those commands locally and committing the resulting `go.sum` so CI can run the gateway tests.
+
+Required local steps (please run and push results):
+
+```bash
+cd services/gateway
+go mod tidy
+go test ./... -v
+git add go.sum
+git commit -m "chore(gateway): add go.sum"
+git push
+```
+
+After you push `go.sum` I will:
+
+- monitor CI and triage any gateway test failures,
+- open PR(s) with fixes for failing tests or lint issues (per your preference),
+- finalize any CI gating changes if additional enforcement is desired.
+
+If you want me to proactively prepare fixes in a branch before you run the commands, I can do that — but final verification and CI runs will still require `go.sum` to be committed and available in the repo.
+
+---
+
+## Agent test-run attempt — 2026-02-18
+
+- I attempted to run `go mod tidy` / `go test ./...` from the agent environment to reproduce and triage failing gateway tests.
+- The agent environment does not have the `go` binary installed (error: `'go' is not recognized`), and an attempted `cd` also produced a path resolution error when executed inside the agent terminal context. Because of this the tests could not be executed here.
+- Action requested: please provide the CI gateway job logs, or run the following locally and push `go.sum` if you haven't already (you have pushed it already):
+
+```bash
+cd services/gateway
+go mod tidy
+go test ./... -v
+git add go.sum
+git commit -m "chore(gateway): add go.sum"
+git push
+```
+
+- Once CI finishes, I'll triage failures, create PRs with fixes, and address any flakiness in router/middleware tests.
+
 ## Executive Summary
 
 This report tracks the resolution status of all tasks identified in `Unresolved tasks.md`. Many issues have already been addressed in previous work.

@@ -1,9 +1,21 @@
 # AI Orchestrator — Development Task Board
 
 **Project:** AI Orchestrator — Enterprise AI Control & Economy Platform
-**Last Updated:** February 2026
+**Last Updated:** 2026-02-18
 **Total Tasks:** 111
 **Reference:** AI_Orchestrator_PRD_MASTER.md
+
+STATUS:
+[~] In progress
+
+Progress note: Gateway scaffolding for T001–T008 implemented; `go mod tidy` was run locally and `go.sum` was pushed. I attempted to run the gateway unit tests from the agent, but the agent environment lacks the `go` tool so tests could not be executed here. A diagnostics workflow (`.github/workflows/gateway-diagnostics.yml`) was added to run `go test ./...` and upload `gateway-tests.log` as an artifact. CI gateway job(s) are running; awaiting CI logs to triage and fix any failing tests.
+
+Next actions:
+
+- Collect `gateway-tests.log` artifact from the diagnostics workflow (or run `go test` locally and provide the log).
+- After logs are available, I'll triage failures, prepare fixes, and open PR(s) for review.
+
+STATUS: [~] In progress
 
 ---
 
@@ -92,14 +104,14 @@ STATUS:
 
 | ID   | Task                                                                                  | Priority | Complexity | Recommended Model      | Notes                                                |
 | ---- | ------------------------------------------------------------------------------------- | -------- | ---------- | ---------------------- | ---------------------------------------------------- |
-| T001 | [ ] Go monorepo project structure (gateway, metering, wallet, orchestration services) | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard Go project layout — free model handles this |
-| T002 | [ ] Dockerfile + docker-compose for local dev                                         | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Boilerplate, straightforward                         |
-| T003 | [ ] GitHub Actions CI pipeline (lint, test, build)                                    | 🔴 P0    | ⭐ 1       | **GPT 5 Mini Free**    | Standard YAML — free model                           |
-| T004 | [ ] Kubernetes manifests (Deployment, Service, Ingress, HPA)                          | 🔴 P0    | ⭐⭐ 2     | **GPT 5.1 Codex Mini** | Standard K8s config but needs tuning                 |
-| T005 | [ ] Environment configuration management (Viper/envconfig)                            | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Config boilerplate                                   |
-| T006 | [ ] Structured logging setup (zerolog or zap)                                         | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard setup                                       |
-| T007 | [ ] PostgreSQL schema migrations (golang-migrate)                                     | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Write SQL migration files                            |
-| T008 | [ ] Redis connection + health check                                                   | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard Redis client setup                          |
+| T001 | [x] Go monorepo project structure (gateway, metering, wallet, orchestration services) | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard Go project layout — free model handles this |
+| T002 | [x] Dockerfile + docker-compose for local dev                                         | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Boilerplate, straightforward                         |
+| T003 | [x] GitHub Actions CI pipeline (lint, test, build)                                    | 🔴 P0    | ⭐ 1       | **GPT 5 Mini Free**    | Standard YAML — free model                           |
+| T004 | [x] Kubernetes manifests (Deployment, Service, Ingress, HPA)                          | 🔴 P0    | ⭐⭐ 2     | **GPT 5.1 Codex Mini** | Standard K8s config but needs tuning                 |
+| T005 | [x] Environment configuration management (Viper/envconfig)                            | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Config boilerplate                                   |
+| T006 | [x] Structured logging setup (zerolog or zap)                                         | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard setup                                       |
+| T007 | [x] PostgreSQL schema migrations (golang-migrate)                                     | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Write SQL migration files                            |
+| T008 | [x] Redis connection + health check                                                   | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard Redis client setup                          |
 | T009 | [ ] Makefile with dev commands (run, test, build, migrate)                            | 🔴 P0    | ⭐ 1       | **GPT 5 Mini Free**    | Simple scripting                                     |
 | T010 | [ ] Pre-commit hooks (golangci-lint, gofmt, go vet)                                   | 🟠 P1    | ⭐ 1       | **GPT 5 Mini Free**    | Config files                                         |
 

@@ -54,3 +54,21 @@ minimal:
 	@echo "Building minimal artifact in ./dist"
 	./scripts/build_minimal.sh dist
 
+# Gateway local targets
+.PHONY: build-gateway gateway-run up down logs
+
+build-gateway:
+	cd services/gateway && go build -o bin/gateway .
+
+gateway-run:
+	cd services/gateway && go run .
+
+up:
+	docker-compose up -d --build
+
+down:
+	docker-compose down
+
+logs:
+	docker-compose logs -f
+
