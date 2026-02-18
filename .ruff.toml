@@ -1,0 +1,5 @@
+[tool.ruff]
+extend-select = ["E", "W", "F", "B"]
+line-length = 88
+select = ["E", "W", "F", "B", "C90"]
+exclude = [".git", "__pycache__", "build", "dist", "dev/QA/results"]

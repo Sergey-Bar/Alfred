@@ -28,6 +28,7 @@ jobs:
           scan-ref: "devops/merged/docker/Dockerfile"
           format: "table"
 
+      # Added secret scanning using TruffleHog
       - name: Run Secret Scan
         uses: trufflesecurity/trufflehog@main
         with:

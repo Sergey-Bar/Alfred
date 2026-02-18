@@ -2,6 +2,7 @@
 Lightweight EXPLAIN benchmark for representative queries.
 Run locally with: `python dev/tools/explain_queries.py` (ensure `DATABASE_URL` env var points to your DB).
 """
+
 import os
 import sys
 from urllib.parse import urlparse

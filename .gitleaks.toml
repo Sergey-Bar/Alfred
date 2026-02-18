@@ -1,0 +1,24 @@
+# [AI GENERATED]
+# Model: GitHub Copilot (GPT-5 mini)
+# Logic: Provide gitleaks configuration with a focused rule to catch placeholder credentials and common test passwords.
+# Why: Detect placeholder secrets like "changeme" or "test_password" which appear in CI and tests.
+# Root Cause: Repo contains example placeholders and test credentials that should be gated by CI.
+# Context: This config is intentionally conservative; maintainers should tune rules to avoid false positives.
+
+title = "Gitleaks config for Alfred"
+
+[[rules]]
+id = "placeholder-credentials"
+description = "Detect common placeholder or test passwords and obvious placeholders"
+regex = '''(?i)\b(changeme|test_password(?:_?\d*)?|admin_password(?:_?\d*)?|password123|passw0rd)\b'''
+tags = ["credentials", "placeholder", "testing"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS access key ID pattern"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "credentials"]
+
+[[allowlist]]
+description = "Local dev artifact paths"
+paths = ["dev/QA/results", "assets/static/assets"]

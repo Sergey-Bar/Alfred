@@ -64,10 +64,12 @@ async def get_current_user(
         raise AuthenticationException("Authentication failed.")
     return user
 
+
 # Helper functions for validation.
 async def validate_authorization(authorization: str, session: Session) -> Optional[User]:
     # Logic for validating authorization.
     pass
+
 
 async def validate_api_key(api_key: str, session: Session) -> Optional[User]:
     # Logic for validating API key.

@@ -21,18 +21,20 @@ console = Console()
 try:
     # colorama is optional but makes colors reliable on Windows
     from colorama import init as _colorama_init, Fore, Style
+
     _colorama_init()
     _HAS_COLORAMA = True
 except Exception:
     _HAS_COLORAMA = False
+
     class Fore:
-        GREEN = '\033[32m'
-        CYAN = '\033[36m'
-        RESET = '\033[0m'
+        GREEN = "\033[32m"
+        CYAN = "\033[36m"
+        RESET = "\033[0m"
 
     class Style:
-        BRIGHT = '\033[1m'
-        RESET_ALL = '\033[0m'
+        BRIGHT = "\033[1m"
+        RESET_ALL = "\033[0m"
 
 
 def rich_progress_bar(duration=2.0):
@@ -61,7 +63,14 @@ def rich_success_banner():
    ██║███████║    ██║  ██║███████╗██║ ╚████╔╝ ███████╗██╗ 
    ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝  ╚══════╝╚═╝ 
     """
-    console.print(Panel(banner, title="[green]✔ Installation Complete!", subtitle="[cyan]Next Steps:", expand=False))
+    console.print(
+        Panel(
+            banner,
+            title="[green]✔ Installation Complete!",
+            subtitle="[cyan]Next Steps:",
+            expand=False,
+        )
+    )
     console.print("[bold green] - Start the server: [cyan]uvicorn app.main:app --reload")
     console.print("[bold green] - Visit the dashboard: [cyan]https://alfred.ai")
 
@@ -75,5 +84,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

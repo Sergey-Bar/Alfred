@@ -5,6 +5,7 @@ Creates single-column indexes on `team_id` and `user_id` to improve lookup
 performance for common WHERE filters used by dashboard and governance endpoints.
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 

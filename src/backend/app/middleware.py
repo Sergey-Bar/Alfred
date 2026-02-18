@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 # Ensure 'app' is defined globally
 app = FastAPI()
 
+
 class RequestContextMiddleware(BaseHTTPMiddleware):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
@@ -291,9 +292,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     the RedisRateLimitMiddleware to ensure global consistency.
     """
 
-    def __init__(
-        self, requests_per_window: int, window_seconds: int, burst: int = 10
-    ):
+    def __init__(self, requests_per_window: int, window_seconds: int, burst: int = 10):
         self.requests_per_window = requests_per_window
         self.window_seconds = window_seconds
         self.burst = burst
@@ -517,6 +516,7 @@ if settings.rate_limit_enabled:
             window_seconds=settings.rate_limit_window_seconds,
             burst=settings.rate_limit_burst,
         )
+
 
 def setup_middleware(app: FastAPI) -> None:
     """Register middleware components in the FastAPI app."""

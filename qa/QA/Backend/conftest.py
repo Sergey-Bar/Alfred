@@ -7,148 +7,78 @@
 # Model Suitability: Standard import fix; GPT-4.1 is sufficient.
 import os
 import sys
-
-SRC_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../src/backend"))
-if SRC_BACKEND not in sys.path:
-    sys.path.insert(0, SRC_BACKEND)
-"""
-Pytest configuration and fixtures for Alfred tests.
-"""
-
-import logging
-import sys
-from decimal import Decimal
 from pathlib import Path
+import logging
 
 import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
 
-# Add backend directory to Python path so 'app' module can be imported
+# keep sys.path behavior so 'app' imports work in CI and local runs
 src_backend_dir = Path(__file__).parent.parent.parent / "src" / "backend"
+if src_backend_dir.exists():
+    if str(src_backend_dir) not in sys.path:
+        sys.path.insert(0, str(src_backend_dir))
+
 logger = logging.getLogger(__name__)
-logger.debug("src_backend_dir: %s", src_backend_dir)
-sys.path.insert(0, str(src_backend_dir))
 logger.debug("sys.path: %s", sys.path)
 
-# Use SQLite in-memory for tests (truly in-memory - no file)
-TEST_DATABASE_URL = "sqlite:///:memory:"
+# Use a shared fixtures module for core fixtures
+from tests.fixtures import shared_fixtures as shared  # noqa: E402
 
-# Ensure test runtime env is visible to imported app modules early
-import os as _os
-
-_os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
-_os.environ.setdefault("ENVIRONMENT", "test")
+# Use an in-memory DB URL; adapters can override via env
+TEST_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("ENVIRONMENT", "test")
 
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create test database engine - fresh for each test function."""
-    # Use StaticPool to ensure the same in-memory database is shared across connections
-    engine = create_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,  # Critical: ensures single shared in-memory db
-    )
-    # Import models to register them with SQLModel metadata
-    from app import models  # noqa: F401
+    """Adapter engine that uses StaticPool to match previous behavior.
 
-    SQLModel.metadata.create_all(engine)
-    # Ensure app modules use the test engine during tests
+    This overrides the default `engine` fixture from `shared_fixtures`.
+    """
+    engine = shared.make_engine(TEST_DATABASE_URL, static_pool=True)
+    # Import models to register metadata if available
+    try:
+        import app.models  # noqa: F401
+    except Exception:
+        pass
+
+    # create metadata and patch app database engine if present
+    try:
+        SQLModel = shared.SQLModel
+        SQLModel.metadata.create_all(engine)
+    except Exception:
+        pass
+
     try:
         import app.database as _app_db  # type: ignore
 
         _app_db.engine = engine
     except Exception:
         pass
+
     yield engine
-    SQLModel.metadata.drop_all(engine)
-    engine.dispose()
 
-
-@pytest.fixture(scope="function")
-def session(engine):
-    """Create test database session with transaction rollback."""
-    with Session(engine) as session:
-        yield session
-        session.rollback()
-
-
-@pytest.fixture
-def test_user(session):
-    """Create a test user."""
-    from app.logic import AuthManager
-    from app.models import User
-
-    _, api_key_hash = AuthManager.generate_api_key()
-
-    user = User(
-        email="test@example.com",
-        name="Test User",
-        api_key_hash=api_key_hash,
-        personal_quota=Decimal("1000.00"),
-        used_tokens=Decimal("0.00"),
-    )
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
-
-
-@pytest.fixture
-def admin_api_key(session):
-    """Create an admin user and return auth headers for tests."""
-    from decimal import Decimal
-
-    from app.logic import AuthManager
-    from app.models import User
-
-    api_key, api_key_hash = AuthManager.generate_api_key()
-
-    admin = User(
-        email="admin@example.com",
-        name="Admin",
-        api_key_hash=api_key_hash,
-        is_admin=True,
-        personal_quota=Decimal("10000.00"),
-    )
-    session.add(admin)
-    session.commit()
-    session.refresh(admin)
-    return {"Authorization": f"Bearer {api_key}"}
-
-
-@pytest.fixture
-def test_team(session):
-    """Create a test team."""
-    from app.models import Team
-
-    team = Team(
-        name="Test Team",
-        description="A test team",
-        common_pool=Decimal("10000.00"),
-        used_pool=Decimal("0.00"),
-    )
-    session.add(team)
-    session.commit()
-    session.refresh(team)
-    return team
+    try:
+        SQLModel = shared.SQLModel
+        SQLModel.metadata.drop_all(engine)
+    except Exception:
+        pass
+    try:
+        engine.dispose()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="function")
 def test_client(engine, monkeypatch):
-    """Create FastAPI test client with isolated database."""
+    """Create FastAPI test client with isolated database (adapter-specific)."""
     import app.main as main_module
     from fastapi.testclient import TestClient
     from sqlmodel import Session
 
-    # Store original engine
-    original_engine = main_module.engine
-
-    # Patch the engine in main module BEFORE starting the app
+    original_engine = getattr(main_module, "engine", None)
     main_module.engine = engine
 
-    # Override the session dependency to use our test engine
     def get_test_session():
         with Session(engine) as session:
             yield session
@@ -160,6 +90,6 @@ def test_client(engine, monkeypatch):
     with TestClient(main_module.app) as client:
         yield client
 
-    # Cleanup
     main_module.app.dependency_overrides.clear()
-    main_module.engine = original_engine
+    if original_engine is not None:
+        main_module.engine = original_engine
