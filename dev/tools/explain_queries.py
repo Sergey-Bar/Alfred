@@ -4,8 +4,6 @@ Run locally with: `python dev/tools/explain_queries.py` (ensure `DATABASE_URL` e
 """
 
 import os
-import sys
-from urllib.parse import urlparse
 
 from sqlalchemy import text
 from sqlmodel import create_engine

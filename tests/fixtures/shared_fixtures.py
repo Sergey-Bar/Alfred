@@ -8,16 +8,14 @@ Context: Adapter conftest files may still override behavior for special cases (e
 Model Suitability: Simple fixture glue — human review recommended.
 """
 
-from pathlib import Path
-import sys
-import os
-import json
 import logging
-from decimal import Decimal
+import os
+import sys
+from pathlib import Path
 
 import pytest
-from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
 logger = logging.getLogger(__name__)
 

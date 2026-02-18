@@ -11,16 +11,17 @@ Model Suitability: GPT-5 mini is appropriate for small utility scripts and UX co
 
 import sys
 import time
-import shutil
+
 from rich.console import Console
-from rich.progress import Progress
 from rich.panel import Panel
+from rich.progress import Progress
 
 console = Console()
 
 try:
     # colorama is optional but makes colors reliable on Windows
-    from colorama import init as _colorama_init, Fore, Style
+    from colorama import Fore, Style
+    from colorama import init as _colorama_init
 
     _colorama_init()
     _HAS_COLORAMA = True

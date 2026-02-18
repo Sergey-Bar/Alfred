@@ -6,7 +6,6 @@ performance for common WHERE filters used by dashboard and governance endpoints.
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.

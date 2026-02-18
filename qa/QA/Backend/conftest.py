@@ -5,10 +5,10 @@
 # Root Cause: Pytest may not set sys.path to package root when running from outside src/backend.
 # Context: This is safe and robust for monorepo and CI/CD.
 # Model Suitability: Standard import fix; GPT-4.1 is sufficient.
+import logging
 import os
 import sys
 from pathlib import Path
-import logging
 
 import pytest
 

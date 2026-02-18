@@ -10,7 +10,6 @@ import os
 
 import requests
 from rich.console import Console
-from rich.progress import Progress
 
 console = Console()
 

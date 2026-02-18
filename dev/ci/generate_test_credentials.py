@@ -8,10 +8,10 @@
 # Model Suitability: This is a simple utility script; maintainers should verify the env var names match CI secrets.
 """
 
-from pathlib import Path
-import os
 import json
+import os
 import sys
+from pathlib import Path
 
 DEFAULT_KEYS = [
     "TEST_ADMIN_PASSWORD",

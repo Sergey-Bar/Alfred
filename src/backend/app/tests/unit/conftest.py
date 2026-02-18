@@ -14,10 +14,10 @@ repo_root = Path(__file__).resolve().parents[5]
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
-from tests.fixtures.shared_fixtures import *  # noqa: F401,F403
-
 from app.main import app
 from fastapi.testclient import TestClient
+
+from tests.fixtures.shared_fixtures import *  # noqa: F401,F403
 
 
 @pytest.fixture
