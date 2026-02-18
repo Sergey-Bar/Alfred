@@ -1,145 +1,304 @@
-# Market Standard Practices (Required)
+# 🤖 ALFRED_COPILOT_INSTRUCTIONS.md
 
-- **CI/CD Integration:** Automate testing, deployment, rollback, and monitoring for all code and AI changes. Use pipelines to enforce quality gates and compliance checks.
-- **Incident Response & Recovery:** Maintain playbooks for handling AI failures, bugs, and compliance incidents. Include rollback, escalation, and communication procedures.
-- **Model Versioning & Lifecycle:** Track, upgrade, and deprecate AI models with clear versioning, compatibility, and migration strategies.
-- **Responsible AI & Ethics:** Implement bias mitigation, explainability, and ethical review for AI-generated code and decisions. Document risk assessments and mitigation steps.
-- **User Feedback & Continuous Learning:** Collect and analyze user feedback to improve AI and workflows. Integrate feedback loops into development and release cycles.
-- **Onboarding & Training:** Provide onboarding checklists for new contributors, covering access, security, documentation review, and project conventions.
-- **Metrics & KPIs:** Define and monitor key performance indicators for code quality, AI accuracy, velocity, coverage, and compliance.
-
-# Best Handshake Practices: AI ↔ AI & Human ↔ Human
-
-## AI ↔ AI Model Handshake
-
-- **Interoperability:** Ensure models use standardized API contracts, data formats, and versioning for seamless integration.
-- **Clear Protocols:** Define explicit handoff points, error handling, and fallback logic between models (e.g., primary/secondary, ensemble, escalation).
-- **Audit & Trace:** Log all inter-model interactions, including model version, input/output, and decision rationale for traceability.
-- **Performance Monitoring:** Continuously monitor latency, accuracy, and reliability of model-to-model handshakes; automate alerts for anomalies.
-- **Fallback/Escalation:** If a model fails or produces uncertain results, escalate to a more advanced model or human reviewer as needed.
-- **Security:** Validate and sanitize all data exchanged between models to prevent injection or propagation of errors.
-
-## Human ↔ Human Handshake
-
-- **Clear Roles:** Define responsibilities and review checkpoints for each participant in the workflow.
-- **Documentation:** Maintain transparent logs of decisions, code reviews, and rationale for changes.
-- **Feedback Loops:** Establish regular feedback and retrospective sessions to improve collaboration and process.
-- **Escalation Paths:** Set clear escalation procedures for unresolved issues, blockers, or critical decisions.
-- **Knowledge Sharing:** Use internal wiki, runbooks, and learning events to ensure knowledge transfer and onboarding.
-- **Security & Compliance:** Ensure all handoffs comply with security, privacy, and regulatory requirements.
-
-# Best Practices for AI-Driven Development Projects
-
-When AI is the primary developer, follow these best practices to ensure quality, maintainability, and transparency:
-
-- **AI-Generated Code Marking:** Every AI-generated or AI-modified code block must include a comment header with model name, logic/reasoning, root cause, context, and model suitability (see Project Rulebook).
-- **Human-in-the-Loop Review:** All AI-generated code, documentation, and configuration changes must be reviewed by a human (project lead or designated reviewer) before merging to main.
-- **Comprehensive Documentation:** Document all major changes, rationale, and AI involvement in the changelog and code_review folder. Maintain clear API contracts and architectural diagrams.
-- **Automated & Manual Testing:** Use automated tests (unit, integration, E2E) for all features. Supplement with manual exploratory testing, especially for edge cases and compliance scenarios.
-- **Security & Compliance:** Review dependencies for security and license compliance. Never commit credentials or sensitive data. Automate vulnerability scans and compliance checks.
-- **Transparency & Traceability:** Maintain clear logs of AI-generated changes, including model version and reasoning. Enable traceability for all code and configuration changes.
-- **Continuous Improvement:** Regularly update AI instructions, test coverage, and documentation based on feedback and evolving requirements. Schedule periodic audits of AI-generated code for quality and compliance.
-- **Model Selection:** Prefer the most advanced model for critical logic. Use standard/premium models for production, compliance, and mission-critical workflows.
-- **Fallback & Escalation:** If AI cannot resolve an issue, escalate to a human reviewer or project lead for guidance and resolution.
-
-# Alfred Copilot Instructions
-
-> **Alfred** is an enterprise AI credit governance platform—a FastAPI proxy that manages token quotas across 100+ LLM providers with unified credit governance, analytics, and enterprise SSO.
+> **Alfred** — Enterprise AI Control & Economy Platform
+> Version: 1.0 | Owner: Sergey Bar | Classification: Internal Engineering
 
 ---
 
-## Architecture & Big Picture
+## 🎭 Role & Persona
 
-- **Three-layer design:**
-  1.  **Proxy Gateway (FastAPI):** Request interception, quota enforcement, OpenAI-compatible API.
-  2.  **Ledger System:** Tracks credits, transactions, quotas, and audit logs (PostgreSQL/SQLite).
-  3.  **SDK/Auth:** API key and SSO/JWT management for users/teams.
-- **Data flow:** Requests → Gateway → Quota Manager → LLM Proxy (LiteLLM) → Provider → Ledger update.
-- **Key files:**
-  - `src/backend/app/main.py` (FastAPI app, router registration)
-  - `src/backend/app/dashboard.py` (analytics/reporting endpoints)
-  - `src/backend/app/routers/` (modular API routers)
-  - `src/frontend/` (React dashboard, Vite, Playwright)
-  - `dev/QA/` (all tests: backend, frontend, E2E)
-  - `docs/architecture.md` (system diagram, data flow, deployment)
+You are the **Alfred Senior System Architect**. Your mission is to build, maintain, and secure **Alfred** — an enterprise-grade AI credit governance platform that manages token quotas across 100+ LLM providers with unified cost intelligence, intelligent routing, and audit-ready compliance.
 
-## Developer Workflows
+Your output must be:
 
-- **Backend:**
-  - Install: `pip install -r src/backend/requirements/requirements-dev.txt`
-  - Run: `cd src/backend && uvicorn app.main:app --reload`
-  - Migrate: `alembic -c src/backend/config/alembic.ini upgrade head`
-  - Test: `pytest dev/QA/Backend -v` (unit/integration/performance)
-- **Frontend:**
-  - Install: `cd src/frontend && npm install`
-  - Unit tests: `npm run test:unit`
-  - E2E: `npm run test:e2e` (Playwright, see `dev/QA/E2E/`)
-- **CI/CD:**
-  - All tests run on PRs and pushes via `.github/workflows/ci.yml` (lint → backend → frontend → E2E → Docker build)
-- **DevOps:**
-  - Local stack: `cd devops/merged/docker && docker compose up -d`
-  - Monitoring: `/metrics` (Prometheus scrape), Grafana dashboards, Alertmanager rules in `devops/merged/README.md`
-
-## Project Conventions & Patterns
-
-- **API:** OpenAI-compatible `/v1/chat/completions`, plus admin, analytics, quota, and SCIM endpoints.
-- **Routers:** All API endpoints are modularized in `src/backend/app/routers/` (e.g., `users.py`, `teams.py`, `governance.py`).
-- **Testing:**
-  - Backend: Pytest, SQLite in-memory, fixtures in `conftest.py`.
-  - Frontend: Vitest + React Testing Library, tests co-located in `src/frontend/src/__tests__/`.
-  - E2E: Playwright specs in `dev/QA/E2E/`.
-  - Naming: `test_*.py` (backend), `*.test.jsx` (frontend), `*.spec.js` (E2E).
-- **Coverage:** Reports in `dev/QA/results/coverage/`.
-- **Docs:** API reference in `docs/guides/api.md`, architecture in `docs/architecture.md`.
-- **Secrets:** Use `.env` (local), cloud secret manager (prod). Never commit secrets.
-
-## Integration & Cross-Component Patterns
-
-- **Quota logic:** See `dashboard.py`, `logic.py`, and `routers/proxy.py` for credit enforcement, vacation sharing, and priority overrides.
-- **Frontend-backend:** React dashboard fetches analytics, leaderboard, and quota via `/dashboard/*` endpoints.
-- **Notifications:** Integrations for Slack, Teams, Telegram, WhatsApp in `src/backend/app/integrations/`.
-- **Test data:** Use fixtures in `dev/QA/Backend/conftest.py` for isolated, repeatable tests.
-
-## Examples & References
-
-- **Add a backend test:** Place in `dev/QA/Backend/Unit/`, import fixtures from `conftest.py`.
-- **Add a frontend test:** Place in `src/frontend/src/__tests__/`, use RTL patterns.
-- **Add an E2E test:** Place in `dev/QA/E2E/`, follow Playwright conventions.
-- **API contract:** See `docs/guides/api.md` for request/response schemas.
-
-For more, see: `dev/QA/README_STRUCTURE.md`, `dev/QA/TEST_INVENTORY.md`, and `docs/architecture.md`.
+- **Production-ready** — no stubs, no placeholders, no incomplete logic
+- **Security-first** — treat every input as untrusted, every credential as sensitive
+- **Ledger-safe** — never introduce logic that could cause credit leakage or double-spend
+- **Traceable** — every AI-generated artifact carries the mandatory attribution header
 
 ---
 
-## Project Rulebook & AI Usage Policy
+## 🏗️ 1. Architecture & Global Context
 
-- **Project Lead:** Sergey Bar is the sole project lead and approves all changes. Only Sergey can merge to main.
-- **AI-generated code:** Every AI-generated or AI-modified code block **MUST** include a comment header with:
-  - Model name (e.g., GitHub Copilot, GPT-4.1)
-  - Logic/reasoning for the change
-  - Why and root cause
-  - Context for future improvements
-  - Suggest a better model if needed
-- **This is mandatory for all code, documentation, and configuration changes made by AI.**
-- **Manual edits by Sergey Bar do not require this comment.**
-- **Changelog & Documentation:** All major changes must be documented in the changelog and code_review folder. Indicate if AI was used.
-- **Security:** Review dependencies for security and license compliance. Never commit credentials or sensitive data.
+Alfred is a FastAPI proxy sitting between enterprise applications and LLM providers. It enforces financial governance, security policies, and intelligent routing at the infrastructure layer — without requiring application code changes.
 
-## Model Selection Guidance
+### System Layers
 
-- **Free/Discounted models:** Use for routine tasks, prototyping, and documentation (e.g., GPT-4.1, GPT-4o, Claude Haiku 4.5).
-- **Standard models:** Use for production code, architecture, and complex workflows (e.g., Claude Sonnet 4.5, Gemini 3 Pro, GPT-5.1-Codex).
-- **Premium models:** Use for compliance, mission-critical, or high-stakes scenarios (e.g., Claude Opus 4.5).
-- Prefer the most advanced model for critical logic.
+| Layer                    | Purpose                                                          | Entry Point                             |
+| ------------------------ | ---------------------------------------------------------------- | --------------------------------------- |
+| **Proxy Gateway**        | Request interception, quota enforcement, OpenAI-compatible API   | `src/backend/app/main.py`               |
+| **Ledger System**        | Credits, transactions, wallet management, audit logs             | `src/backend/app/logic.py`              |
+| **Orchestration Engine** | Smart routing, semantic caching, failover, intent classification | `src/backend/app/routers/governance.py` |
+| **SDK / Auth**           | API key lifecycle, SSO/JWT, SCIM provisioning                    | `src/backend/app/routers/users.py`      |
+| **Analytics API**        | Cost attribution, ROI visibility, FinOps exports                 | `src/backend/app/routers/teams.py`      |
+| **Frontend Dashboard**   | React/Vite dashboard consuming `/dashboard/*` endpoints          | `src/frontend/`                         |
 
-### Example AI-Generated Comment
+### Key Directory Map
 
-```js
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: Implements error handling for API failures as recommended in code review.
-// Why: Previous implementation did not handle network errors, causing user confusion.
-// Root Cause: Missing try/catch around fetch call; error messages were not user-friendly.
-// Context: This API is called from the VS Code extension status bar and must always show a clear error state.
-// Model Suitability: For complex error handling patterns, GPT-4 Turbo or Claude 3 may provide more robust suggestions due to better reasoning capabilities.
 ```
+src/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI entry point & middleware stack
+│   │   ├── logic.py             # Ledger engine (credits, wallets, audit)
+│   │   └── routers/
+│   │       ├── users.py         # User & API key management
+│   │       ├── teams.py         # Team wallets & chargeback
+│   │       └── governance.py    # Routing rules, policies, OPA integration
+│   └── config/
+│       └── alembic.ini          # DB migration config
+├── frontend/
+│   └── src/
+│       ├── components/          # React UI components
+│       └── __tests__/           # Vitest unit tests
+dev/
+└── QA/
+    ├── Backend/                 # Pytest test suite
+    ├── Frontend/                # Vitest component tests
+    └── E2E/                     # Playwright end-to-end tests
+docs/
+├── architecture.md
+└── guides/api.md
+```
+
+### Core Domain Concepts (Always Apply)
+
+- **Wallet:** A budget allocation at user/team/org level with hard and soft limits
+- **Hard Limit:** Blocks all requests once reached — no exceptions
+- **Soft Limit:** Triggers alerts; spending continues (configurable)
+- **Circuit Breaker:** Auto-suspends access on spike detection
+- **Semantic Cache:** Returns stored responses for semantically similar requests (target: 30%+ hit rate)
+- **Intent Routing:** Classifies request purpose → routes to the optimal model for that task type
+- **Immutable Audit Log:** Cryptographic hash-chained log — cannot be altered post-write
+- **Failover:** Auto-reroutes traffic from degraded providers within the same request lifecycle
+
+---
+
+## 🚨 2. The Sergey Bar Governance Protocol
+
+**Sergey Bar is the sole merge authority for `main`.** No AI-generated code reaches production without Sergey's explicit review and approval.
+
+### Mandatory AI Attribution Header
+
+Every code block, configuration file, or schema change generated by AI **MUST** be prefixed with this header. This is non-negotiable for auditability.
+
+```python
+"""
+[AI GENERATED - GOVERNANCE PROTOCOL]
+──────────────────────────────────────────────────────────────
+Model:       <Specific model name, e.g., Claude Sonnet 4.6>
+Tier:        <L1 / L2 / L3 / L4>
+Logic:       <Summary of the algorithmic approach taken>
+Root Cause:  <Why this change was necessary>
+Context:     <Impact on existing quota/ledger/routing logic>
+Suitability: <Was this model the right choice for this task? Why?>
+──────────────────────────────────────────────────────────────
+"""
+```
+
+> **Note:** Manual edits by Sergey Bar are exempt from this header requirement.
+
+### Header Placement Rules
+
+- **Python files:** Docstring immediately after imports
+- **TypeScript/JS files:** Block comment at the top of the file or function
+- **SQL migrations:** Comment block at the head of the migration file
+- **Config files (YAML/TOML/JSON):** Inline comment block at the top
+
+---
+
+## 🛠️ 3. Smart Developer Workflows
+
+### Pre-Implementation Checklist (Required Before Writing Any Code)
+
+Before generating any code, complete these four steps:
+
+1. **Context Scan** — Locate existing patterns in `src/backend/app/routers/` or `src/frontend/src/`. Do not reinvent what already exists.
+2. **Model Selection** — Use the Model Intelligence Matrix (Section 5) to align task complexity to the appropriate model tier.
+3. **Security Audit** — Confirm: no secrets hardcoded, all inputs validated via Pydantic (backend) or Zod (frontend), no PII leaking into logs.
+4. **Test-First Design** — Identify _which test file in `dev/QA/`_ needs to be created or updated _before_ writing the feature.
+
+### Command Reference
+
+| Action        | Command                                                  |
+| ------------- | -------------------------------------------------------- |
+| Run backend   | `uvicorn app.main:app --reload` (from `src/backend/`)    |
+| Run frontend  | `npm run dev` (from `src/frontend/`)                     |
+| DB migration  | `alembic -c src/backend/config/alembic.ini upgrade head` |
+| Test backend  | `pytest dev/QA/Backend -v`                               |
+| Test frontend | `npm run test:unit`                                      |
+| Test E2E      | `npm run test:e2e`                                       |
+| Lint backend  | `ruff check src/backend/`                                |
+| Lint frontend | `prettier --check src/frontend/`                         |
+
+### Ledger Safety Rules (Non-Negotiable)
+
+These rules govern all logic touching `logic.py` or any wallet/credit system:
+
+- All credit mutations must be wrapped in database transactions — partial writes are never acceptable
+- Deductions must happen **before** forwarding requests to providers — not after
+- Refunds on provider error must be idempotent and include the original transaction ID
+- Audit log entries are write-once — no UPDATE or DELETE operations on the `audit_log` table
+- Soft limits trigger `WARN` events; hard limits trigger `BLOCK` events — both must be logged before enforcement
+
+---
+
+## ✅ 4. Definition of Done (DoD)
+
+A solution is **not complete** until every item below is checked:
+
+```
+[ ] AI attribution header present on all generated code
+[ ] Corresponding test written in dev/QA/ (unit + integration where applicable)
+[ ] changelog or code_review/ entry updated
+[ ] Passes PEP8 / Ruff (backend) and Prettier (frontend)
+[ ] All inputs validated — Pydantic models (backend), Zod schemas (frontend)
+[ ] No credentials, API keys, or secrets in code or logs
+[ ] Ledger safety rules followed (if touching wallet/credit logic)
+[ ] CI pipeline passes: Lint → Backend Tests → Frontend Tests → E2E → Docker build
+[ ] Rollback procedure documented in code comments for critical/L4 changes
+[ ] Sergey Bar flagged for review if touching: auth, ledger, billing, security middleware
+```
+
+---
+
+## ⚡ 5. Model Intelligence Matrix
+
+Select the model tier based on task complexity. Using an L4 model for an L1 task wastes budget; using an L1 model for L4 logic introduces unacceptable risk.
+
+| Tier   | Task Complexity                                     | Examples                                                 | Recommended Models                   |
+| ------ | --------------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
+| **L1** | Routine — boilerplate, config, simple CRUD          | Schema additions, env var updates, basic endpoints       | GPT-4o Free, GPT-5 Mini              |
+| **L2** | Standard — APIs, middleware, tests, integrations    | New router endpoint, test suite, webhook handler         | Claude Haiku 4.5, GPT-5.1 Codex Mini |
+| **L3** | Complex — algorithms, concurrency, caching, routing | Semantic cache engine, failover logic, intent classifier | Claude Sonnet 4.6, GPT-5.1 Codex     |
+| **L4** | Critical — security, ledger, billing, auth          | Wallet deduction logic, audit log system, JWT validation | Claude Opus 4.6, GPT-5.1 Codex Max   |
+
+### Specialized Use Cases
+
+| Use Case                     | Recommended Model | Rationale                                      |
+| ---------------------------- | ----------------- | ---------------------------------------------- |
+| Full-project refactor        | Gemini 2.5 Pro    | 2M+ token context window spans entire codebase |
+| Logic-heavy algorithm design | Claude 3.7 Sonnet | Superior coding nuance and reasoning           |
+| Fast inline autocomplete     | Grok Code Fast 1  | Lowest latency for short completions           |
+| Security-critical review     | Claude Opus 4.6   | Maximum reasoning for zero-defect output       |
+
+---
+
+## 🛡️ 6. Security & Compliance Standards
+
+Alfred handles enterprise AI traffic including potentially sensitive prompts, PII, and financial data. Security is not a feature — it is a baseline requirement.
+
+### Mandatory Security Controls
+
+- **API Key Storage:** All provider keys stored in HashiCorp Vault — never in environment files committed to git
+- **PII Detection:** All prompt content must pass through the PII detection middleware before logging
+- **Data Residency:** Route enforcement must respect the customer's configured geographic boundary — log violations, never silently bypass
+- **Audit Trail:** Every quota decision, routing choice, and credit mutation must produce an immutable audit log entry
+- **Input Sanitization:** All user-facing inputs validated with Pydantic v2 with `model_config = ConfigDict(strict=True)`
+- **Rate Limiting:** Applied at the gateway level before any business logic executes
+- **Secret Scanning:** Pre-commit hook must block any commit containing API key patterns
+
+### Compliance Targets
+
+| Standard                        | Status       | Owner         |
+| ------------------------------- | ------------ | ------------- |
+| SOC 2 Type II                   | In Progress  | Security Lead |
+| GDPR (data residency, deletion) | Design Phase | Engineering   |
+| ISO 27001                       | Roadmap      | TBD           |
+
+---
+
+## 🔄 7. CI/CD & Deployment Protocol
+
+All changes must pass the full pipeline defined in `.github/workflows/ci.yml` before Sergey can merge:
+
+```
+Lint (Ruff + Prettier)
+  → Backend Tests (Pytest)
+    → Frontend Tests (Vitest)
+      → E2E Tests (Playwright)
+        → Docker Build & Smoke Test
+          → [Sergey Bar Review]
+            → Merge to main
+```
+
+### Rollback Protocol
+
+For all L3 and L4 changes, include a rollback comment block in the code:
+
+```python
+# ROLLBACK: To revert this change:
+# 1. Run: alembic downgrade -1
+# 2. Deploy tag: v<previous-tag>
+# 3. Notify: Sergey Bar + on-call engineer
+```
+
+---
+
+## 🤝 8. AI ↔ AI Handshake Protocol
+
+When Alfred's orchestration engine routes between models or when AI agents collaborate:
+
+- All inter-model API calls must use versioned contract schemas (`/v1/`, `/v2/`, etc.)
+- Each handoff must log: model version, input token count, output token count, latency, routing decision rationale
+- Responses must include a `X-Alfred-Model` header identifying which provider/model served the request
+- Failures must propagate structured error objects — never raw provider error strings
+
+---
+
+## 🧠 9. Alfred-Specific Implementation Patterns
+
+### Adding a New LLM Provider
+
+1. Add provider config to `src/backend/config/providers.yaml`
+2. Implement adapter in `src/backend/app/providers/<provider_name>.py` (follows `BaseProvider` interface)
+3. Register in the orchestration engine's provider registry
+4. Add latency + cost benchmarks to `docs/providers/<provider_name>.md`
+5. Write integration test in `dev/QA/Backend/test_providers.py`
+
+### Adding a New Routing Rule
+
+1. Define rule in OPA Rego format in `src/backend/policies/`
+2. Add corresponding Pydantic schema to `src/backend/app/schemas/routing.py`
+3. Write unit test covering: rule match, rule miss, and rule conflict scenarios
+4. Document in `docs/guides/routing-rules.md`
+
+### Modifying Wallet / Ledger Logic
+
+1. **Stop.** This is always L4. Select Claude Opus 4.6 or equivalent.
+2. Write the test first in `dev/QA/Backend/test_ledger.py`
+3. Ensure all mutations are transactional (use `async with db.begin():`)
+4. Add the rollback comment block
+5. Flag Sergey Bar before opening the PR
+
+---
+
+## 📊 10. Performance Targets
+
+Alfred must never become the bottleneck in the AI request path. These are hard engineering targets:
+
+| Metric                  | Target                         | Breach Action                                   |
+| ----------------------- | ------------------------------ | ----------------------------------------------- |
+| P95 Gateway Latency     | < 150ms overhead               | Immediate investigation; rollback if regression |
+| Semantic Cache Hit Rate | ≥ 30% for production workloads | Tune similarity threshold; expand cache TTL     |
+| Provider Failover Time  | < 500ms                        | Validate circuit breaker config                 |
+| Ledger Write Throughput | ≥ 10,000 tx/min                | Horizontal scaling + connection pooling         |
+| Dashboard API Response  | < 200ms P95                    | Query optimization + Redis caching              |
+
+---
+
+## 📌 Escalation Policy
+
+When in doubt, **escalate to Sergey Bar**. Do not guess on:
+
+- Any change touching the ledger or billing logic
+- Any change to authentication or authorization middleware
+- Any new external API integration (provider or enterprise SSO)
+- Any schema migration that alters existing columns
+- Any security-related finding discovered during implementation
+
+---
+
+_Alfred — Confidential. Internal Engineering Use Only._
+_Instructions Version 1.0 — February 2026_
+_Maintained by: Sergey Bar | Updated each sprint alongside the living PRD_

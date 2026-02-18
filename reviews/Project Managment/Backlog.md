@@ -27,6 +27,83 @@ This report tracks the resolution status of all tasks identified in `Unresolved 
    - **Action Needed**: Consolidate into single test structure
    - **Impact**: Medium - causes path confusion
 
+---
+
+## Recent Work (applied)
+
+- **Test infra consolidated (partial):** central `pytest.ini` and `tests/fixtures/shared_fixtures.py` created; multiple QA `conftest.py` adapters updated to load shared fixtures and add `src/backend` to `sys.path`.
+- **CI & security:** secret-scan CI job and gating artifacts added; pre-commit + linter CI scaffolding applied.
+- **Middleware fix:** `BaseHTTPMiddleware` subclasses updated to call `super().__init__(app)` to restore `dispatch_func` and fix startup errors.
+- **DB test stability:** shared fixtures now call `drop_all(engine)` before `create_all(engine)` to avoid duplicate index/table creation on test runs.
+- **Router import fixes:** missing imports in `src/backend/app/routers/users.py` corrected so routes register at app startup.
+- **Auth helpers:** `validate_api_key`/`validate_authorization` logic added with debug logging to surface why API-key lookups can return no users during tests.
+
+- **Health/test endpoint:** added `routers.health` with `/test/users_count` to let CI/tests quickly verify that the running app is connected to the test DB and sees seeded users.
+
+These fixes resolved multiple unit-test failures and `tests/unit` now passes in CI for the focused suite. Several QA adapter tests still fail and are tracked below.
+
+## Today (2026-02-18) — Engine Injection & Test Adapter Fixes
+
+- Implemented a test-engine injection pattern across test adapters to ensure the FastAPI app and pytest fixtures share the same SQLModel/SQLAlchemy Engine.
+  - Updated `tests/conftest.py` to create a file-backed test engine and call `app.database.set_engine(engine)` when possible.
+  - Updated `qa/QA/Backend/conftest.py` to call `_app_db.set_engine(engine)`, reset the `_tables_created` guard, and call `SQLModel.metadata.create_all(_app_db.get_engine())` so schema exists on the injected engine.
+  - Verified presence of a lightweight `/test/users_count` health endpoint to validate DB connectivity from the running app.
+
+- Current status: these changes reduced import-order & engine-mismatch classes of failures but some QA unit tests still fail with `sqlite3.OperationalError: no such table: approval_requests` in lifecycle/request handling. This indicates there remain test entrypoints or import-order paths that initialize the app with a different engine before the adapter injection runs.
+
+- Next immediate steps (in-progress): sweep remaining `conftest.py` adapters (e.g., `qa/QA/Backend/Unit/conftest.py`, `qa/QA/E2E_Python/conftest.py`) to ensure test DB env and `set_engine()` are executed before any app imports or TestClient creation. If issues persist, refactor the app to use an application factory (`create_app(engine=None)`) to remove import-time engine creation.
+
+---
+
+## Blocker Update (2026-02-18)
+
+- Despite injecting a shared Engine across adapter `conftest.py` files and adding defensive schema creation in `app.database`, QA unit tests still surface `sqlite3.OperationalError: no such table: approval_requests` during request handling.
+
+- Diagnostic findings:
+  - I ran `dev/scripts/inspect_db.py` which shows `approval_requests` and other tables exist on `sqlite:///C:\Projects\Alfred\.pytest_tmp\test.db`.
+  - This indicates schema exists on the test DB file, but the app request handlers are still executing against an engine instance that does not have the schema (likely caused by import-order or duplicate module import paths creating distinct `app.database` instances).
+
+- Recommended next action (highest ROI): implement an application factory and remove import-time engine creation.
+  - Create `create_app(settings=None, engine=None)` in `src/backend/app/main.py` that accepts an `Engine` and wires dependencies explicitly.
+  - Update tests to call `create_app(engine=engine)` or set `app_db.set_engine(engine)` before creating TestClient; this will remove import-time ordering sensitivity.
+  - This refactor is more invasive but will permanently eliminate the DB lifecycle mismatch and improve testability and startup determinism.
+
+- I can implement the application-factory refactor now and run the full QA unit suite again. This is the recommended path. If you prefer a narrower diagnostic approach first, I can continue probing import paths and module duplication instead.
+
+These updates are applied in-branch; I can continue the `conftest` sweep and then run the full QA unit test suite to close remaining failures.
+
+---
+
+## Re-prioritized High Priority (current)
+
+- Ensure test DB seeding for auth: make sure `shared_fixtures` creates admin/test users with `api_key_hash` that match generated `admin_api_key` and that the same DB/engine is used by TestClient (StaticPool cases).
+- Standardize remaining `qa/` adapter `conftest.py` files to the shared-loader pattern and verify `src/backend` is importable in all QA contexts.
+- Triage and fix remaining QA unit/integration failures (401/404 mismatches) by capturing failing endpoints, request headers, and DB seed state.
+- Harden `validate_api_key` lookup (SQLModel query + raw-SQL fallback) and add test assertions that seeding creates expected records.
+- Address runtime-impacting linter issues (undefined names, import errors) that cause routers or dependencies to fail at import time.
+
+---
+
+### Blocking: DB lifecycle mismatch persists
+
+- **Symptom**: After multiple adapter fixes and adding a health endpoint, QA unit tests still fail with sqlite OperationalError "no such table: approval_requests". Attempts to unify `DATABASE_URL` and force-create tables in `.pytest_tmp/test.db` did not resolve the failure.
+- **Root Cause (likely)**: The application may create its global engine at import time using a different DB URL or engine object than the one used by test fixtures. Tests that import app modules before test adapters set `DATABASE_URL` will continue to operate on mismatched databases.
+- **Recommended Next Step**: Implement an engine-injection pattern in `src/backend/app/database.py` (e.g., `set_engine()` + lazy engine creation) so tests can reliably supply a shared engine before the app initializes. This refactor will be performed next unless you direct otherwise.
+
+---
+
+## New High-Priority Bug: Test DB lifecycle mismatch
+
+- **Symptom**: QA adapter tests intermittently return 401 or raise "no such table" errors during request handling. Logs show authentication lookups report zero users or SQL errors like "no such table: users".
+- **Root Cause (likely)**: The application creates its DB engine at import/startup (based on `settings.database_url`) while test fixtures create an independent in-memory engine. If the TestClient/app is started before fixtures seed data or before test adapter sets `DATABASE_URL`, the app and fixtures operate on different DB backends.
+- **Recommended Fixes**:
+  - Standard approach: adapter `conftest.py` must set `DATABASE_URL` (or `settings.database_url`) to a test-specific sqlite file URL and import the application **after** this env var is set so the app's engine points at the same test DB.
+  - Alternatively, use a shared file-backed sqlite (e.g., `sqlite:///./.pytest_tmp/test.db`) or `StaticPool` with the same engine object passed to the app to share the in-memory DB.
+  - As a safety net, ensure `shared_fixtures` imports `app.models` and runs `SQLModel.metadata.create_all(app.database.engine)` before issuing requests so tables exist on the app engine.
+  - Add an integration test verifying DB seeding visibility from request handlers.
+
+These recommendations are reflected in the current todo list and should be prioritized to stabilize QA tests.
+
 2. **Database Query Optimization** (Line 23)
    - **Issue**: Replace multiple selects with joins in quota logic
    - **Action Needed**: Identify and optimize quota queries
@@ -124,17 +201,20 @@ Lines 48-56 contain product roadmap items that are intentionally not started:
    - Add secret scanning to CI pipeline
    - Centralize test credentials
 
-2. **Short Term** (Quality):
+2. **Immediate** (Testability):
+   - Add lightweight health/test endpoints (done: `routers.health`) and use them in CI to assert DB seeding visibility before running integration tests.
+
+3. **Short Term** (Quality):
    - Consolidate test configuration
    - Run code formatters (ruff, black)
    - Add missing error handler to dataQuality.js
 
-3. **Medium Term** (Performance):
+4. **Medium Term** (Performance):
    - Optimize database queries in quota logic
    - Improve Docker healthchecks
    - Audit and improve logging coverage
 
-4. **Long Term** (Planning):
+5. **Long Term** (Planning):
    - Prioritize and schedule roadmap items
    - Create GitHub issues for each task
 
@@ -231,6 +311,49 @@ _If you want these entries split into smaller per-area files or converted into G
 **Task**: Resolve tasks from `reviews/Project Managment/Unresolved tasks.md`
 
 ---
+
+## AI Findings — 2026-02-18
+
+- **Immediate source of test instability**: import-time DB engine creation and mismatched engine objects between tests and the running app.
+- **Files creating engines or calling create_all**:
+  - `src/backend/app/database.py` — calls `create_engine(...)` at module scope and calls `SQLModel.metadata.create_all(get_engine())` in places.
+  - `src/backend/app/lifespan.py` — calls `SQLModel.metadata.create_all(engine_obj)` during lifespan startup.
+
+- **Impact**: Tests and TestClient instances may use different Engine objects or DB URLs, causing `sqlite3.OperationalError: no such table` and flaky auth/seed visibility during request handling.
+
+- **Recommended fixes (high priority)**:
+  1.  Implement an application factory `create_app(engine=None)` in `src/backend/app/main.py` and ensure tests call `create_app(engine=engine)` (or call `app_db.set_engine(engine)` before importing app modules).
+  2.  Replace import-time `create_engine(...)` with a lazy engine proxy and public `set_engine()`/`get_engine()` helpers in `src/backend/app/database.py` so tests can inject the test engine deterministically.
+  3.  Ensure `SQLModel.metadata.create_all()` is executed against the injected engine (guarded in lifespan/startup) and not on a module-created engine instance.
+  4.  Update all `qa/` adapter `conftest.py` files to create their test `Engine` early and instantiate the test app using the factory.
+
+- **Next actions I started**: created a TODO list and scanned the repo for `create_engine` / `create_all` usage; I will continue sweeping modules that create engines at import time and apply the factory/engine-injection pattern across the repo.
+
+### Remaining `create_engine(...)` occurrences (current)
+
+- `src/backend/app/database.py` — factory-based engine creation remains (uses `create_db_engine()`); module uses lazy proxy so acceptable but keep under review.
+- `backend/core/database.py` — now uses a lazy `_EngineProxy` and no longer creates an Engine at import-time (refactored).
+- `dev/tools/explain_queries.py` — dev CLI tool creates an engine for interactive query explainability; consider lazily importing or using `get_engine()` for consistency.
+- `migrations/env.py` — Alembic env creates an engine for migrations (expected behavior; leave unchanged).
+- `qa/QA/E2E_Python/conftest.py` and `qa/QA/Backend/Unit/conftest.py` — test adapters create engines (acceptable) but they attempt to inject into `app.database` — ensure that injection is executed before any `app` imports.
+- `tests/conftest.py` and `tests/fixtures/shared_fixtures.py` — create test engines and attempt to call `app.database.set_engine(engine)` where possible (acceptable for tests).
+
+### Recommended follow-ups
+
+- Convert `dev/tools/explain_queries.py` to use `from app import database; engine = database.get_engine()` or accept an injected engine parameter for CLI usage.
+- Audit any non-test modules that call `create_engine(...)` at module import time and refactor to use a factory or lazy proxy (we've already refactored the core DB modules).
+- Add a unit/integration test that asserts `app.database.get_engine()` returns the same Engine object as the test fixture `engine` when `set_engine()` is used (guards against regressions).
+
+## Recent Fixes (AI-assisted) — 2026-02-18
+
+- Implemented a lazy engine proxy and injection helpers in `src/backend/app/database.py` so tests can deterministically inject a shared Engine via `set_engine()`/`get_engine()`.
+- Refactored `backend/core/database.py` to expose a lazy `_EngineProxy` and `set_engine()`/`get_engine()` to avoid import-time Engine creation.
+- Added guarded startup schema sync and seeding in `src/backend/app/lifespan.py` that prefers the injected app engine, sets a `_tables_created` guard, and retries seeding `OrgSettings` if needed.
+- Added `create_app(engine=None)` factory in `src/backend/app/main.py`, and ensured minimal `/` and `/health` endpoints exist to avoid 404 in tests.
+- Fixed `src/backend/app/routers/users.py` to populate required fields in `UserCreateResponse` and avoid Pydantic validation errors during tests.
+- Centralized and patched `tests/conftest.py`, `qa/QA/Backend/conftest.py`, and `qa/QA/E2E_Python/conftest.py` to create a test Engine early and inject it into `app.database` where possible.
+
+These changes reduced import-order DB schema races and resolved several flaky test failures. Remaining work (see TODOs) focuses on sweeping the repo for any other modules creating engines at import time, adding explicit regression tests for engine injection, and standardizing adapter conftests to call `create_app(engine=engine)` where appropriate.
 
 ## 📊 EXECUTIVE SUMMARY
 

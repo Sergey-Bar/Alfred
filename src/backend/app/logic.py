@@ -18,12 +18,14 @@ to ensure mission-critical work is never blocked by rigid administrative silos.
 
 import hashlib
 import secrets
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple
 
 from litellm import completion, completion_cost
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from .constants import CreditConversion
@@ -37,7 +39,6 @@ try:
     from tenacity import (
         before_sleep_log,
         retry,
-        retry_if_exception_type,
         stop_after_attempt,
         wait_exponential,
     )
@@ -258,22 +259,48 @@ class QuotaManager:
 
     def _get_total_team_pool(self, user: User) -> Decimal:
         """Aggregate available credits across all user memberships."""
-        total = Decimal("0.00")
-        statement = select(Team).join(TeamMemberLink).where(TeamMemberLink.user_id == user.id)
-        teams = self.session.exec(statement).all()
-        for team in teams:
-            total += team.available_pool
-        return total
+        # Use a single aggregate query to compute the sum of available_pool across teams
+        # Compute available_pool as (common_pool - used_pool) at SQL-level
+        available_expr = Team.common_pool - Team.used_pool
+        stmt = (
+            select(func.coalesce(func.sum(available_expr), 0))
+            .select_from(Team)
+            .join(TeamMemberLink, Team.id == TeamMemberLink.team_id)
+            .where(TeamMemberLink.user_id == user.id)
+        )
+        result = self.session.exec(stmt).one()
+        total = result if result is not None else 0
+        try:
+            return Decimal(str(total))
+        except Exception:
+            return Decimal("0.00")
 
     def _get_vacation_share_credits(self, user: User) -> Decimal:
         """Heuristic: If 1+ member is away, unlock a capped percentage of the pool."""
-        total_vacation_credits = Decimal("0.00")
-        statement = select(Team).join(TeamMemberLink).where(TeamMemberLink.user_id == user.id)
-        teams = self.session.exec(statement).all()
-        for team in teams:
-            if self._get_vacation_members(team, exclude_user=user):
-                total_vacation_credits += team.vacation_share_limit
-        return total_vacation_credits
+        # Find teams the user is a member of and that have at least one other member on vacation
+        # Build a subquery of team_ids that have vacationing members (excluding the user)
+        vacationing_team_ids = (
+            select(TeamMemberLink.team_id)
+            .join(User, TeamMemberLink.user_id == User.id)
+            .where(User.status == UserStatus.ON_VACATION, User.id != user.id)
+            .distinct()
+            .subquery()
+        )
+
+        # Calculate vacation_share_limit at SQL level: ((common_pool - used_pool) * vacation_share_percentage) / 100
+        share_expr = (Team.common_pool - Team.used_pool) * Team.vacation_share_percentage / 100
+        stmt = (
+            select(func.coalesce(func.sum(share_expr), 0))
+            .select_from(Team)
+            .where(Team.id.in_(select(vacationing_team_ids.c.team_id)))
+            .where(Team.id.in_(select(TeamMemberLink.team_id).where(TeamMemberLink.user_id == user.id)))
+        )
+        result = self.session.exec(stmt).one()
+        total = result if result is not None else 0
+        try:
+            return Decimal(str(total))
+        except Exception:
+            return Decimal("0.00")
 
     def _get_vacation_members(self, team: Team, exclude_user: User) -> List[User]:
         """Find colleagues whose status is 'ON_VACATION'."""

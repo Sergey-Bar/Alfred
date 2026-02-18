@@ -22,11 +22,10 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from ..database import create_db_engine
+from ..database import get_db_session
 from ..models import AnalyticsEventDB
 
 router = APIRouter()
-engine = create_db_engine()
 
 
 # --- RBAC & Audit Logging Stubs ---
@@ -59,12 +58,11 @@ class AnalyticsEvent(BaseModel):
 
 # --- Persistent Storage ---
 @router.post("/analytics/events", status_code=status.HTTP_201_CREATED)
-def submit_analytics_event(event: AnalyticsEvent, user: str = Depends(get_current_user)):
+def submit_analytics_event(event: AnalyticsEvent, user: str = Depends(get_current_user), session: Session = Depends(get_db_session)):
     check_analytics_access(user, event.event_type)
     db_event = AnalyticsEventDB(**event.dict())
-    with Session(engine) as session:
-        session.add(db_event)
-        session.commit()
+    session.add(db_event)
+    session.commit()
     log_audit_event(user, "submit_event", event.dict())
     return {"message": "Event recorded", "event_id": event.id}
 
@@ -75,38 +73,37 @@ def query_analytics_events(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     user: str = Depends(get_current_user),
+    session: Session = Depends(get_db_session),
 ):
     check_analytics_access(user, event_type)
-    with Session(engine) as session:
-        query = select(AnalyticsEventDB)
-        if event_type:
-            query = query.where(AnalyticsEventDB.event_type == event_type)
-        if start:
-            query = query.where(AnalyticsEventDB.timestamp >= start)
-        if end:
-            query = query.where(AnalyticsEventDB.timestamp <= end)
-        results = session.exec(query).all()
+    query = select(AnalyticsEventDB)
+    if event_type:
+        query = query.where(AnalyticsEventDB.event_type == event_type)
+    if start:
+        query = query.where(AnalyticsEventDB.timestamp >= start)
+    if end:
+        query = query.where(AnalyticsEventDB.timestamp <= end)
+    results = session.exec(query).all()
     log_audit_event(user, "query_events", {"event_type": event_type, "start": start, "end": end})
     return [AnalyticsEvent(**e.dict()) for e in results]
 
 
 @router.get("/analytics/aggregate")
-def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(get_current_user)):
+def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(get_current_user), session: Session = Depends(get_db_session)):
     check_analytics_access(user, event_type)
-    with Session(engine) as session:
-        stmt = (
-            select(
-                func.count(AnalyticsEventDB.value),
-                func.coalesce(func.sum(AnalyticsEventDB.value), 0),
-                func.avg(AnalyticsEventDB.value),
-                func.max(AnalyticsEventDB.value),
-                func.min(AnalyticsEventDB.value),
-            )
-            .where(AnalyticsEventDB.event_type == event_type)
-            .where(AnalyticsEventDB.value != None)
+    stmt = (
+        select(
+            func.count(AnalyticsEventDB.value),
+            func.coalesce(func.sum(AnalyticsEventDB.value), 0),
+            func.avg(AnalyticsEventDB.value),
+            func.max(AnalyticsEventDB.value),
+            func.min(AnalyticsEventDB.value),
         )
+        .where(AnalyticsEventDB.event_type == event_type)
+        .where(AnalyticsEventDB.value != None)
+    )
 
-        row = session.exec(stmt).one_or_none()
+    row = session.exec(stmt).one_or_none()
 
     # row -> (count, sum, avg, max, min)
     if not row or row[0] == 0:
@@ -134,7 +131,7 @@ def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(g
 # --- Advanced Analytics: User/Dataset Breakdown ---
 @router.get("/analytics/breakdown")
 def analytics_breakdown(
-    by: str = "user", event_type: Optional[str] = None, user: str = Depends(get_current_user)
+    by: str = "user", event_type: Optional[str] = None, user: str = Depends(get_current_user), session: Session = Depends(get_db_session)
 ):
     check_analytics_access(user, event_type)
     if by not in {"user", "dataset"}:
@@ -142,14 +139,13 @@ def analytics_breakdown(
 
     field = AnalyticsEventDB.user if by == "user" else AnalyticsEventDB.dataset
 
-    with Session(engine) as session:
-        stmt = select(field, func.coalesce(func.sum(AnalyticsEventDB.value), 0)).where(
-            AnalyticsEventDB.value != None
-        )
-        if event_type:
-            stmt = stmt.where(AnalyticsEventDB.event_type == event_type)
-        stmt = stmt.group_by(field)
-        rows = session.exec(stmt).all()
+    stmt = select(field, func.coalesce(func.sum(AnalyticsEventDB.value), 0)).where(
+        AnalyticsEventDB.value != None
+    )
+    if event_type:
+        stmt = stmt.where(AnalyticsEventDB.event_type == event_type)
+    stmt = stmt.group_by(field)
+    rows = session.exec(stmt).all()
 
     breakdown = {row[0]: float(row[1]) for row in rows if row[0] is not None}
     log_audit_event(user, "breakdown", {"by": by, "event_type": event_type})

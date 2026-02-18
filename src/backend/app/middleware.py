@@ -115,13 +115,16 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        redis_host: str,
-        redis_port: int,
-        redis_db: int,
-        requests_per_window: int,
-        window_seconds: int,
+        app: FastAPI,
+        redis_host: str | None = None,
+        redis_port: int | None = None,
+        redis_db: int | None = None,
+        requests_per_window: int = 100,
+        window_seconds: int = 60,
         burst: int = 10,
     ):
+        # BaseHTTPMiddleware expects middleware __init__(app, ...)
+        super().__init__(app)
         self.redis_host = redis_host
         self.redis_port = redis_port
         self.redis_db = redis_db
@@ -292,7 +295,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     the RedisRateLimitMiddleware to ensure global consistency.
     """
 
-    def __init__(self, requests_per_window: int, window_seconds: int, burst: int = 10):
+    def __init__(self, app: FastAPI, requests_per_window: int, window_seconds: int, burst: int = 10):
+        # FastAPI/Starlette calls middleware constructors with (app, *args, **kwargs)
+        super().__init__(app)
         self.requests_per_window = requests_per_window
         self.window_seconds = window_seconds
         self.burst = burst

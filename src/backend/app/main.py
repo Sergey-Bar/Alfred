@@ -52,6 +52,7 @@ from slowapi.util import get_remote_address
 
 from .database import get_db_session
 from .lifespan import alfred_lifespan
+from . import database as app_database
 
 # Expose `get_session` for test fixtures that expect `app.main.get_session`
 get_session = get_db_session
@@ -99,91 +100,90 @@ if not hasattr(settings, "redis_url"):
 # Why: Ensures the app object exists before middleware and router registration.
 # Root Cause: FastAPI requires a single app instance for all configuration.
 # Context: Docs are disabled in production for security.
-app = FastAPI(
-    title=settings.app_name,
-    description="Enterprise Multi-LLM Gateway with B2B Quota Governance",
-    version=settings.app_version,
-    lifespan=alfred_lifespan,
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
-)
+def create_app(engine=None) -> FastAPI:
+    """Application factory.
 
+    If `engine` is provided, inject it into `app.database` before creating
+    the FastAPI instance so the app uses the provided engine for all DB
+    sessions. Returns a fully configured FastAPI app instance.
+    """
 
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Sets up Redis-backed distributed rate limiting using SlowAPI and attaches it to the app state.
-# Why: Prevents abuse and enforces fair usage across distributed deployments.
-# Root Cause: Without rate limiting, API could be overwhelmed or exploited.
-# Context: If Redis is unavailable, logs an error but does not crash the app.
-try:
-    redis = Redis.from_url(settings.redis_url)
-    limiter = Limiter(key_func=get_remote_address, storage_uri=settings.redis_url)
+    # If a concrete Engine was provided, ensure the app database proxy is set.
+    if engine is not None:
+        try:
+            app_database.set_engine(engine)
+        except Exception:
+            try:
+                app_database.engine = engine
+            except Exception:
+                pass
 
-    # Add rate limiting middleware using SlowAPIMiddleware
-    app.state.limiter = limiter
-    app.add_middleware(SlowAPIMiddleware)
+    app = FastAPI(
+        title=settings.app_name,
+        description="Enterprise Multi-LLM Gateway with B2B Quota Governance",
+        version=settings.app_version,
+        lifespan=alfred_lifespan,
+        docs_url="/docs" if not settings.is_production else None,
+        redoc_url="/redoc" if not settings.is_production else None,
+    )
 
-    logger.info("Redis-backed distributed rate limiting enabled.")
-except Exception as e:
-    logger.error(f"Failed to initialize Redis-backed rate limiting: {e}")
-
-
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: (Redundant) Re-instantiates FastAPI app with same settings. This is likely a copy-paste or merge artifact.
-# Why: Should be removed for clarity; only one app instance is needed.
-# Root Cause: Duplicate app instantiation can cause confusion or bugs.
-# Context: Safe to remove in future refactor.
-# (No code change here, just comment for future improvement)
-
-
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Adds Prometheus metrics endpoint for observability if Instrumentator is available.
-# Why: Enables real-time monitoring and alerting for API health and usage.
-# Root Cause: Metrics are critical for SRE and compliance.
-# Context: Handles partial failures gracefully, logs warnings if metrics setup fails.
-if Instrumentator is not None:
+    # Setup Redis-backed rate limiting (best-effort)
     try:
-        instrumentator = Instrumentator(
-            should_group_status_codes=False,
-            excluded_handlers=["/metrics"],
-            should_ignore_untemplated=True,
-        )
-        instrumentator.instrument(app).expose(app, endpoint="/metrics")
-        logger.info("Prometheus metrics exposed at /metrics endpoint.")
-    except Exception:
-        logger.warning("Telemetry Instrumentation partially failed.", exc_info=True)
+        redis = Redis.from_url(settings.redis_url)
+        limiter = Limiter(key_func=get_remote_address, storage_uri=settings.redis_url)
+        app.state.limiter = limiter
+        app.add_middleware(SlowAPIMiddleware)
+        logger.info("Redis-backed distributed rate limiting enabled.")
+    except Exception as e:
+        logger.error(f"Failed to initialize Redis-backed rate limiting: {e}")
 
+    # Optional Prometheus instrumentation
+    if Instrumentator is not None:
+        try:
+            instrumentator = Instrumentator(
+                should_group_status_codes=False,
+                excluded_handlers=["/metrics"],
+                should_ignore_untemplated=True,
+            )
+            instrumentator.instrument(app).expose(app, endpoint="/metrics")
+            logger.info("Prometheus metrics exposed at /metrics endpoint.")
+        except Exception:
+            logger.warning("Telemetry Instrumentation partially failed.", exc_info=True)
 
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Registers global exception handlers and custom middleware for security, logging, and request shaping.
-# Why: Ensures consistent error handling and cross-cutting concerns are enforced.
-# Root Cause: FastAPI requires explicit registration of exception handlers and middleware.
-# Context: All middleware should be registered before routers.
-setup_exception_handlers(app)
-setup_middleware(app)
+    # Register global exception handlers and middleware
+    setup_exception_handlers(app)
+    setup_middleware(app)
 
-
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Configures CORS to restrict cross-origin requests, with stricter rules in production.
-# Why: Prevents CSRF and data exfiltration from unauthorized origins.
-# Root Cause: Open CORS in production is a security risk.
-# Context: CORS origins are loaded from settings, fallback to default in dev.
-cors_origins = (
-    [o for o in settings.cors_origins if o != "*"]
-    if settings.is_production
-    else settings.cors_origins
-)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins or ["api.alfred.enterprise"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Configure CORS
+    cors_origins = (
+        [o for o in settings.cors_origins if o != "*"]
+        if settings.is_production
+        else settings.cors_origins
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins or ["api.alfred.enterprise"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    # Register routers and return the configured app
+    register_routers(app)
+    # Ensure a minimal root and health endpoint exist for tests and probes
+    if not any(getattr(r, "path", None) == "/" for r in app.routes):
+        @app.get("/", include_in_schema=False)
+        async def _api_root():
+            return {
+                "name": "Alfred",
+                "platform": "Alfred API Lite",
+                "status": "running",
+                "version": settings.app_version,
+            }
+    if not any(getattr(r, "path", None) == "/health" for r in app.routes):
+        @app.get("/health", include_in_schema=False)
+        async def _health():
+            return {"status": "healthy", "version": settings.app_version}
+    return app
 
 
 # [AI GENERATED]
@@ -204,6 +204,7 @@ def register_routers(app: FastAPI):
     # Core Identity & Access Management
     identity_routers = [
         ("routers.users", "Identity & Access Management"),
+        ("routers.health", "Health"),
         ("routers.teams", "Teams & Collaboration"),
         ("routers.auth", "Authentication"),
     ]
@@ -302,8 +303,10 @@ def register_routers(app: FastAPI):
             _resolve_and_include(item, tag)
 
 
-# Register all routers
-register_routers(app)
+
+# Create a module-level app for compatibility. Tests or callers that need a
+# customized engine should call `create_app(engine=...)` instead.
+app = create_app()
 
 
 # [AI GENERATED]

@@ -15,6 +15,7 @@ from sqlmodel import Field, SQLModel
 
 class TestDataSet(SQLModel, table=True):
     __tablename__ = "test_data_sets"
+    __table_args__ = {"extend_existing": True}
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, max_length=100)
     version: str = Field(index=True, max_length=50)
@@ -35,6 +36,7 @@ from sqlmodel import Field, SQLModel
 # Context: Used by analytics router for event ingestion/query/aggregation. Future: add indexes, partitioning, and warehouse sync.
 class AnalyticsEventDB(SQLModel, table=True):
     __tablename__ = "analytics_events"
+    __table_args__ = {"extend_existing": True}
     id: int = Field(primary_key=True)
     timestamp: datetime = Field(index=True)
     event_type: str = Field(index=True, max_length=100)
@@ -54,6 +56,7 @@ class AnalyticsEventDB(SQLModel, table=True):
 
 class EnrichmentPipelineDB(SQLModel, table=True):
     __tablename__ = "enrichment_pipelines"
+    __table_args__ = {"extend_existing": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255)
     description: Optional[str] = Field(default=None)
@@ -65,6 +68,7 @@ class EnrichmentPipelineDB(SQLModel, table=True):
 
 class EnrichmentJobDB(SQLModel, table=True):
     __tablename__ = "enrichment_jobs"
+    __table_args__ = {"extend_existing": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     pipeline_id: int = Field(foreign_key="enrichment_pipelines.id", index=True)
     status: str = Field(max_length=50)
@@ -75,6 +79,7 @@ class EnrichmentJobDB(SQLModel, table=True):
 
 class LineageEventDB(SQLModel, table=True):
     __tablename__ = "lineage_events"
+    __table_args__ = {"extend_existing": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
     dataset: str = Field(max_length=255, index=True)
@@ -168,6 +173,7 @@ class TeamMemberLink(SQLModel, table=True):
     """
 
     __tablename__ = "team_member_links"
+    __table_args__ = {"extend_existing": True}
 
     team_id: Optional[uuid.UUID] = Field(
         default=None, foreign_key="teams.id", primary_key=True, index=True
@@ -196,6 +202,7 @@ class Team(SQLModel, table=True):
     """
 
     __tablename__ = "teams"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, max_length=255)
@@ -253,6 +260,7 @@ class User(SQLModel, table=True):
     """
 
     __tablename__ = "users"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     email: str = Field(unique=True, index=True, max_length=255)
@@ -323,6 +331,7 @@ class RequestLog(SQLModel, table=True):
     """
 
     __tablename__ = "request_logs"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
@@ -390,6 +399,7 @@ class LeaderboardEntry(SQLModel, table=True):
     """
 
     __tablename__ = "leaderboard"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
@@ -430,6 +440,7 @@ class ApprovalRequest(SQLModel, table=True):
     """
 
     __tablename__ = "approval_requests"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
@@ -466,6 +477,7 @@ class AuditLog(SQLModel, table=True):
     """
 
     __tablename__ = "audit_logs"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     actor_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
@@ -494,6 +506,7 @@ class TokenTransfer(SQLModel, table=True):
     """
 
     __tablename__ = "token_transfers"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
@@ -520,6 +533,7 @@ class OrgSettings(SQLModel, table=True):
     """
 
     __tablename__ = "org_settings"
+    __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
@@ -565,6 +579,7 @@ class Role(SQLModel, table=True):
     """
 
     __tablename__ = "roles"
+    __table_args__ = {"extend_existing": True}
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
@@ -577,6 +592,7 @@ class Permission(SQLModel, table=True):
     """
 
     __tablename__ = "permissions"
+    __table_args__ = {"extend_existing": True}
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(index=True, unique=True, max_length=64)
     description: Optional[str] = Field(default=None, max_length=255)
@@ -588,6 +604,7 @@ class UserRole(SQLModel, table=True):
     """
 
     __tablename__ = "user_roles"
+    __table_args__ = {"extend_existing": True}
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -599,6 +616,7 @@ class RolePermission(SQLModel, table=True):
     """
 
     __tablename__ = "role_permissions"
+    __table_args__ = {"extend_existing": True}
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
     permission_id: uuid.UUID = Field(foreign_key="permissions.id", primary_key=True)
     granted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

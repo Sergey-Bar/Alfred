@@ -9,6 +9,7 @@
 Comprehensive tests for vacation sharing logic.
 """
 
+import logging
 import os
 import sys
 from decimal import Decimal
@@ -61,31 +62,33 @@ class TestVacationSharing:
             user=test_user, estimated_cost=Decimal("50.00"), priority=ProjectPriority.NORMAL
         )
 
+        logger = logging.getLogger(__name__)
         # Debugging logs after initialization
-        print(f"Test User: {test_user}")
-        print(f"Vacation User: {vacation_user}")
-        print(f"Test Team: {test_team}")
-        print(f"Vacation User Status: {vacation_user.status}")
-        print(
-            f"Vacation User Team Links: {session.exec(select(TeamMemberLink).where(TeamMemberLink.user_id == vacation_user.id)).all()}"
+        logger.debug("Test User: %s", test_user)
+        logger.debug("Vacation User: %s", vacation_user)
+        logger.debug("Test Team: %s", test_team)
+        logger.debug("Vacation User Status: %s", vacation_user.status)
+        logger.debug(
+            "Vacation User Team Links: %s",
+            session.exec(select(TeamMemberLink).where(TeamMemberLink.user_id == vacation_user.id)).all(),
         )
 
         # Add debugging logs to trace vacation sharing logic
-        print(f"Vacation credits: {test_team.vacation_share_limit}")
-        print(f"User status: {vacation_user.status}")
+        logger.debug("Vacation credits: %s", test_team.vacation_share_limit)
+        logger.debug("User status: %s", vacation_user.status)
 
         # Correctly logging vacation sharing attributes
-        print(f"Vacation sharing percentage: {test_team.vacation_share_percentage}")
-        print(f"Vacation share limit: {test_team.vacation_share_limit}")
+        logger.debug("Vacation sharing percentage: %s", test_team.vacation_share_percentage)
+        logger.debug("Vacation share limit: %s", test_team.vacation_share_limit)
 
         # Log vacation sharing settings and credits for debugging
-        print(f"Vacation credits calculated: {manager._get_vacation_share_credits(test_user)}")
+        logger.debug("Vacation credits calculated: %s", manager._get_vacation_share_credits(test_user))
 
         # Refresh test_team to ensure members are updated
         session.refresh(test_team)
 
         # Log team members for debugging
-        print(f"Team members after refresh: {[member.email for member in test_team.members]}")
+        logger.debug("Team members after refresh: %s", [member.email for member in test_team.members])
 
         assert result.allowed is True
         assert result.source == "vacation_share"

@@ -71,7 +71,40 @@ def create_db_engine() -> Engine:
 # Why: Prevents multiple engines and connection pool exhaustion.
 # Root Cause: Multiple engines can cause subtle bugs and resource leaks.
 # Context: All sessions use this engine instance.
-engine = create_db_engine()
+class _EngineProxy:
+    def __init__(self) -> None:
+        self._engine: Engine | None = None
+
+    def set(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def get(self) -> Engine:
+        if self._engine is None:
+            self._engine = create_db_engine()
+        return self._engine
+
+    def __getattr__(self, item):
+        return getattr(self.get(), item)
+
+
+# Module-level engine proxy. Tests or calling code can override the engine
+# by calling `set_engine(engine)` so that the same Engine instance is used
+# across the process (prevents import-time engine mismatches in tests).
+engine: _EngineProxy | Engine = _EngineProxy()
+
+
+def set_engine(e: Engine) -> None:
+    global engine
+    if isinstance(engine, _EngineProxy):
+        engine.set(e)
+    else:
+        engine = e
+
+
+def get_engine() -> Engine:
+    if isinstance(engine, _EngineProxy):
+        return engine.get()
+    return engine
 
 
 @contextmanager
@@ -96,7 +129,7 @@ def get_session() -> Generator[Session, None, None]:
     Yields:
         Session: An active SQLModel session.
     """
-    session = Session(engine)
+    session = Session(get_engine())
     try:
         yield session
         session.commit()
@@ -129,5 +162,5 @@ def get_db_session() -> Generator[Session, None, None]:
     Yields:
         Session: A request-scoped database session.
     """
-    with Session(engine) as session:
+    with Session(get_engine()) as session:
         yield session

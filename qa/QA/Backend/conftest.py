@@ -5,6 +5,9 @@
 # Root Cause: Pytest may not set sys.path to package root when running from outside src/backend.
 # Context: This is safe and robust for monorepo and CI/CD.
 # Model Suitability: Standard import fix; GPT-4.1 is sufficient.
+from __future__ import annotations
+
+import importlib.util
 import logging
 import os
 import sys
@@ -21,11 +24,33 @@ if src_backend_dir.exists():
 logger = logging.getLogger(__name__)
 logger.debug("sys.path: %s", sys.path)
 
-# Use a shared fixtures module for core fixtures
-from tests.fixtures import shared_fixtures as shared  # noqa: E402
+# Use a shared fixtures module for core fixtures (load by path so `tests` need not be
+# an importable package when running pytest from repo root).
+# Locate repository root by finding the `tests` directory, then load shared_fixtures.py
+repo_root = Path(__file__).resolve()
+while repo_root and not (repo_root / "tests").exists():
+    if repo_root.parent == repo_root:
+        break
+    repo_root = repo_root.parent
+shared_path = repo_root / "tests" / "fixtures" / "shared_fixtures.py"
+spec = importlib.util.spec_from_file_location("tests.shared_fixtures", str(shared_path))
+shared = importlib.util.module_from_spec(spec)
+assert spec and spec.loader is not None
+spec.loader.exec_module(shared)
+
+# Re-export shared fixtures so pytest discovers them (admin_api_key, test_user, etc.)
+try:
+    from tests.fixtures.shared_fixtures import *  # noqa: F401,F403
+except Exception:
+    # If import fails, keep using `shared` module references directly
+    pass
 
 # Use an in-memory DB URL; adapters can override via env
-TEST_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
+_tmp_dir = Path(".pytest_tmp")
+_tmp_dir.mkdir(exist_ok=True)
+TEST_DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{_tmp_dir / 'test.db'}")
+# Ensure the application will pick up the test DB at import time
+os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
 os.environ.setdefault("ENVIRONMENT", "test")
 
 
@@ -51,8 +76,24 @@ def engine():
 
     try:
         import app.database as _app_db  # type: ignore
+        from sqlmodel import SQLModel
 
-        _app_db.engine = engine
+        # Prefer the public setter so the module's proxy is updated correctly
+        try:
+            _app_db.set_engine(engine)
+        except Exception:
+            # Fallback for older code paths that expect direct assignment
+            _app_db.engine = engine
+
+        # Reset create_all guard and ensure schema exists on the injected engine
+        try:
+            _app_db._tables_created = False
+        except Exception:
+            pass
+        try:
+            SQLModel.metadata.create_all(_app_db.get_engine())
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -73,23 +114,55 @@ def engine():
 def test_client(engine, monkeypatch):
     """Create FastAPI test client with isolated database (adapter-specific)."""
     import app.main as main_module
+    # Also import dependencies module so we can override its get_session dependency
+    try:
+        import app.dependencies as app_dependencies
+    except Exception:
+        app_dependencies = None
     from fastapi.testclient import TestClient
     from sqlmodel import Session
 
-    original_engine = getattr(main_module, "engine", None)
-    main_module.engine = engine
+    # Create an app instance wired to the test engine so all internals use it
+    test_app = main_module.create_app(engine=engine)
 
     def get_test_session():
         with Session(engine) as session:
             yield session
 
-    main_module.app.dependency_overrides[main_module.get_session] = get_test_session
+    # Override session provider used by the app and by dependency modules
+    try:
+        test_app.dependency_overrides[main_module.get_session] = get_test_session
+    except Exception:
+        pass
+    if app_dependencies is not None:
+        try:
+            test_app.dependency_overrides[app_dependencies.get_session] = get_test_session
+        except Exception:
+            pass
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("ENVIRONMENT", "test")
 
-    with TestClient(main_module.app) as client:
-        yield client
+    # Ensure the application's engine has tables created for the test run
+    try:
+        import app.database as _app_db  # type: ignore
+        from sqlmodel import SQLModel
 
-    main_module.app.dependency_overrides.clear()
-    if original_engine is not None:
-        main_module.engine = original_engine
+        try:
+            import app.models  # noqa: F401
+        except Exception:
+            pass
+        # Ensure the app is using the same engine instance and create tables
+        try:
+            _app_db.set_engine(engine)
+        except Exception:
+            try:
+                _app_db.engine = engine
+            except Exception:
+                pass
+        SQLModel.metadata.create_all(_app_db.get_engine())
+    except Exception:
+        pass
+
+    with TestClient(test_app) as client:
+        yield client
+    test_app.dependency_overrides.clear()

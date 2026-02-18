@@ -25,6 +25,7 @@ common 'N+1 Query' trap when resolving User/Team names for large lists of logs.
 """
 
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, List
@@ -99,16 +100,20 @@ async def get_overview_stats(
     ).one()
     total_requests, total_tokens, total_credits = request_stats
 
-    # Engagement Logic (7-day window)
+    # Engagement Logic (7-day window) — computed where needed to avoid unused assignments
     week_ago = func.now() - text("INTERVAL '7 days'")
+
+    # Active users in the last 7 days
     active_users = session.exec(
         select(func.count(func.distinct(cast(RequestLog.user_id, String))))
-        .where(RequestLog.created_at != None)
+        .where(RequestLog.created_at.isnot(None))
         .where(RequestLog.created_at >= week_ago)
     ).one()
 
-    # Backlog Tracing
-    pending = session.exec(select(func.count(cast(ApprovalRequest.id, String)))).one() or 0
+    # Pending approval count
+    pending = session.exec(
+        select(func.count(cast(ApprovalRequest.id, String))).where(ApprovalRequest.status == "pending")
+    ).one() or 0
 
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
@@ -153,16 +158,7 @@ async def get_user_usage_stats(
     ).one()
     total_requests, total_tokens, total_credits = request_stats
 
-    # Engagement Logic (7-day window)
-    week_ago = func.now() - text("INTERVAL '7 days'")
-    active_users = session.exec(
-        select(func.count(func.distinct(cast(RequestLog.user_id, String))))
-        .where(RequestLog.created_at != None)
-        .where(RequestLog.created_at >= week_ago)
-    ).one()
-
-    # Backlog Tracing
-    pending = session.exec(select(func.count(cast(ApprovalRequest.id, String)))).one() or 0
+    # Engagement and backlog metrics computed in `get_overview_stats` to avoid duplicate DB calls
 
     # Fix Decimal compatibility in order_by
     users = session.exec(
@@ -180,7 +176,7 @@ async def get_user_usage_stats(
             .where(cast(RequestLog.user_id, String).in_(user_ids))  # Use consistent casting
             .group_by(cast(RequestLog.user_id, String))
         ).all()
-        request_counts = {u_id: count for u_id, count in counts}
+        request_counts = dict(counts)
 
     result = []
     for user in users:
@@ -446,6 +442,7 @@ async def get_approval_stats(
     current_user: User = Depends(require_admin), session: Session = Depends(get_session)
 ):
     """Governance Workflow Metrics (SLA Tracking)."""
+    start = time.perf_counter()
     week_ago = func.now() - text("INTERVAL '7 days'")
 
     # Core Counts
@@ -462,7 +459,7 @@ async def get_approval_stats(
             select(func.count(cast(ApprovalRequest.id, String))).where(
                 and_(
                     ApprovalRequest.status == "approved",
-                    ApprovalRequest.resolved_at != None,
+                    ApprovalRequest.resolved_at is not None,
                     ApprovalRequest.resolved_at >= week_ago,
                 )
             )
@@ -481,14 +478,7 @@ async def get_approval_stats(
     # Mean Time to Resolution (MTTR) Analysis
     resolved = session.exec(
         select(ApprovalRequest)
-        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at != None))
-        .limit(100)
-    ).all()
-
-    # Fix datetime comparison issues
-    resolved = session.exec(
-        select(ApprovalRequest)
-        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at != None))
+        .where(and_(ApprovalRequest.status != "pending", ApprovalRequest.resolved_at is not None))
         .limit(100)
     ).all()
 

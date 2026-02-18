@@ -24,6 +24,9 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
+# Guard to avoid repeated create_all calls during test runs
+_tables_created = False
+
 
 def create_db_engine() -> Engine:
     # [AI GENERATED]
@@ -71,7 +74,50 @@ def create_db_engine() -> Engine:
 # Why: Prevents multiple engines and connection pool exhaustion.
 # Root Cause: Multiple engines can cause subtle bugs and resource leaks.
 # Context: All sessions use this engine instance.
-engine = create_db_engine()
+class _EngineProxy:
+    """Lazy engine proxy that can be overridden in tests by assigning
+    `app.database.engine = some_engine` or by calling `set_engine()`.
+
+    Accessing attributes forwards to the underlying Engine instance.
+    """
+
+    def __init__(self):
+        self._engine: Engine | None = None
+
+    def set(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def get(self) -> Engine:
+        if self._engine is None:
+            self._engine = create_db_engine()
+        return self._engine
+
+    def __getattr__(self, item):
+        return getattr(self.get(), item)
+
+    def __repr__(self) -> str:  # pragma: no cover - trivial
+        return f"_EngineProxy({self._engine!r})"
+
+
+# Module-level engine proxy. Tests can replace the real Engine by
+# assigning to `app.database.engine` or calling `set_engine()` below.
+engine: _EngineProxy | Engine = _EngineProxy()
+
+
+def set_engine(e: Engine) -> None:
+    """Override the module engine with a provided Engine instance."""
+    global engine
+    if isinstance(engine, _EngineProxy):
+        engine.set(e)
+    else:
+        engine = e
+
+
+def get_engine() -> Engine:
+    """Return the underlying Engine, creating it lazily if needed."""
+    if isinstance(engine, _EngineProxy):
+        return engine.get()
+    return engine
 
 
 @contextmanager
@@ -96,7 +142,7 @@ def get_session() -> Generator[Session, None, None]:
     Yields:
         Session: An active SQLModel session.
     """
-    session = Session(engine)
+    session = Session(get_engine())
     try:
         yield session
         session.commit()
@@ -129,7 +175,23 @@ def get_db_session() -> Generator[Session, None, None]:
     Yields:
         Session: A request-scoped database session.
     """
-    with Session(engine) as session:
+    # In test or development environments, ensure schema exists on the engine.
+    # Always attempt to create missing tables on the active engine in test/dev so
+    # that tests cannot observe a missing-table race due to import-order.
+    if settings.environment in ("development", "test"):
+        try:
+            # Import models so SQLModel metadata is populated
+            import app.models  # noqa: F401
+        except Exception:
+            pass
+        try:
+            SQLModel.metadata.create_all(get_engine())
+        except Exception:
+            # Best-effort: if create_all fails, allow the request to proceed
+            # so upstream handlers can surface a clearer error for debugging.
+            pass
+
+    with Session(get_engine()) as session:
         yield session
 
 

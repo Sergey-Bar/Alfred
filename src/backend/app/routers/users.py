@@ -5,16 +5,27 @@
 # Root Cause: No AI-generated code header present in legacy router.
 # Context: Extend for advanced SSO, SCIM, and user analytics. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
 
-from typing import Optional
+from typing import List, Optional
+import json
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlalchemy.orm import Session
+from sqlmodel import select
 
-from ..dependencies import get_current_user, get_session
+from ..logging_config import get_logger
+from ..dependencies import get_current_user, get_session, require_admin, create_background_task
 from ..models import User, UserStatus
-from ..utils import create_background_task
-
-# Removed unused imports and ensured consistent formatting.
+from ..logic import AuthManager
+from ..schemas import (
+    UserCreate,
+    UserCreateResponse,
+    UserResponse,
+    ApiKeyResponse,
+    UserUpdate,
+    UserProfileUpdate,
+    QuotaStatusResponse,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1", tags=["Identity & Access Management"])
@@ -72,6 +83,8 @@ async def create_user(
         personal_quota=user.personal_quota,
         used_tokens=user.used_tokens,
         available_quota=user.available_quota,
+        default_priority=getattr(user, "default_priority", "normal"),
+        api_key=api_key,
     )
 
 

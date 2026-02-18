@@ -3,10 +3,13 @@ Lightweight EXPLAIN benchmark for representative queries.
 Run locally with: `python dev/tools/explain_queries.py` (ensure `DATABASE_URL` env var points to your DB).
 """
 
+import logging
 import os
 
 from sqlalchemy import text
 from sqlmodel import create_engine
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./dev.db")
 engine = create_engine(DATABASE_URL, echo=False)
@@ -32,11 +35,10 @@ def run_explain(sql: str, params=None):
 
 
 if __name__ == "__main__":
-    print(f"Running EXPLAIN against: {DATABASE_URL}\n")
+    logger.info("Running EXPLAIN against: %s", DATABASE_URL)
     for name, q in QUERIES.items():
-        print(f"--- {name} ---")
+        logger.info("--- %s ---", name)
         plan = run_explain(q, params=None)
-        print(plan)
-        print()
+        logger.info("%s", plan)
 
-    print("Done.")
+    logger.info("Done.")

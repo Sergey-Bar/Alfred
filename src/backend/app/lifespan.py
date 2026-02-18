@@ -17,7 +17,9 @@ sinks are properly bound before the application starts accepting traffic.
 """
 
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
+from fastapi import FastAPI
 from sqlmodel import Session, SQLModel, select
 
 from .config import settings
@@ -43,8 +45,49 @@ def create_tables_if_needed(engine):
     Production schema changes must be orchestrated via Alembic migrations.
     """
     if settings.environment in ("development", "test"):
-        SQLModel.metadata.create_all(engine)
-        logger.info("Sandbox Sync: Local database tables synchronized.")
+        # Import all models to ensure SQLModel metadata is populated before creating tables.
+        try:
+            import app.models  # noqa: F401
+        except Exception:
+            pass
+
+        # Prefer the application's public get_engine() if available so we
+        # always create tables on the injected engine instance used by
+        # request handlers and TestClient.
+        engine_obj = None
+        try:
+            import app.database as _app_db  # type: ignore
+
+            # Avoid repeated create_all during the same process
+            if getattr(_app_db, "_tables_created", False):
+                logger.debug("Skipping create_all: tables already created on app engine.")
+                return
+
+            if hasattr(_app_db, "get_engine"):
+                engine_obj = _app_db.get_engine()
+            elif hasattr(_app_db, "engine"):
+                engine_obj = _app_db.engine
+        except Exception:
+            # Fallback to provided engine param
+            try:
+                engine_obj = engine.get() if hasattr(engine, "get") else engine
+            except Exception:
+                engine_obj = engine
+
+        try:
+            if engine_obj is not None:
+                SQLModel.metadata.create_all(engine_obj)
+                # Mark tables created on the app DB module when possible
+                try:
+                    import app.database as _app_db2  # type: ignore
+
+                    setattr(_app_db2, "_tables_created", True)
+                except Exception:
+                    pass
+
+                logger.info("Sandbox Sync: Local database tables synchronized.")
+        except Exception as e:
+            logger.warning(f"create_tables_if_needed: create_all failed: {e}")
 
 
 def initialize_org_settings(engine):
@@ -60,7 +103,24 @@ def initialize_org_settings(engine):
     Ensures that the global OrgSettings entry is present. This record governs
     platform-wide behaviors like privacy modes and credit policy.
     """
-    with Session(engine) as session:
+    # Resolve the real Engine (support proxy or injected engines)
+    try:
+        import app.database as _app_db  # type: ignore
+
+        if hasattr(_app_db, "get_engine"):
+            engine_obj = _app_db.get_engine()
+        else:
+            engine_obj = getattr(_app_db, "engine", engine)
+    except Exception:
+        try:
+            engine_obj = engine.get() if hasattr(engine, "get") else engine
+        except Exception:
+            engine_obj = engine
+
+    from sqlalchemy.exc import OperationalError
+    from sqlmodel import SQLModel
+
+    def _seed(session):
         org_settings = session.exec(select(OrgSettings)).first()
         if not org_settings:
             # First-run scenario: creating internal record 001
@@ -68,6 +128,18 @@ def initialize_org_settings(engine):
             session.add(org_settings)
             session.commit()
             logger.info("Governance: Initial Organization Settings record seeded.")
+
+    try:
+        with Session(engine_obj) as session:
+            _seed(session)
+    except OperationalError:
+        # If the table doesn't exist for any reason, attempt to create schema
+        try:
+            SQLModel.metadata.create_all(engine_obj)
+            with Session(engine_obj) as session:
+                _seed(session)
+        except Exception as e:
+            logger.error(f"Failed to seed OrgSettings after create_all: {e}")
 
 
 def setup_notifications_if_enabled():
