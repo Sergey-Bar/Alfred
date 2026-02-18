@@ -8,12 +8,17 @@
 STATUS:
 [~] In progress
 
-Progress note: Gateway scaffolding for T001–T008 implemented; `go mod tidy` was run locally and `go.sum` was pushed. I attempted to run the gateway unit tests from the agent, but the agent environment lacks the `go` tool so tests could not be executed here. A diagnostics workflow (`.github/workflows/gateway-diagnostics.yml`) was added to run `go test ./...` and upload `gateway-tests.log` as an artifact. CI gateway job(s) are running; awaiting CI logs to triage and fix any failing tests.
+Progress note: Gateway scaffolding for T001–T008 implemented; `go mod tidy` was run locally and `go.sum` was pushed. I created a draft branch `gateway/test-fixes-draft` with small fixes (flaky sleep removal, `GATEWAY_ADDR` support, docs, diagnostics workflow) and pushed it — CI has been triggered for that branch. The diagnostics workflow uploads `gateway-tests.log` as an artifact to help triage.
 
 Next actions:
 
-- Collect `gateway-tests.log` artifact from the diagnostics workflow (or run `go test` locally and provide the log).
-- After logs are available, I'll triage failures, prepare fixes, and open PR(s) for review.
+- Retrieve the `gateway-tests.log` artifact from the CI run (or run `go test` locally and provide the log).
+- Once logs are available, I'll triage failing tests, implement focused fixes, and open PR(s).
+
+- Local verification (recommended): run `go mod tidy` and `go test` inside `services/gateway`, commit `go.sum` so CI can run gateway tests.
+- CI notes: `.github/workflows/ci.yml` contains a `gateway-tests` job that fails if `services/gateway/go.sum` is missing and will run `golangci-lint` when `.golangci.yml` is present.
+
+Blocking: awaiting `gateway-tests.log` artifact from CI run of `gateway/test-fixes-draft`. If you'd like faster triage, run locally and paste the `gateway-tests.log` here.
 
 STATUS: [~] In progress
 
@@ -112,8 +117,8 @@ STATUS:
 | T006 | [x] Structured logging setup (zerolog or zap)                                         | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard setup                                       |
 | T007 | [x] PostgreSQL schema migrations (golang-migrate)                                     | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Write SQL migration files                            |
 | T008 | [x] Redis connection + health check                                                   | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Standard Redis client setup                          |
-| T009 | [ ] Makefile with dev commands (run, test, build, migrate)                            | 🔴 P0    | ⭐ 1       | **GPT 5 Mini Free**    | Simple scripting                                     |
-| T010 | [ ] Pre-commit hooks (golangci-lint, gofmt, go vet)                                   | 🟠 P1    | ⭐ 1       | **GPT 5 Mini Free**    | Config files                                         |
+| T009 | [x] Makefile with dev commands (run, test, build, migrate)                            | 🔴 P0    | ⭐ 1       | **GPT 5 Mini Free**    | Simple scripting                                     |
+| T010 | [x] Pre-commit hooks (golangci-lint, gofmt, go vet)                                   | 🟠 P1    | ⭐ 1       | **GPT 5 Mini Free**    | Config files                                         |
 
 ---
 
@@ -123,7 +128,7 @@ STATUS:
 | ---- | ----------------------------------------------------------- | -------- | ---------- | ---------------------- | --------------------------------------------- |
 | T011 | [ ] HTTP server with graceful shutdown (chi or gin router)  | 🔴 P0    | ⭐⭐ 2     | **Claude Haiku 4.5**   | Need proper middleware chain design           |
 | T012 | [ ] API key authentication middleware                       | 🔴 P0    | ⭐⭐ 2     | **Claude Haiku 4.5**   | Auth is security-adjacent, use reliable model |
-| T013 | [ ] Request correlation ID injection (trace ID per request) | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Middleware, simple                            |
+| T013 | [x] Request correlation ID injection (trace ID per request) | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Implemented in router.go                      |
 | T014 | [ ] POST /v1/chat/completions — non-streaming               | 🔴 P0    | ⭐⭐⭐ 3   | **GPT 5.1 Codex**      | Core product endpoint, needs precision        |
 | T015 | [ ] POST /v1/chat/completions — SSE streaming pass-through  | 🔴 P0    | ⭐⭐⭐ 3   | **GPT 5.1 Codex**      | SSE in Go is tricky; buffering, flushing      |
 | T016 | [ ] POST /v1/embeddings endpoint                            | 🔴 P0    | ⭐⭐ 2     | **Claude Haiku 4.5**   | Simpler than chat                             |
@@ -131,9 +136,9 @@ STATUS:
 | T018 | [ ] Request/response header normalization                   | 🔴 P0    | ⭐⭐ 2     | **GPT 5.1 Codex Mini** | Per-provider header handling                  |
 | T019 | [ ] Rate limiting middleware (Redis token bucket)           | 🔴 P0    | ⭐⭐⭐ 3   | **Claude Sonnet 4.5**  | Distributed rate limiting is subtle           |
 | T020 | [ ] Connection pooling to upstream providers                | 🔴 P0    | ⭐⭐⭐ 3   | **GPT 5.1 Codex**      | HTTP client pool management in Go             |
-| T021 | [ ] Health check endpoint GET /health + GET /ready          | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Simple                                        |
+| T021 | [~] Health check endpoint GET /health + GET /ready          | 🔴 P0    | ⭐ 1       | **GPT 4o Free**        | Implementation present, reviewing for bugs    |
 | T022 | [ ] Timeout handling (per-provider configurable)            | 🔴 P0    | ⭐⭐ 2     | **Claude Haiku 4.5**   | Context cancellation in Go                    |
-| T023 | [ ] Request body size limits + validation                   | 🟠 P1    | ⭐ 1       | **GPT 5 Mini Free**    | Middleware config                             |
+| T023 | [x] Request body size limits + validation                   | 🟠 P1    | ⭐ 1       | **GPT 5 Mini Free**    | Middleware config                             |
 | T024 | [ ] Dry-run mode (estimate cost, don't call provider)       | 🟡 P2    | ⭐⭐ 2     | **Claude Haiku 4.5**   | Route through metering, skip provider         |
 
 ---

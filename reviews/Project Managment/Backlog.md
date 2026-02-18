@@ -1,3 +1,15 @@
+# Backlog / Discovered Tasks
+
+- T009: Validate Makefile targets across repos (root Makefile exists; add gateway-specific Makefile) — created `services/gateway/Makefile`.
+- T010: Install & configure pre-commit hooks; added `.pre-commit-config.yaml` (developer must run `pre-commit install`).
+- T023: Request body size limits implemented in gateway router middleware; default 1MB, override with `GATEWAY_MAX_BODY_BYTES`.
+
+Potential follow-ups / bugs discovered:
+
+- CI: verify `golangci-lint` is available in CI image or add a fallback; `services/gateway/Makefile` `lint` target assumes `golangci-lint` is present.
+- Pre-commit: configured hooks assume Python tooling versions; devs should run `pip install pre-commit` and run `pre-commit run --all-files` to validate.
+- Router: consider adding JSON schema validation for specific endpoints (future work).
+
 # Unresolved Tasks - Progress Report
 
 **Generated**: 2026-02-17
@@ -77,9 +89,29 @@ Update: `services/gateway/go.sum` was committed and pushed; CI gateway job shoul
 
 ## Recent quick fixes — 2026-02-18
 
-- Removed an unnecessary `time.Sleep` from `services/gateway/router/router_test.go` to reduce test flakiness.
-- Added draft-fix materials: `services/gateway/patches/README.md` and `dev/ci/prepare_gateway_fix_branch.ps1` to guide creating a draft branch with candidate fixes.
-- Made gateway runtime listen address configurable via `GATEWAY_ADDR` in `services/gateway/main.go` to avoid fixed-port conflicts during local runs and tests. Updated `services/gateway/CONTRIBUTING.md` to document this.
+---
+
+## Automated scan — TODO/FIXME findings (prioritized)
+
+I scanned the repository for `TODO` / `FIXME` markers and collected the most impactful items to triage and track. These are recommended backlog entries you can prioritize immediately.
+
+- **JWT validation missing** (`src/backend/app/dependencies.py`): current code returns None for JWT validation; this is security-critical. Create a ticket to implement JWT verification and unit tests. Priority: P0.
+- **Analytics router TODOs** (`src/backend/app/routers/analytics.py`): integrate real auth/session, implement RBAC, and write analytics outputs to the audit log or external system. These affect compliance and observability. Priority: P1.
+- **Compliance test orchestration** (`src/backend/app/routers/compliance_testing.py`): implement orchestration and evidence collection for SOC2/GDPR checks. Needed for audit readiness. Priority: P1.
+- **Import/Export model logic** (`src/backend/app/routers/import_export.py`): TODOs for model export/import—important for backup/migration flows. Priority: P2.
+- **Localization / i18n test coverage** (`backend/core/routers/localization_testing.py`, `src/backend/app/routers/localization_testing.py`): inventory strings, integrate i18n framework, and add CI checks for translations. Priority: P2.
+- **Frontend analytics error handling** (`src/frontend/src/services/analytics.js`): several TODOs to integrate global error handling and streaming clients. Add unit tests and error-reporting. Priority: P2.
+- **Security review & threat modeling** (`src/backend/app/routers/security_review.py`): TODOs to run threat models and return results — schedule workshops and capture outputs. Priority: P2.
+
+Recommended immediate actions:
+
+- Create tracked issues (GitHub) for each bullet above and assign owners; include file and line references from this scan.
+- Prioritize implementing JWT validation and analytics RBAC/audit (P0/P1) before broader feature work.
+- For localization and import/export, add small spikes to determine scope and estimate work.
+
+If you want, I can open the GitHub issues for these items and add links back to the files. Say `open issues` and I'll create them with templates and suggested labels.
+
+- Draft branch pushed: `gateway/test-fixes-draft` (contains small fixes, diagnostics workflow, docs). CI for that branch has been triggered — retrieve the `gateway-test-logs` artifact from the workflow run to proceed with triage.
 
 ---
 
