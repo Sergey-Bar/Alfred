@@ -100,7 +100,7 @@ def aggregate_analytics(event_type: str, agg: str = "sum", user: str = Depends(g
             func.min(AnalyticsEventDB.value),
         )
         .where(AnalyticsEventDB.event_type == event_type)
-        .where(AnalyticsEventDB.value != None)
+        .where(AnalyticsEventDB.value is not None)
     )
 
     row = session.exec(stmt).one_or_none()
@@ -140,7 +140,7 @@ def analytics_breakdown(
     field = AnalyticsEventDB.user if by == "user" else AnalyticsEventDB.dataset
 
     stmt = select(field, func.coalesce(func.sum(AnalyticsEventDB.value), 0)).where(
-        AnalyticsEventDB.value != None
+        AnalyticsEventDB.value is not None
     )
     if event_type:
         stmt = stmt.where(AnalyticsEventDB.event_type == event_type)
@@ -155,50 +155,3 @@ def analytics_breakdown(
 # --- Stubs for Streaming, BI, Anomaly Detection, Retention ---
 # TODO: Implement /analytics/stream (WebSocket/Kafka), /analytics/bi (BI tool integration),
 # /analytics/anomaly (anomaly detection), /analytics/retention (archiving policy)
-
-router = APIRouter()
-
-# In-memory store for demo purposes
-ANALYTICS_EVENTS = []
-
-
-class AnalyticsEvent(BaseModel):
-    id: int
-    timestamp: datetime
-    event_type: str  # e.g., 'api_call', 'user_login', 'quota_update'
-    user: Optional[str] = None
-    dataset: Optional[str] = None
-    value: Optional[float] = None
-    event_metadata: Optional[dict] = None
-
-
-@router.post("/analytics/events", status_code=status.HTTP_201_CREATED)
-def submit_analytics_event(event: AnalyticsEvent):
-    ANALYTICS_EVENTS.append(event)
-    return {"message": "Event recorded", "event_id": event.id}
-
-
-@router.get("/analytics/events", response_model=List[AnalyticsEvent])
-def query_analytics_events(
-    event_type: Optional[str] = None,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-):
-    results = ANALYTICS_EVENTS
-    if event_type:
-        results = [e for e in results if e.event_type == event_type]
-    if start:
-        results = [e for e in results if e.timestamp >= start]
-    if end:
-        results = [e for e in results if e.timestamp <= end]
-    return results
-
-
-@router.get("/analytics/aggregate")
-def aggregate_analytics(event_type: str):
-    values = [
-        e.value for e in ANALYTICS_EVENTS if e.event_type == event_type and e.value is not None
-    ]
-    if not values:
-        return {"count": 0, "sum": 0, "avg": None}
-    return {"count": len(values), "sum": sum(values), "avg": sum(values) / len(values)}

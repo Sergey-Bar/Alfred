@@ -2,7 +2,7 @@ name: E2E Smoke Tests
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -15,16 +15,16 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install frontend dependencies
-        working-directory: dev/frontend
+        working-directory: src/frontend
         run: |
           npm ci
           npx playwright install --with-deps
 
       - name: Run Playwright smoke test
-        working-directory: dev/frontend
+        working-directory: src/frontend
         env:
           BASE_URL: https://staging.alfred.dev
         run: |

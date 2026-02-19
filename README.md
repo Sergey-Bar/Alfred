@@ -167,10 +167,10 @@ Alfred is designed for security, scalability, and extensibility—making it the 
 
 Core API and business logic:
 
-- Main FastAPI app: `backend/app/main.py`
-- Routers: `backend/app/routers/`
-- Analytics: `backend/app/dashboard.py`
-- Requirements: `backend/requirements/requirements.txt`
+- Main FastAPI app: `src/backend/app/main.py`
+- Routers: `src/backend/app/routers/`
+- Analytics: `src/backend/app/dashboard.py`
+- Requirements: `src/backend/requirements/requirements.txt`
 - **Unit Tests:** `tests/unit/`
 
 ## Frontend
@@ -186,7 +186,7 @@ User dashboard and UI:
 
 Deployment, orchestration, and automation:
 
-- Docker: `devops/merged/docker/`, `docker-tools/`
+- Docker: `docker/`, `docker-tools/`
 - K8s: `devops/k8s/`
 - Scripts: `devops/scripts/`
 
@@ -196,8 +196,8 @@ Automated test coverage:
 
 - **Backend Unit:** `tests/unit/`
 - **Frontend Unit:** `src/frontend/src/__tests__/`
-- **E2E:** `dev/QA/E2E/`
-- **Coverage & Results:** `dev/QA/results/`
+- **E2E:** `qa/E2E/`
+- **Coverage & Results:** `qa/results/`
 
 ---
 
@@ -207,15 +207,15 @@ Automated test coverage:
 
 | Area           | Canonical Path              |
 | -------------- | --------------------------- |
-| Backend        | backend/app/                |
+| Backend        | src/backend/app/            |
 | Backend Tests  | tests/unit/                 |
 | Frontend       | src/frontend/               |
 | Frontend Tests | src/frontend/src/**tests**/ |
-| E2E Tests      | dev/QA/E2E/                 |
-| DevOps Docker  | devops/merged/docker/       |
+| E2E Tests      | qa/E2E/                     |
+| DevOps Docker  | docker-compose.yml          |
 | DevOps Scripts | devops/scripts/             |
-| Coverage       | dev/QA/results/coverage/    |
-| Test Results   | dev/QA/results/             |
+| Coverage       | qa/results/coverage/        |
+| Test Results   | qa/results/                 |
 
 All documentation, onboarding, and training materials should reference these canonical locations.
 ...existing code...

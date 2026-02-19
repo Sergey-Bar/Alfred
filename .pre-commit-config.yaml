@@ -109,7 +109,7 @@ repos:
     hooks:
       - id: prettier
         files: \.(js|jsx|ts|tsx|json|css|md)$
-        exclude: ^(dev/frontend/static/|dist/)
+        exclude: ^(src/frontend/static/|dist/)
 
   # Frontend - ESLint
   - repo: https://github.com/pre-commit/mirrors-eslint

@@ -1,11 +1,11 @@
 import {
-    MagnifyingGlassIcon,
-    PencilIcon,
-    PlusIcon,
-    TrashIcon,
-    UserMinusIcon,
-    UserPlusIcon,
-} from '@heroicons/react/24/outline';
+    Pencil,
+    Plus,
+    Search,
+    Trash2,
+    UserMinus,
+    UserPlus,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { useToast } from '../context/ToastContext';
@@ -184,7 +184,7 @@ export default function Teams() {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Manage team pools and members</p>
                 </div>
                 <button onClick={openCreateModal} className="btn btn-primary flex items-center">
-                    <PlusIcon className="h-5 w-5 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Create Team
                 </button>
             </div>
@@ -202,7 +202,7 @@ export default function Teams() {
             {/* Search */}
             <div className="card mb-6">
                 <div className="relative">
-                    <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                    <Search className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
                     <input
                         type="text"
                         placeholder="Search teams by name..."
@@ -230,21 +230,21 @@ export default function Teams() {
                                     className="p-1 text-gray-400 hover:text-blue-600"
                                     title="Manage members"
                                 >
-                                    <UserPlusIcon className="h-5 w-5" />
+                                    <UserPlus className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => openEditModal(team)}
                                     className="p-1 text-gray-400 hover:text-blue-600"
                                     title="Edit team"
                                 >
-                                    <PencilIcon className="h-5 w-5" />
+                                    <Pencil className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => openDeleteDialog(team)}
                                     className="p-1 text-gray-400 hover:text-red-600"
                                     title="Delete team"
                                 >
-                                    <TrashIcon className="h-5 w-5" />
+                                    <Trash2 className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>
@@ -350,7 +350,7 @@ export default function Teams() {
                                 required
                             />
                             <button type="submit" className="btn btn-primary">
-                                <UserPlusIcon className="h-5 w-5" />
+                                <UserPlus className="h-5 w-5" />
                             </button>
                         </form>
 
@@ -376,7 +376,7 @@ export default function Teams() {
                                                 className="p-1 text-gray-400 hover:text-red-600"
                                                 title="Remove member"
                                             >
-                                                <UserMinusIcon className="h-5 w-5" />
+                                                <UserMinus className="h-5 w-5" />
                                             </button>
                                         </div>
                                     </div>

@@ -248,11 +248,11 @@ async def get_team_pool_stats(
             )
         )
 
-    return result
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
         "team_pool_stats", extra_data={"count": len(result), "duration_ms": round(duration_ms, 2)}
     )
+    return result
 
 
 @router.get("/trends", response_model=List[CostTrendPoint])
@@ -298,12 +298,12 @@ async def get_cost_trends(
         )
         current += timedelta(days=1)
 
-    return result
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
         "cost_trends",
         extra_data={"days": days, "points": len(result), "duration_ms": round(duration_ms, 2)},
     )
+    return result
 
 
 @router.get("/models", response_model=List[ModelUsageStats])
@@ -351,12 +351,12 @@ async def get_model_usage(
             )
         )
 
-    return result
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
         "model_usage",
         extra_data={"days": days, "models": len(result), "duration_ms": round(duration_ms, 2)},
     )
+    return result
 
 
 @router.get("/leaderboard", response_model=List[DashboardLeaderboardEntry])
@@ -578,11 +578,11 @@ async def get_transfer_stats(
     for t in transfers:
         total_amount += t.amount
 
-    return TransferStats(
-        total_transfers=len(transfers), total_amount=total_amount, recent_transfers=transfer_list
-    )
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
         "transfer_stats",
         extra_data={"total_transfers": len(transfers), "duration_ms": round(duration_ms, 2)},
+    )
+    return TransferStats(
+        total_transfers=len(transfers), total_amount=total_amount, recent_transfers=transfer_list
     )

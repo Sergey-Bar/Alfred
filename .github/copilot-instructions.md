@@ -41,24 +41,34 @@ src/
 │   ├── app/
 │   │   ├── main.py              # FastAPI entry point & middleware stack
 │   │   ├── logic.py             # Ledger engine (credits, wallets, audit)
+│   │   ├── safety/              # PII detection, prompt injection, secret scanning
 │   │   └── routers/
 │   │       ├── users.py         # User & API key management
 │   │       ├── teams.py         # Team wallets & chargeback
 │   │       └── governance.py    # Routing rules, policies, OPA integration
-│   └── config/
-│       └── alembic.ini          # DB migration config
+│   ├── alembic/                 # DB migrations (Alembic)
+│   ├── config/
+│   │   └── alembic.ini          # DB migration config
+│   └── requirements/
+│       ├── requirements.txt
+│       └── requirements-dev.txt
 ├── frontend/
 │   └── src/
 │       ├── components/          # React UI components
 │       └── __tests__/           # Vitest unit tests
-dev/
-└── QA/
-    ├── Backend/                 # Pytest test suite
-    ├── Frontend/                # Vitest component tests
-    └── E2E/                     # Playwright end-to-end tests
+services/
+└── gateway/                     # Go API gateway service
+qa/
+├── Backend/                     # Pytest test suite
+├── Frontend/                    # Vitest component tests
+├── E2E/                         # Playwright end-to-end tests (JS)
+└── E2E_Python/                  # Playwright end-to-end tests (Python)
+tests/                           # Root-level unit & fixture tests
+tools/                           # Dev scripts & utilities
 docs/
-├── architecture.md
-└── guides/api.md
+├── guides/
+├── operations/
+└── testing/
 ```
 
 ### Core Domain Concepts (Always Apply)
@@ -116,7 +126,7 @@ Before generating any code, complete these four steps:
 1. **Context Scan** — Locate existing patterns in `src/backend/app/routers/` or `src/frontend/src/`. Do not reinvent what already exists.
 2. **Model Selection** — Use the Model Intelligence Matrix (Section 5) to align task complexity to the appropriate model tier.
 3. **Security Audit** — Confirm: no secrets hardcoded, all inputs validated via Pydantic (backend) or Zod (frontend), no PII leaking into logs.
-4. **Test-First Design** — Identify _which test file in `dev/QA/`_ needs to be created or updated _before_ writing the feature.
+4. **Test-First Design** — Identify _which test file in `qa/Backend/`_ needs to be created or updated _before_ writing the feature.
 
 ### Command Reference
 
@@ -125,7 +135,7 @@ Before generating any code, complete these four steps:
 | Run backend   | `uvicorn app.main:app --reload` (from `src/backend/`)    |
 | Run frontend  | `npm run dev` (from `src/frontend/`)                     |
 | DB migration  | `alembic -c src/backend/config/alembic.ini upgrade head` |
-| Test backend  | `pytest dev/QA/Backend -v`                               |
+| Test backend  | `pytest qa/Backend -v`                                   |
 | Test frontend | `npm run test:unit`                                      |
 | Test E2E      | `npm run test:e2e`                                       |
 | Lint backend  | `ruff check src/backend/`                                |
@@ -149,7 +159,7 @@ A solution is **not complete** until every item below is checked:
 
 ```
 [ ] AI attribution header present on all generated code
-[ ] Corresponding test written in dev/QA/ (unit + integration where applicable)
+[ ] Corresponding test written in qa/Backend/ (unit + integration where applicable)
 [ ] changelog or code_review/ entry updated
 [ ] Passes PEP8 / Ruff (backend) and Prettier (frontend)
 [ ] All inputs validated — Pydantic models (backend), Zod schemas (frontend)
@@ -254,7 +264,7 @@ When Alfred's orchestration engine routes between models or when AI agents colla
 2. Implement adapter in `src/backend/app/providers/<provider_name>.py` (follows `BaseProvider` interface)
 3. Register in the orchestration engine's provider registry
 4. Add latency + cost benchmarks to `docs/providers/<provider_name>.md`
-5. Write integration test in `dev/QA/Backend/test_providers.py`
+5. Write integration test in `qa/Backend/test_providers.py`
 
 ### Adding a New Routing Rule
 
@@ -266,7 +276,7 @@ When Alfred's orchestration engine routes between models or when AI agents colla
 ### Modifying Wallet / Ledger Logic
 
 1. **Stop.** This is always L4. Select Claude Opus 4.6 or equivalent.
-2. Write the test first in `dev/QA/Backend/test_ledger.py`
+2. Write the test first in `qa/Backend/test_ledger.py`
 3. Ensure all mutations are transactional (use `async with db.begin():`)
 4. Add the rollback comment block
 5. Flag Sergey Bar before opening the PR

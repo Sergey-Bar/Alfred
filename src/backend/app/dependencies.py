@@ -15,6 +15,10 @@ logger = get_logger(__name__)
 # Registry to prevent background tasks from being garbage collected prematurely
 _background_tasks: set[asyncio.Task] = set()
 
+# JWT configuration — load from environment
+_JWT_SECRET = os.getenv("JWT_SECRET", "")
+_JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
 
 def create_background_task(coro: Coroutine[Any, Any, Any]) -> asyncio.Task:
     """
@@ -39,7 +43,7 @@ def create_background_task(coro: Coroutine[Any, Any, Any]) -> asyncio.Task:
 
 def get_session() -> Generator:
     """Injected database session utilizing the connection pool."""
-    with Session(_app_db.engine) as session:
+    with Session(_app_db.get_engine()) as session:
         yield session
 
 
@@ -68,73 +72,85 @@ async def get_current_user(
 
 # Helper functions for validation.
 async def validate_authorization(authorization: str, session: Session) -> Optional[User]:
-    # Logic for validating authorization.
-    # Simple multi-scheme support for tests and basic API keys.
-    # Expecting 'Bearer <token>' format. Prefer JWT validation if available,
-    # otherwise treat as legacy API key and validate against stored hash.
+    """Validate Authorization header (Bearer token).
+
+    Precedence:
+    1. Try as API key (legacy tests use 'Bearer <api_key>')
+    2. Decode as JWT and look up user by email claim
+    """
     if not authorization:
         return None
-    if authorization.lower().startswith("bearer "):
-        token = authorization.split(" ", 1)[1].strip()
-        # Try API key flow first (legacy tests use Bearer <api_key>)
-        user = await validate_api_key(token, session)
-        if user:
-            return user
-        # TODO: JWT validation (not implemented) - return None for now
+    if not authorization.lower().startswith("bearer "):
         return None
-    return None
+
+    token = authorization.split(" ", 1)[1].strip()
+
+    # Try API key flow first (legacy/script usage)
+    user = await validate_api_key(token, session)
+    if user:
+        return user
+
+    # JWT validation
+    if not _JWT_SECRET:
+        logger.debug("validate_authorization: JWT_SECRET not configured, skipping JWT flow")
+        return None
+
+    try:
+        import jwt
+
+        payload = jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
+        email = payload.get("sub") or payload.get("email")
+        if not email:
+            logger.debug("validate_authorization: JWT missing 'sub'/'email' claim")
+            return None
+
+        from .models import User as UserModel
+
+        user = session.exec(select(UserModel).where(UserModel.email == email)).first()
+        if user:
+            logger.debug("validate_authorization: JWT validated for %s", email)
+        else:
+            logger.debug("validate_authorization: no user found for JWT email=%s", email)
+        return user
+    except ImportError:
+        logger.warning("validate_authorization: PyJWT not installed — JWT validation unavailable")
+        return None
+    except Exception as exc:
+        logger.debug("validate_authorization: JWT decode failed: %s", exc)
+        return None
 
 
 async def validate_api_key(api_key: str, session: Session) -> Optional[User]:
-    # Logic for validating API key.
+    """Validate an API key by hashing and looking up in the database."""
     if not api_key:
         return None
     try:
         from .logic import AuthManager
+        from .models import User as UserModel
 
         api_hash = AuthManager.hash_api_key(api_key)
         logger.debug("validate_api_key: computed hash=%s", api_hash)
 
         # Test override: allow a single API key defined in environment to bypass DB
-        # lookup for adapter/QA tests. Returns a minimal User object with admin
-        # privileges so admin endpoints can run in isolated test contexts.
-        try:
-            test_key = os.getenv("ALFRED_TEST_API_KEY")
-            if test_key and test_key == api_key:
-                try:
-                    from .models import User as UserModel
-
-                    u = UserModel(email="admin@example.com", name="Admin (test)", api_key_hash=api_hash, is_admin=True)
-                    logger.debug("validate_api_key: test override matched, returning synthetic admin user")
-                    return u
-                except Exception:
-                    # If constructing UserModel fails, fall through to normal DB lookup
-                    logger.debug("validate_api_key: test override synthetic user creation failed")
-                    pass
-        except Exception:
-            pass
-
-        # Prefer SQLModel query
-        try:
-            from .models import User as UserModel
-
-            all_users = session.exec(select(UserModel)).all()
-            logger.debug("validate_api_key: total users in DB=%d", len(all_users))
-            u = session.exec(select(UserModel).where(UserModel.api_key_hash == api_hash)).first()
-            logger.debug("validate_api_key: sqlmodel query result=%s", bool(u))
-            return u
-        except Exception:
-            # Fallback to raw SQL execution if SQLModel path fails
+        # lookup for adapter/QA tests. Returns a minimal User with admin privileges.
+        test_key = os.getenv("ALFRED_TEST_API_KEY")
+        if test_key and test_key == api_key:
             try:
-                user = session.exec("""
-                    SELECT * FROM user WHERE api_key_hash = :h
-                """, {"h": api_hash})
-                res = user.first()
-                logger.debug("validate_api_key: raw sql result=%s", bool(res))
-                return res
+                u = UserModel(
+                    email="admin@example.com",
+                    name="Admin (test)",
+                    api_key_hash=api_hash,
+                    is_admin=True,
+                )
+                logger.debug("validate_api_key: test override matched, returning synthetic admin")
+                return u
             except Exception:
-                logger.debug("validate_api_key: raw sql fallback failed")
-                return None
+                logger.debug("validate_api_key: test override synthetic user creation failed")
+
+        # SQLModel query — single source of truth
+        u = session.exec(select(UserModel).where(UserModel.api_key_hash == api_hash)).first()
+        logger.debug("validate_api_key: query result=%s", bool(u))
+        return u
     except Exception:
         logger.debug("validate_api_key: exception during validation", exc_info=True)
         return None

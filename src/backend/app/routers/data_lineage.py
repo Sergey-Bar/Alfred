@@ -70,7 +70,7 @@ def trace_data_origin(
 
     stmt = (
         select(LineageEventDB)
-        .where((LineageEventDB.dataset == dataset) | (LineageEventDB.source_datasets != None))
+        .where((LineageEventDB.dataset == dataset) | (LineageEventDB.source_datasets is not None))
         .offset(skip)
         .limit(limit)
     )

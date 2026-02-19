@@ -1,57 +1,97 @@
 
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: Main dashboard layout for Alfred. Handles sidebar, navigation, breadcrumbs, user menu, notifications, search, and responsive design.
-// Why: Centralizes all layout and navigation logic for maintainability and UX consistency.
-// Root Cause: Scattered layout logic leads to inconsistent navigation and poor usability.
-// Context: All dashboard pages are rendered inside this layout. Future: consider modularizing sidebar and header for large-scale apps.
-// Model Suitability: For React SPA layout patterns, GPT-4.1 is sufficient.
+/*
+[AI GENERATED - GOVERNANCE PROTOCOL]
+──────────────────────────────────────────────────────────────
+Model:       Claude Opus 4.6
+Tier:        L3
+Logic:       Main dashboard layout per UI.md Section 2. Restructured
+             sidebar with navigation groups (OVERVIEW, CONTROL,
+             SECURITY, PRODUCT, ADMIN). Migrated from Heroicons to
+             Lucide React. Updated color palette to CSS custom properties.
+Root Cause:  Sidebar used old nav structure and Heroicons, misaligned
+             with UI.md spec.
+Context:     All dashboard pages render inside this layout. Sidebar
+             bg: --color-primary-800 (#1E293B). Active state uses
+             left border with --color-accent-500.
+Suitability: L3 for layout restructuring with nav group logic.
+──────────────────────────────────────────────────────────────
+*/
 import {
-    ArrowRightOnRectangleIcon,
-    ArrowsRightLeftIcon,
-    Bars3Icon,
-    BellIcon,
-    BookOpenIcon,
-    ChevronDoubleLeftIcon,
-    ChevronDoubleRightIcon,
-    ChevronDownIcon,
-    ChevronRightIcon,
-    ClipboardDocumentCheckIcon,
-    Cog6ToothIcon,
-    HomeIcon,
-    LinkIcon,
-    MagnifyingGlassIcon,
-    UserCircleIcon,
-    UserGroupIcon,
-    UsersIcon,
-    XMarkIcon,
-} from '@heroicons/react/24/outline';
+    ArrowRightLeft, Bell, BookOpen, ChevronDown, ChevronLeft,
+    ChevronRight, ClipboardCheck, FlaskConical, GitBranch, Key,
+    LayoutDashboard, Link as LinkIcon, LogOut, Menu, Plug,
+    ScrollText, Search, Settings, ShieldCheck, TrendingUp,
+    User, Users, Wallet, X
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 
-const navigation = [
-    { name: 'Dashboard', href: '/', icon: HomeIcon },
-    { name: 'Manage Users', href: '/users', icon: UsersIcon },
-    { name: 'Manage Teams', href: '/teams', icon: UserGroupIcon },
-    { name: 'Credit Reallocation', href: '/transfers', icon: ArrowsRightLeftIcon },
-    { name: 'Approvals', href: '/approvals', icon: ClipboardDocumentCheckIcon },
-    { name: 'Integrations', href: '/integrations', icon: LinkIcon },
+const navigationGroups = [
+    {
+        label: 'OVERVIEW',
+        items: [
+            { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+            { name: 'Cost Analytics', href: '/analytics/cost', icon: TrendingUp },
+        ],
+    },
+    {
+        label: 'CONTROL',
+        items: [
+            { name: 'Wallets & Budget', href: '/wallets', icon: Wallet },
+            { name: 'Routing Rules', href: '/routing', icon: GitBranch },
+            { name: 'Experiments', href: '/experiments', icon: FlaskConical },
+            { name: 'Credit Reallocation', href: '/transfers', icon: ArrowRightLeft },
+            { name: 'Approvals', href: '/approvals', icon: ClipboardCheck },
+        ],
+    },
+    {
+        label: 'SECURITY',
+        items: [
+            { name: 'Security & Policies', href: '/security', icon: ShieldCheck },
+            { name: 'Audit Log', href: '/audit', icon: ScrollText },
+            { name: 'Safety Pipeline', href: '/safety', icon: ShieldCheck },
+        ],
+    },
+    {
+        label: 'PRODUCT',
+        items: [
+            { name: 'Providers', href: '/providers', icon: Plug },
+            { name: 'Integrations', href: '/integrations', icon: LinkIcon },
+        ],
+    },
+    {
+        label: 'ADMIN',
+        items: [
+            { name: 'Team Management', href: '/teams', icon: Users },
+            { name: 'Manage Users', href: '/users', icon: Users },
+            { name: 'API Keys', href: '/keys', icon: Key },
+        ],
+    },
 ];
 
 const bottomNavigation = [
-    { name: 'User Guide', href: '/guide', icon: BookOpenIcon },
-    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
+    { name: 'User Guide', href: '/guide', icon: BookOpen },
+    { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const getBreadcrumbs = (pathname) => {
     const paths = {
         '/': [{ name: 'Dashboard', current: true }],
-        '/users': [{ name: 'Dashboard', href: '/' }, { name: 'Manage Users', current: true }],
-        '/teams': [{ name: 'Dashboard', href: '/' }, { name: 'Manage Teams', current: true }],
-        '/transfers': [{ name: 'Dashboard', href: '/' }, { name: 'Token Transfers', current: true }],
+        '/analytics/cost': [{ name: 'Dashboard', href: '/' }, { name: 'Cost Analytics', current: true }],
+        '/wallets': [{ name: 'Dashboard', href: '/' }, { name: 'Wallets & Budget', current: true }],
+        '/routing': [{ name: 'Dashboard', href: '/' }, { name: 'Routing Rules', current: true }],
+        '/experiments': [{ name: 'Dashboard', href: '/' }, { name: 'Experiments', current: true }],
+        '/transfers': [{ name: 'Dashboard', href: '/' }, { name: 'Credit Reallocation', current: true }],
         '/approvals': [{ name: 'Dashboard', href: '/' }, { name: 'Approvals', current: true }],
+        '/security': [{ name: 'Dashboard', href: '/' }, { name: 'Security & Policies', current: true }],
+        '/audit': [{ name: 'Dashboard', href: '/' }, { name: 'Audit Log', current: true }],
+        '/safety': [{ name: 'Dashboard', href: '/' }, { name: 'Safety Pipeline', current: true }],
+        '/providers': [{ name: 'Dashboard', href: '/' }, { name: 'Providers', current: true }],
         '/integrations': [{ name: 'Dashboard', href: '/' }, { name: 'Integrations', current: true }],
+        '/teams': [{ name: 'Dashboard', href: '/' }, { name: 'Team Management', current: true }],
+        '/users': [{ name: 'Dashboard', href: '/' }, { name: 'Manage Users', current: true }],
+        '/keys': [{ name: 'Dashboard', href: '/' }, { name: 'API Keys', current: true }],
         '/guide': [{ name: 'Dashboard', href: '/' }, { name: 'User Guide', current: true }],
         '/profile': [{ name: 'Dashboard', href: '/' }, { name: 'My Profile', current: true }],
         '/settings': [{ name: 'Dashboard', href: '/' }, { name: 'Settings', current: true }],
@@ -59,36 +99,22 @@ const getBreadcrumbs = (pathname) => {
     return paths[pathname] || [{ name: 'Dashboard', current: true }];
 };
 
-
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: NavTooltip provides accessible tooltips for sidebar icons when collapsed, improving UX for icon-only navigation.
-// Why: Ensures users can identify navigation icons when sidebar is collapsed.
-// Root Cause: Icon-only navigation is ambiguous without tooltips.
-// Context: Used for all sidebar navigation items. Consider extracting to a shared UI library if reused elsewhere.
-// Model Suitability: Tooltip logic is standard; GPT-4.1 is sufficient.
 function NavTooltip({ children, text, show }) {
     if (!show) return children;
 
     return (
         <div className="relative group">
             {children}
-            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"
+                style={{ background: 'var(--color-primary-900)', color: 'white' }}>
                 {text}
-                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent"
+                    style={{ borderRightColor: 'var(--color-primary-900)' }} />
             </div>
         </div>
     );
 }
 
-
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: UserMenu displays the current user's avatar, name, and role, and provides profile and logout actions. Handles click-outside to close.
-// Why: Centralizes user account actions in a consistent dropdown menu.
-// Root Cause: Scattered user actions reduce discoverability and UX consistency.
-// Context: Used in dashboard header. Future: consider extracting to a shared user menu component for multi-app use.
-// Model Suitability: Dropdown/menu logic is standard; GPT-4.1 is sufficient.
 function UserMenu({ user, onLogout, onNavigateProfile }) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
@@ -107,43 +133,59 @@ function UserMenu({ user, onLogout, onNavigateProfile }) {
         <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors"
+                style={{ color: 'var(--color-primary-700)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-                <div className="h-8 w-8 rounded-full bg-[#1d3557] flex items-center justify-center text-sm font-bold text-white">
+                <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                    style={{ background: 'var(--color-accent-600)' }}>
                     {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="text-left hidden md:block">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-primary-900)' }}>
                         {user?.name || 'User'}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs" style={{ color: 'var(--color-primary-500)' }}>
                         {user?.role || 'Member'}
                     </p>
                 </div>
-                <ChevronDownIcon className={`h-4 w-4 text-gray-400 transition-transform hidden md:block ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 transition-transform hidden md:block ${isOpen ? 'rotate-180' : ''}`}
+                    style={{ color: 'var(--color-primary-400)' }} />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-1 z-50 animate-scale-in">
-                    <div className="px-4 py-3 border-b border-gray-700">
-                        <p className="text-sm font-medium text-white">{user?.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-2 w-56 rounded-lg py-1 z-50 animate-scale-in"
+                    style={{
+                        background: 'white',
+                        boxShadow: 'var(--shadow-lg)',
+                        border: '1px solid var(--color-border)'
+                    }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-primary-900)' }}>{user?.name}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--color-primary-500)' }}>{user?.email}</p>
                     </div>
 
                     <button
                         onClick={() => { onNavigateProfile(); setIsOpen(false); }}
-                        className="w-full flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+                        className="w-full flex items-center px-4 py-2 text-sm transition-colors"
+                        style={{ color: 'var(--color-primary-700)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                        <UserCircleIcon className="h-4 w-4 mr-3 text-gray-400" />
+                        <User className="h-4 w-4 mr-3" style={{ color: 'var(--color-primary-400)' }} />
                         My Profile
                     </button>
 
-                    <div className="border-t border-gray-700 mt-1 pt-1">
+                    <div style={{ borderTop: '1px solid var(--color-border)' }} className="mt-1 pt-1">
                         <button
                             onClick={() => { onLogout(); setIsOpen(false); }}
-                            className="w-full flex items-center px-4 py-2 text-sm text-red-400 hover:bg-red-900/20"
+                            className="w-full flex items-center px-4 py-2 text-sm transition-colors"
+                            style={{ color: 'var(--color-danger-600)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                            <ArrowRightOnRectangleIcon className="h-4 w-4 mr-3" />
+                            <LogOut className="h-4 w-4 mr-3" />
                             Log out
                         </button>
                     </div>
@@ -153,13 +195,6 @@ function UserMenu({ user, onLogout, onNavigateProfile }) {
     );
 }
 
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: NotificationsBell manages and displays user notifications with unread count, dropdown, and mark-as-read actions. Handles click-outside to close.
-// Why: Centralizes notification UX for timely user feedback and alerts.
-// Root Cause: Scattered notification logic leads to missed alerts and inconsistent UX.
-// Context: Used in dashboard header. Future: integrate with backend or WebSocket for real-time notifications.
-// Model Suitability: Notification dropdown logic is standard; GPT-4.1 is sufficient.
 function NotificationsBell() {
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([
@@ -194,33 +229,44 @@ function NotificationsBell() {
     };
 
     const typeColors = {
-        warning: 'bg-yellow-900/40 text-yellow-400',
-        info: 'bg-blue-900/40 text-blue-400',
-        success: 'bg-green-900/40 text-green-400',
+        warning: { bg: 'rgba(245,158,11,0.12)', color: 'var(--color-warning-600)' },
+        info: { bg: 'rgba(37,99,235,0.12)', color: 'var(--color-accent-600)' },
+        success: { bg: 'rgba(16,185,129,0.12)', color: 'var(--color-success-600)' },
     };
 
     return (
         <div className="relative" ref={bellRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="relative p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--color-primary-500)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-                <BellIcon className="h-5 w-5 text-gray-300" />
+                <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full animate-pulse"
+                        style={{ background: 'var(--color-danger-600)' }} />
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50 animate-scale-in">
-                    <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
-                        <h3 className="font-semibold text-white">Notifications</h3>
+                <div className="absolute right-0 mt-2 w-80 rounded-lg z-50 animate-scale-in"
+                    style={{
+                        background: 'white',
+                        boxShadow: 'var(--shadow-lg)',
+                        border: '1px solid var(--color-border)'
+                    }}>
+                    <div className="px-4 py-3 flex items-center justify-between"
+                        style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <h3 className="font-semibold" style={{ color: 'var(--color-primary-900)' }}>Notifications</h3>
                         <div className="flex items-center space-x-3">
-                            <span className="text-xs text-gray-400">{unreadCount} new</span>
+                            <span className="text-xs" style={{ color: 'var(--color-primary-400)' }}>{unreadCount} new</span>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllAsRead}
-                                    className="text-xs text-blue-400 hover:underline font-medium"
+                                    className="text-xs font-medium hover:underline"
+                                    style={{ color: 'var(--color-accent-600)' }}
                                 >
                                     Mark all read
                                 </button>
@@ -231,22 +277,30 @@ function NotificationsBell() {
                         {notifications.map((notif) => (
                             <div
                                 key={notif.id}
-                                className={`px-4 py-3 hover:bg-gray-700 border-b border-gray-700 last:border-b-0 cursor-pointer transition-colors ${notif.read ? 'opacity-60' : ''
-                                    }`}
+                                className={`px-4 py-3 cursor-pointer transition-colors ${notif.read ? 'opacity-60' : ''}`}
+                                style={{ borderBottom: '1px solid var(--color-border)' }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-50)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <p className={`text-sm text-gray-200 ${!notif.read ? 'font-medium' : ''}`}>{notif.text}</p>
-                                        <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                                        <p className={`text-sm ${!notif.read ? 'font-medium' : ''}`}
+                                            style={{ color: 'var(--color-primary-800)' }}>{notif.text}</p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--color-primary-400)' }}>{notif.time}</p>
                                     </div>
                                     <div className="flex items-center space-x-2 ml-2">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${typeColors[notif.type]}`}>
+                                        <span className="text-xs px-2 py-0.5 rounded-full"
+                                            style={{
+                                                background: typeColors[notif.type]?.bg,
+                                                color: typeColors[notif.type]?.color
+                                            }}>
                                             {notif.type}
                                         </span>
                                         {!notif.read && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                                                className="text-xs text-gray-400 hover:text-blue-400"
+                                                className="text-xs hover:opacity-80"
+                                                style={{ color: 'var(--color-primary-400)' }}
                                                 title="Mark as read"
                                             >
                                                 ✓
@@ -257,13 +311,15 @@ function NotificationsBell() {
                             </div>
                         ))}
                         {notifications.length === 0 && (
-                            <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                            <div className="px-4 py-8 text-center text-sm"
+                                style={{ color: 'var(--color-primary-400)' }}>
                                 No notifications
                             </div>
                         )}
                     </div>
-                    <div className="px-4 py-2 border-t border-gray-700">
-                        <button className="text-sm text-blue-400 hover:underline font-medium">
+                    <div className="px-4 py-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                        <button className="text-sm font-medium hover:underline"
+                            style={{ color: 'var(--color-accent-600)' }}>
                             View all notifications
                         </button>
                     </div>
@@ -274,13 +330,6 @@ function NotificationsBell() {
 }
 
 
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: SearchBar provides a global search input with keyboard shortcut (Ctrl+K), focus management, and escape-to-close UX.
-// Why: Enables fast, accessible search across dashboard entities.
-// Root Cause: Lack of global search impedes navigation and discoverability.
-// Context: Used in dashboard header. Future: connect to backend search API for live results.
-// Model Suitability: Search bar logic is standard; GPT-4.1 is sufficient.
 function SearchBar() {
     const [isExpanded, setIsExpanded] = useState(false);
     const [query, setQuery] = useState('');
@@ -317,26 +366,41 @@ function SearchBar() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search users, teams, transfers..."
-                        className="w-64 px-4 py-2 text-sm bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 shadow-sm"
+                        className="input w-64"
                         onBlur={() => !query && setIsExpanded(false)}
                     />
                     <button
                         onClick={() => { setIsExpanded(false); setQuery(''); }}
-                        className="ml-2 p-1.5 rounded hover:bg-gray-700"
+                        className="ml-2 p-1.5 rounded transition-colors"
+                        style={{ color: 'var(--color-primary-400)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                        <XMarkIcon className="h-4 w-4 text-gray-400" />
+                        <X className="h-4 w-4" />
                     </button>
                 </div>
             ) : (
                 <button
                     onClick={() => setIsExpanded(true)}
-                    className="flex items-center px-3 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors border border-gray-600"
+                    className="flex items-center px-3 py-2 rounded-lg transition-colors"
+                    style={{
+                        background: 'var(--color-primary-100)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-primary-500)'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-200)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
                 >
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-300" />
-                    <span className="ml-2 text-sm text-gray-300 hidden md:inline">
+                    <Search className="h-5 w-5" />
+                    <span className="ml-2 text-sm hidden md:inline">
                         Search
                     </span>
-                    <kbd className="ml-2 hidden md:inline-flex items-center px-2 py-0.5 text-xs font-sans font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded">
+                    <kbd className="ml-2 hidden md:inline-flex items-center px-2 py-0.5 text-xs font-sans font-medium rounded"
+                        style={{
+                            color: 'var(--color-primary-400)',
+                            background: 'var(--color-primary-200)',
+                            border: '1px solid var(--color-border)'
+                        }}>
                         Ctrl+K
                     </kbd>
                 </button>
@@ -345,13 +409,6 @@ function SearchBar() {
     );
 }
 
-// [AI GENERATED]
-// Model: GitHub Copilot (GPT-4.1)
-// Logic: Layout is the main dashboard shell, handling sidebar, navigation, breadcrumbs, user menu, notifications, search, and responsive mobile/desktop UX. Manages sidebar state in localStorage, navigation, and user session.
-// Why: Centralizes all dashboard layout and navigation logic for maintainability and UX consistency.
-// Root Cause: Scattered layout logic leads to inconsistent navigation and poor usability.
-// Context: All dashboard pages are rendered inside this layout. Future: modularize sidebar/header for large-scale apps, add accessibility improvements.
-// Model Suitability: For React SPA layout patterns, GPT-4.1 is sufficient.
 export default function Layout({ onLogout }) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -382,7 +439,7 @@ export default function Layout({ onLogout }) {
     };
 
     return (
-        <div className="min-h-screen flex dark bg-gray-900">
+        <div className="min-h-screen flex" style={{ background: 'var(--color-primary-50)' }}>
             {/* Mobile menu overlay */}
             {mobileMenuOpen && (
                 <div
@@ -391,70 +448,90 @@ export default function Layout({ onLogout }) {
                 />
             )}
 
-            {/* Sidebar - Fixed position, no scroll */}
+            {/* Sidebar */}
             <div className={`
-                fixed inset-y-0 left-0 z-50 bg-[#1d3557] flex flex-col shadow-xl
+                sidebar fixed inset-y-0 left-0 z-50 flex flex-col
                 transform transition-all duration-300 ease-in-out
                 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-                ${sidebarCollapsed ? 'w-16' : 'w-56'}
+                ${sidebarCollapsed ? 'w-[56px]' : 'w-[var(--sidebar-width)]'}
             `}>
                 {/* Logo Area */}
-                <div className={`border-b border-[#2d4a6f] flex justify-center ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+                <div className={`flex justify-center ${sidebarCollapsed ? 'p-2' : 'p-4'}`}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', height: 'var(--topbar-height)' }}>
                     <div className="flex items-center justify-center relative w-full">
                         <img
                             src={sidebarCollapsed ? '/sidebar-mini.png' : '/sidebar-big.png'}
                             alt="Alfred"
-                            className={`object-contain transition-all duration-300 ${sidebarCollapsed ? 'h-10 w-10' : 'h-20 w-auto max-w-[180px]'}`}
+                            className={`object-contain transition-all duration-300 ${sidebarCollapsed ? 'h-10 w-10' : 'h-10 w-auto max-w-[180px]'}`}
                         />
                         <button
                             onClick={() => setMobileMenuOpen(false)}
-                            className="lg:hidden p-1 rounded hover:bg-[#2d4a6f] absolute right-0 top-0"
+                            className="lg:hidden p-1 rounded absolute right-0 top-0"
+                            style={{ color: 'white' }}
                         >
-                            <XMarkIcon className="h-5 w-5 text-white" />
+                            <X className="h-5 w-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* Navigation - No scroll */}
-                <nav className="flex-1 py-4 overflow-hidden flex flex-col">
-                    <div className="space-y-1">
-                        {navigation.map((item) => (
-                            <NavTooltip key={item.name} text={item.name} show={sidebarCollapsed}>
-                                <NavLink
-                                    to={item.href}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={({ isActive }) =>
-                                        `flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-2.5 text-sm transition-colors border-l-4 ${isActive
-                                            ? 'bg-[#2d4a6f] text-white border-[#4a90d9] font-medium'
-                                            : 'text-gray-300 hover:bg-[#2d4a6f] hover:text-white border-transparent'
-                                        }`
-                                    }
-                                >
-                                    <item.icon className={`h-5 w-5 flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-                                    {!sidebarCollapsed && <span>{item.name}</span>}
-                                </NavLink>
-                            </NavTooltip>
-                        ))}
-                    </div>
+                {/* Navigation Groups */}
+                <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden flex flex-col">
+                    {navigationGroups.map((group, groupIdx) => (
+                        <div key={group.label} className={groupIdx > 0 ? 'mt-4' : ''}>
+                            {/* Group Label */}
+                            {!sidebarCollapsed && (
+                                <div className="px-4 py-1.5">
+                                    <span className="text-[10px] font-semibold tracking-widest uppercase"
+                                        style={{ color: 'var(--color-primary-500)' }}>
+                                        {group.label}
+                                    </span>
+                                </div>
+                            )}
+                            {sidebarCollapsed && groupIdx > 0 && (
+                                <div className="mx-2 my-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+                            )}
 
-                    {/* Spacer - pushes bottom nav down */}
-                    <div className="flex-1"></div>
+                            {/* Group Items */}
+                            <div className="space-y-0.5">
+                                {group.items.map((item) => (
+                                    <NavTooltip key={item.name} text={item.name} show={sidebarCollapsed}>
+                                        <NavLink
+                                            to={item.href}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className={({ isActive }) =>
+                                                `nav-link flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-2 text-sm transition-all border-l-2 ${isActive
+                                                    ? 'active'
+                                                    : 'border-transparent'
+                                                }`
+                                            }
+                                        >
+                                            <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+                                            {!sidebarCollapsed && <span>{item.name}</span>}
+                                        </NavLink>
+                                    </NavTooltip>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
 
-                    {/* Bottom Navigation - Guide & Settings */}
-                    <div className="pt-4 mt-auto border-t border-[#2d4a6f]">
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Bottom Navigation */}
+                    <div className="pt-3 mt-auto" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         {bottomNavigation.map((item) => (
                             <NavTooltip key={item.name} text={item.name} show={sidebarCollapsed}>
                                 <NavLink
                                     to={item.href}
                                     onClick={() => setMobileMenuOpen(false)}
                                     className={({ isActive }) =>
-                                        `flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-2.5 text-sm transition-colors border-l-4 ${isActive
-                                            ? 'bg-[#2d4a6f] text-white border-[#4a90d9] font-medium'
-                                            : 'text-gray-300 hover:bg-[#2d4a6f] hover:text-white border-transparent'
+                                        `nav-link flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-2 text-sm transition-all border-l-2 ${isActive
+                                            ? 'active'
+                                            : 'border-transparent'
                                         }`
                                     }
                                 >
-                                    <item.icon className={`h-5 w-5 flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+                                    <item.icon className={`h-[18px] w-[18px] flex-shrink-0 ${sidebarCollapsed ? '' : 'mr-3'}`} />
                                     {!sidebarCollapsed && <span>{item.name}</span>}
                                 </NavLink>
                             </NavTooltip>
@@ -462,58 +539,48 @@ export default function Layout({ onLogout }) {
                     </div>
                 </nav>
 
-                {/* [AI GENERATED]
-                   Model: GitHub Copilot (GPT-4.1)
-                   Logic: Sidebar collapse toggle and version display. Toggle persists in localStorage for UX consistency. Version shown for traceability.
-                   Why: Improves navigation flexibility and user awareness of app version.
-                   Root Cause: Fixed sidebars reduce usable space; version info aids support/debugging.
-                   Context: Used in all dashboard views. Future: fetch version dynamically from backend.
-                   Model Suitability: Sidebar toggle logic is standard; GPT-4.1 is sufficient.
-                */}
-                <div className="border-t border-[#2d4a6f]">
+                {/* Collapse Toggle + Version */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <button
                         onClick={(e) => { e.stopPropagation(); toggleSidebar(); }}
-                        className={`hidden lg:flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 text-gray-300 hover:text-white hover:bg-[#2d4a6f] transition-colors cursor-pointer`}
+                        className={`hidden lg:flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 transition-colors cursor-pointer`}
+                        style={{ color: 'var(--color-primary-400)' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-primary-400)'; e.currentTarget.style.background = 'transparent'; }}
                         title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         type="button"
                     >
                         {sidebarCollapsed ? (
-                            <ChevronDoubleRightIcon className="h-5 w-5" />
+                            <ChevronRight className="h-5 w-5" />
                         ) : (
                             <>
-                                <ChevronDoubleLeftIcon className="h-5 w-5 mr-3" />
+                                <ChevronLeft className="h-5 w-5 mr-3" />
                                 <span className="text-sm">Collapse</span>
                             </>
                         )}
                     </button>
                     {!sidebarCollapsed && (
-                        <div className="px-4 py-2 text-xs text-gray-400 border-t border-[#2d4a6f]">
+                        <div className="px-4 py-2 text-xs"
+                            style={{ color: 'var(--color-primary-500)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                             Alfred v1.0.0
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* [AI GENERATED]
-                Model: GitHub Copilot (GPT-4.1)
-                Logic: Main content area with responsive offset for sidebar, sticky header with breadcrumbs, search, notifications, and user menu. Renders page content via <Outlet /> and a persistent footer.
-                Why: Ensures consistent layout, navigation, and actions across all dashboard pages.
-                Root Cause: Inconsistent page structure leads to poor UX and navigation issues.
-                Context: Used for all dashboard routes. Future: modularize header/footer for reuse, improve accessibility.
-                Model Suitability: Layout composition is standard; GPT-4.1 is sufficient.
-            */}
-            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'}`}>
-                {/* Top Header Bar */}
-                <header className="bg-gray-800 border-gray-700 border-b shadow-sm sticky top-0 z-30">
-                    <div className="flex items-center justify-between px-4 md:px-6 py-3">
-                        {/* Left side - Mobile menu + Breadcrumbs */}
+            {/* Main Content Area */}
+            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-[56px]' : 'lg:ml-[var(--sidebar-width)]'}`}>
+                {/* Topbar */}
+                <header className="topbar sticky top-0 z-30">
+                    <div className="flex items-center justify-between px-4 md:px-6 py-0" style={{ height: 'var(--topbar-height)' }}>
+                        {/* Left — Mobile menu + Breadcrumbs */}
                         <div className="flex items-center space-x-4">
-                            {/* Mobile menu button */}
                             <button
                                 onClick={() => setMobileMenuOpen(true)}
-                                className="lg:hidden p-2 rounded-lg hover:bg-gray-700"
+                                className="lg:hidden p-2 rounded-lg transition-colors"
+                                style={{ color: 'var(--color-primary-500)' }}
                             >
-                                <Bars3Icon className="h-5 w-5 text-gray-300" />
+                                <Menu className="h-5 w-5" />
                             </button>
 
                             {/* Breadcrumbs */}
@@ -521,14 +588,17 @@ export default function Layout({ onLogout }) {
                                 {breadcrumbs.map((crumb, index) => (
                                     <span key={crumb.name} className="flex items-center">
                                         {index > 0 && (
-                                            <ChevronRightIcon className="h-4 w-4 text-gray-500 mx-1" />
+                                            <ChevronRight className="h-4 w-4 mx-1"
+                                                style={{ color: 'var(--color-primary-400)' }} />
                                         )}
                                         {crumb.current ? (
-                                            <span className="font-medium text-white">{crumb.name}</span>
+                                            <span className="font-medium"
+                                                style={{ color: 'var(--color-primary-900)' }}>{crumb.name}</span>
                                         ) : (
                                             <NavLink
                                                 to={crumb.href}
-                                                className="text-blue-400 hover:underline"
+                                                className="hover:underline"
+                                                style={{ color: 'var(--color-accent-600)' }}
                                             >
                                                 {crumb.name}
                                             </NavLink>
@@ -538,18 +608,11 @@ export default function Layout({ onLogout }) {
                             </nav>
                         </div>
 
-                        {/* Right side - Actions */}
+                        {/* Right — Actions */}
                         <div className="flex items-center space-x-2 md:space-x-4">
-                            {/* Search */}
                             <SearchBar />
-
-                            {/* Notifications */}
                             <NotificationsBell />
-
-                            {/* Divider */}
-                            <div className="hidden md:block w-px h-6 bg-gray-600" />
-
-                            {/* User Menu */}
+                            <div className="hidden md:block w-px h-6" style={{ background: 'var(--color-border)' }} />
                             <UserMenu
                                 user={user}
                                 onLogout={handleLogout}
@@ -560,20 +623,20 @@ export default function Layout({ onLogout }) {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 p-4 md:p-6 overflow-auto bg-gray-900">
+                <main className="flex-1 overflow-auto" style={{ background: 'var(--color-primary-50)' }}>
                     <Outlet />
                 </main>
 
                 {/* Footer */}
-                <footer className="bg-gray-800 border-gray-700 text-gray-400 border-t px-4 md:px-6 py-2">
+                <footer className="px-4 md:px-6 py-2" style={{
+                    background: 'white',
+                    borderTop: '1px solid var(--color-border)',
+                    color: 'var(--color-primary-400)'
+                }}>
                     <div className="flex items-center justify-between text-xs">
-                        <span>Alfred - AI Token Quota Manager</span>
+                        <span>Alfred — AI Token Quota Manager</span>
                         <span className="hidden sm:inline font-medium">
-                            {(() => {
-                                const today = new Date();
-                                const isToday = true; // Always today for the footer
-                                return isToday ? 'Today' : today.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
-                            })()}
+                            {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')}
                         </span>
                     </div>
                 </footer>

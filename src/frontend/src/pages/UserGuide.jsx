@@ -7,15 +7,15 @@
 // Context: This import enables the onboarding modal to be triggered from the User Guide. Future: Consider product tours or contextual tooltips.
 // Model Suitability: For React onboarding flows, GPT-4.1 is sufficient; for advanced analytics or behavioral tracking, consider Claude 3 or Gemini 1.5.
 import {
-    ArrowsRightLeftIcon,
-    BookOpenIcon,
-    CheckCircleIcon,
-    CogIcon,
-    KeyIcon,
-    LinkIcon,
-    UserGroupIcon,
-    UserPlusIcon
-} from '@heroicons/react/24/outline';
+    ArrowRightLeft,
+    BookOpen,
+    CheckCircle2,
+    Key,
+    Link,
+    Settings,
+    UserPlus,
+    Users
+} from 'lucide-react';
 import { useState } from 'react';
 import AdminOnboardingModal from '../components/AdminOnboardingModal';
 
@@ -23,7 +23,7 @@ const sections = [
     {
         id: 'getting-started',
         title: 'Getting Started',
-        icon: BookOpenIcon,
+        icon: BookOpen,
         content: [
             {
                 title: 'What is Alfred?',
@@ -60,7 +60,7 @@ const sections = [
     {
         id: 'authentication',
         title: 'Authentication',
-        icon: KeyIcon,
+        icon: Key,
         content: [
             {
                 title: 'API Keys',
@@ -86,7 +86,7 @@ curl https://your-alfred-server/v1/chat/completions \\
     {
         id: 'users',
         title: 'Managing Users',
-        icon: UserPlusIcon,
+        icon: UserPlus,
         content: [
             {
                 title: 'Creating Users',
@@ -115,7 +115,7 @@ curl https://your-alfred-server/v1/chat/completions \\
     {
         id: 'teams',
         title: 'Managing Teams',
-        icon: UserGroupIcon,
+        icon: Users,
         content: [
             {
                 title: 'Creating Teams',
@@ -144,7 +144,7 @@ curl https://your-alfred-server/v1/chat/completions \\
     {
         id: 'transfers',
         title: 'Credit Reallocation',
-        icon: ArrowsRightLeftIcon,
+        icon: ArrowRightLeft,
         content: [
             {
                 title: 'How Reallocation Works',
@@ -175,7 +175,7 @@ curl https://your-alfred-server/v1/chat/completions \\
     {
         id: 'api-usage',
         title: 'API Usage',
-        icon: CogIcon,
+        icon: Settings,
         content: [
             {
                 title: 'Making Requests',
@@ -219,7 +219,7 @@ response = client.chat.completions.create(
     {
         id: 'integrations',
         title: 'Integrations',
-        icon: LinkIcon,
+        icon: Link,
         content: [
             {
                 title: 'Available Integrations',
@@ -344,7 +344,7 @@ export default function UserGuide() {
             {/* Help Section */}
             <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-start">
-                    <CheckCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
                     <div>
                         <h3 className="font-medium text-blue-800 dark:text-blue-200">Need More Help?</h3>
                         <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">

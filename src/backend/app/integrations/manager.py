@@ -10,29 +10,22 @@ Alfred Notification Manager
 Central coordinator for all notification providers with pub/sub event system.
 """
 
-import os
-import sys
+import asyncio
+import logging
+from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Set
 
-# Ensure src directory is in the Python path for standalone execution
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
-
-import asyncio
-from collections import defaultdict
-
-from rich.console import Console
-
-from src.backend.app.integrations.base import (
+from .base import (
     EventType,
     NotificationEvent,
     NotificationProvider,
     NotificationResult,
 )
-from src.backend.app.integrations.slack import create_slack_notifier
-from src.backend.app.integrations.teams import create_teams_notifier
-from src.backend.app.integrations.telegram import create_telegram_notifier
+from .slack import create_slack_notifier
+from .teams import create_teams_notifier
+from .telegram import create_telegram_notifier
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 # Type alias for event handlers
 EventHandler = Callable[[NotificationEvent], None]
@@ -64,7 +57,7 @@ class NotificationManager:
         # Subscribe to events
         @manager.on(EventType.QUOTA_EXCEEDED)
         def handle_quota_exceeded(event):
-            console.print(f"[bold red]Quota exceeded[/bold red] for [cyan]{event.user_name}[/cyan]")
+            logger.warning("Quota exceeded for %s", event.user_name)
 
         # Emit events
         await manager.emit(NotificationEvent(
@@ -145,7 +138,7 @@ class NotificationManager:
         Usage:
             @manager.on(EventType.QUOTA_EXCEEDED, EventType.QUOTA_WARNING)
             def handle_quota_events(event):
-                print(f"Quota event: {event.title}")
+                logger.info("Quota event: %s", event.title)
         """
 
         def decorator(handler: EventHandler) -> EventHandler:

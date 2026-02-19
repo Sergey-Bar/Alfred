@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from sqlmodel import Session, SQLModel, select
 
 from .config import settings
-from .database import engine
+from . import database as app_database
 from .integrations import setup_notifications
 from .logging_config import get_logger
 from .models import OrgSettings
@@ -31,7 +31,12 @@ from .models import OrgSettings
 logger = get_logger(__name__)
 
 
-def create_tables_if_needed(engine):
+def get_engine():
+    """Get the current engine, respecting test overrides."""
+    return app_database.get_engine()
+
+
+def create_tables_if_needed(engine_param):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Creates all DB tables in dev/test, never in prod (use Alembic for prod migrations).
@@ -70,9 +75,9 @@ def create_tables_if_needed(engine):
         except Exception:
             # Fallback to provided engine param
             try:
-                engine_obj = engine.get() if hasattr(engine, "get") else engine
+                engine_obj = engine_param.get() if hasattr(engine_param, "get") else engine_param
             except Exception:
-                engine_obj = engine
+                engine_obj = engine_param
 
         try:
             if engine_obj is not None:
@@ -81,7 +86,7 @@ def create_tables_if_needed(engine):
                 try:
                     import app.database as _app_db2  # type: ignore
 
-                    setattr(_app_db2, "_tables_created", True)
+                    _app_db2._tables_created = True
                 except Exception:
                     pass
 
@@ -90,7 +95,7 @@ def create_tables_if_needed(engine):
             logger.warning(f"create_tables_if_needed: create_all failed: {e}")
 
 
-def initialize_org_settings(engine):
+def initialize_org_settings(engine_param):
     # [AI GENERATED]
     # Model: GitHub Copilot (GPT-4.1)
     # Logic: Ensures a baseline OrgSettings record exists for global governance.
@@ -110,12 +115,12 @@ def initialize_org_settings(engine):
         if hasattr(_app_db, "get_engine"):
             engine_obj = _app_db.get_engine()
         else:
-            engine_obj = getattr(_app_db, "engine", engine)
+            engine_obj = getattr(_app_db, "engine", engine_param)
     except Exception:
         try:
-            engine_obj = engine.get() if hasattr(engine, "get") else engine
+            engine_obj = engine_param.get() if hasattr(engine_param, "get") else engine_param
         except Exception:
-            engine_obj = engine
+            engine_obj = engine_param
 
     from sqlalchemy.exc import OperationalError
     from sqlmodel import SQLModel
@@ -194,11 +199,46 @@ async def alfred_lifespan(app: FastAPI) -> AsyncGenerator:
             "mode": "STRICT_PROD" if settings.is_production else "LAX_DEV",
         },
     )
+    import asyncio
+
+    _wallet_reset_task = None
+    _daily_digest_task = None
+    _audit_verify_task = None
     try:
         # Pre-flight initialization sequence
-        create_tables_if_needed(engine)
-        initialize_org_settings(engine)
+        create_tables_if_needed(get_engine())
+        initialize_org_settings(get_engine())
         setup_notifications_if_enabled()
+
+        # Start wallet reset cron (T056)
+        try:
+            from .wallet_reset import wallet_reset_loop
+
+            _wallet_reset_task = asyncio.create_task(wallet_reset_loop())
+            logger.info("Wallet reset cron task scheduled.")
+        except Exception as e:
+            logger.warning(f"Wallet reset cron failed to start: {e}")
+
+        # Start daily spend digest cron (T078)
+        try:
+            from .integrations.digest import daily_digest_loop
+
+            _daily_digest_task = asyncio.create_task(daily_digest_loop())
+            logger.info("Daily spend digest cron task scheduled.")
+        except Exception as e:
+            logger.warning(f"Daily digest cron failed to start: {e}")
+
+        # Start audit log hash chain verification cron (T140)
+        try:
+            from .audit import daily_audit_verification_loop
+            from .database import get_session
+
+            _audit_verify_task = asyncio.create_task(
+                daily_audit_verification_loop(get_session)
+            )
+            logger.info("Audit hash chain verification cron task scheduled.")
+        except Exception as e:
+            logger.warning(f"Audit verification cron failed to start: {e}")
 
         yield  # Start serving requests
 
@@ -206,4 +246,12 @@ async def alfred_lifespan(app: FastAPI) -> AsyncGenerator:
         logger.error(f"Critical Startup Collision: {str(e)}", exc_info=True)
         raise
     finally:
+        # Cancel background tasks on shutdown
+        for task in (_wallet_reset_task, _daily_digest_task, _audit_verify_task):
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         logger.info("Alfred Core Shutdown: All lifecycle hooks released.")

@@ -1,16 +1,16 @@
 import {
-    ArrowTrendingUpIcon,
-    BellIcon,
-    ChartBarIcon,
-    ClockIcon,
-    CogIcon,
-    EnvelopeIcon,
-    EyeSlashIcon,
-    KeyIcon,
-    ShieldCheckIcon,
-    SunIcon,
-    UsersIcon
-} from '@heroicons/react/24/outline';
+    BarChart3,
+    Bell,
+    Clock,
+    EyeOff,
+    Key,
+    Mail,
+    Settings,
+    ShieldCheck,
+    Sun,
+    TrendingUp,
+    Users
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useUser } from '../context/UserContext';
@@ -218,14 +218,14 @@ export default function Profile() {
                                 <>
                                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">{user.name}</h2>
                                     <p className="text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                                        <EnvelopeIcon className="h-4 w-4 mr-2" />
+                                        <Mail className="h-4 w-4 mr-2" />
                                         {user.email}
                                     </p>
                                     <div className="flex items-center mt-2 space-x-3">
                                         <span className="badge badge-primary">{user.role || 'User'}</span>
                                         {user.team && (
                                             <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                                                <UsersIcon className="h-4 w-4 mr-1" />
+                                                <Users className="h-4 w-4 mr-1" />
                                                 {user.team}
                                             </span>
                                         )}
@@ -255,7 +255,7 @@ export default function Profile() {
                                 onClick={() => setEditing(true)}
                                 className="btn btn-secondary flex items-center"
                             >
-                                <CogIcon className="h-4 w-4 mr-2" />
+                                <Settings className="h-4 w-4 mr-2" />
                                 Edit Profile
                             </button>
                         )}
@@ -265,25 +265,25 @@ export default function Profile() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatItem
-                        icon={ChartBarIcon}
+                        icon={BarChart3}
                         label="Tokens Used"
                         value={(user.used_tokens || 0).toLocaleString()}
                         color="blue"
                     />
                     <StatItem
-                        icon={ArrowTrendingUpIcon}
+                        icon={TrendingUp}
                         label="Quota Remaining"
                         value={`${quotaUsedPercent}%`}
                         color={quotaUsedPercent > 80 ? 'yellow' : 'green'}
                     />
                     <StatItem
-                        icon={ClockIcon}
+                        icon={Clock}
                         label="Last Login"
                         value={formatDate(user.last_login)}
                         color="purple"
                     />
                     <StatItem
-                        icon={ShieldCheckIcon}
+                        icon={ShieldCheck}
                         label="Member Since"
                         value={formatFullDate(user.created_at)}
                         color="blue"
@@ -317,7 +317,7 @@ export default function Profile() {
             {/* Status & Privacy */}
             <div className="card mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <CogIcon className="h-5 w-5 mr-2" />
+                    <Settings className="h-5 w-5 mr-2" />
                     Status & Privacy
                 </h3>
                 <div className="space-y-4">
@@ -325,7 +325,7 @@ export default function Profile() {
                     <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex items-center">
                             <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 mr-3">
-                                <SunIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                <Sun className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                             </div>
                             <div>
                                 <p className="font-medium text-gray-900 dark:text-white">Vacation Mode</p>
@@ -350,7 +350,7 @@ export default function Profile() {
                     <div className="flex items-center justify-between py-3">
                         <div className="flex items-center">
                             <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3">
-                                <EyeSlashIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <EyeOff className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                             </div>
                             <div>
                                 <p className="font-medium text-gray-900 dark:text-white">Strict Privacy Mode</p>
@@ -401,7 +401,7 @@ export default function Profile() {
             {/* Notification Preferences */}
             <div className="card mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <BellIcon className="h-5 w-5 mr-2" />
+                    <Bell className="h-5 w-5 mr-2" />
                     Notification Preferences
                 </h3>
                 <div className="space-y-4">
@@ -435,7 +435,7 @@ export default function Profile() {
             {/* Security Section */}
             <div className="card">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <KeyIcon className="h-5 w-5 mr-2" />
+                    <Key className="h-5 w-5 mr-2" />
                     Security
                 </h3>
                 <div className="space-y-4">

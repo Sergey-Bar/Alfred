@@ -1,14 +1,13 @@
 import {
-    ArrowRightIcon,
-    ArrowTrendingUpIcon,
-    ChartBarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    CurrencyDollarIcon,
-    UserGroupIcon,
-    UsersIcon,
-    XCircleIcon,
-} from '@heroicons/react/24/outline';
+    ArrowRight,
+    BarChart3,
+    CheckCircle2,
+    Clock,
+    DollarSign,
+    TrendingUp,
+    Users,
+    XCircle,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -58,7 +57,7 @@ function StatCard({ title, value, icon: Icon, color = 'blue', trend, onClick, su
                         </span>
                     )}
                     {clickable && (
-                        <ArrowRightIcon className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
                 </div>
             </div>
@@ -141,7 +140,7 @@ export default function Dashboard() {
             id: 'users',
             title: 'Total Users',
             value: overview?.total_users || 0,
-            icon: UsersIcon,
+            icon: Users,
             color: 'blue',
             trend: usersTrend,
             subtitle: 'Click to manage users',
@@ -151,7 +150,7 @@ export default function Dashboard() {
             id: 'tokens',
             title: 'Tokens Used',
             value: (overview?.total_tokens_used || 0).toLocaleString(),
-            icon: ChartBarIcon,
+            icon: BarChart3,
             color: 'green',
             trend: tokensTrend,
             subtitle: 'Click for detailed breakdown',
@@ -161,7 +160,7 @@ export default function Dashboard() {
             id: 'cost',
             title: 'Total Cost',
             value: `$${(overview?.total_credits_spent || 0).toFixed(2)}`,
-            icon: CurrencyDollarIcon,
+            icon: DollarSign,
             color: 'yellow',
             trend: costTrend,
             subtitle: 'Click for cost analysis',
@@ -171,7 +170,7 @@ export default function Dashboard() {
             id: 'teams',
             title: 'Active Teams',
             value: overview?.total_teams || 0,
-            icon: UserGroupIcon,
+            icon: Users,
             color: 'purple',
             subtitle: 'Click to manage teams',
             onClick: () => navigate('/teams'),
@@ -255,19 +254,19 @@ export default function Dashboard() {
                 <div className="flex flex-wrap items-center gap-3">
                     <DateRangePicker value={dateRange} onChange={setDateRange} />
                     <QuickAction
-                        icon={UsersIcon}
+                        icon={Users}
                         label="Add User"
                         onClick={() => navigate('/users')}
                         color="blue"
                     />
                     <QuickAction
-                        icon={UserGroupIcon}
+                        icon={Users}
                         label="Create Team"
                         onClick={() => navigate('/teams')}
                         color="green"
                     />
                     <QuickAction
-                        icon={ArrowTrendingUpIcon}
+                        icon={TrendingUp}
                         label="View Reports"
                         onClick={() => navigate('/transfers')}
                         color="purple"
@@ -462,21 +461,21 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700 transition-colors">
                             <div className="flex items-center">
-                                <ClockIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                                <Clock className="h-5 w-5 text-yellow-500 mr-2" />
                                 <span className="text-sm text-gray-300">Pending</span>
                             </div>
                             <span className="text-lg font-semibold text-white">{approvals?.total_pending || 0}</span>
                         </div>
                         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700 transition-colors">
                             <div className="flex items-center">
-                                <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                                <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
                                 <span className="text-sm text-gray-300">Approved (7d)</span>
                             </div>
                             <span className="text-lg font-semibold text-white">{approvals?.total_approved_7d || 0}</span>
                         </div>
                         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700 transition-colors">
                             <div className="flex items-center">
-                                <XCircleIcon className="h-5 w-5 text-red-500 mr-2" />
+                                <XCircle className="h-5 w-5 text-red-500 mr-2" />
                                 <span className="text-sm text-gray-300">Denied (7d)</span>
                             </div>
                             <span className="text-lg font-semibold text-white">{approvals?.total_rejected_7d || 0}</span>

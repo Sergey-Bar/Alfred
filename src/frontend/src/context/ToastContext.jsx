@@ -7,12 +7,12 @@
 // Context: All toast notifications should use this provider and hook. Future: consider queueing or stacking logic for high-traffic UIs.
 // Model Suitability: For React context and notification patterns, GPT-4.1 is sufficient.
 import {
-    CheckCircleIcon,
-    ExclamationTriangleIcon,
-    InformationCircleIcon,
-    XCircleIcon,
-    XMarkIcon,
-} from '@heroicons/react/24/outline';
+    AlertTriangle,
+    CheckCircle2,
+    Info,
+    X,
+    XCircle,
+} from 'lucide-react';
 import { createContext, useCallback, useContext, useState } from 'react';
 
 const ToastContext = createContext(null);
@@ -25,28 +25,28 @@ const ToastContext = createContext(null);
 // Context: Add new types here if needed.
 const TOAST_TYPES = {
     success: {
-        icon: CheckCircleIcon,
+        icon: CheckCircle2,
         bgColor: 'bg-green-900/30',
         borderColor: 'border-green-800',
         iconColor: 'text-green-400',
         textColor: 'text-green-200',
     },
     error: {
-        icon: XCircleIcon,
+        icon: XCircle,
         bgColor: 'bg-red-900/30',
         borderColor: 'border-red-800',
         iconColor: 'text-red-400',
         textColor: 'text-red-200',
     },
     warning: {
-        icon: ExclamationTriangleIcon,
+        icon: AlertTriangle,
         bgColor: 'bg-yellow-900/30',
         borderColor: 'border-yellow-800',
         iconColor: 'text-yellow-400',
         textColor: 'text-yellow-200',
     },
     info: {
-        icon: InformationCircleIcon,
+        icon: Info,
         bgColor: 'bg-blue-900/30',
         borderColor: 'border-blue-800',
         iconColor: 'text-blue-400',
@@ -79,7 +79,7 @@ function Toast({ id, type, title, message, onClose }) {
                 onClick={() => onClose(id)}
                 className={`ml-4 flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors ${config.iconColor}`}
             >
-                <XMarkIcon className="h-4 w-4" />
+                <X className="h-4 w-4" />
             </button>
         </div>
     );

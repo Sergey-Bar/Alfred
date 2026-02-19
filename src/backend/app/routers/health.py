@@ -9,12 +9,11 @@
 
 from typing import Any
 
+from app.config import settings
+from app.database import get_db_session
+from app.models import User  # type: ignore
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
-
-from app.database import get_db_session
-from app.config import settings
-from app.models import User  # type: ignore
 
 router = APIRouter()
 

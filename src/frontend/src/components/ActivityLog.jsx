@@ -1,42 +1,42 @@
 import {
-    ArrowsRightLeftIcon,
-    ChartBarIcon,
-    ClockIcon,
-    CurrencyDollarIcon,
-    FunnelIcon,
-    UserMinusIcon,
-    UserPlusIcon,
-} from '@heroicons/react/24/outline';
+    ArrowRightLeft,
+    BarChart3,
+    Clock,
+    DollarSign,
+    Filter,
+    UserMinus,
+    UserPlus,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 
 const ACTIVITY_TYPES = {
     transfer: {
-        icon: ArrowsRightLeftIcon,
+        icon: ArrowRightLeft,
         iconBg: 'bg-blue-100 dark:bg-blue-900/30',
         iconColor: 'text-blue-600 dark:text-blue-400',
         label: 'Reallocation',
     },
     user_created: {
-        icon: UserPlusIcon,
+        icon: UserPlus,
         iconBg: 'bg-green-100 dark:bg-green-900/30',
         iconColor: 'text-green-600 dark:text-green-400',
         label: 'User Created',
     },
     user_removed: {
-        icon: UserMinusIcon,
+        icon: UserMinus,
         iconBg: 'bg-red-100 dark:bg-red-900/30',
         iconColor: 'text-red-600 dark:text-red-400',
         label: 'User Removed',
     },
     quota_update: {
-        icon: CurrencyDollarIcon,
+        icon: DollarSign,
         iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
         iconColor: 'text-yellow-600 dark:text-yellow-400',
         label: 'Quota Update',
     },
     usage: {
-        icon: ChartBarIcon,
+        icon: BarChart3,
         iconBg: 'bg-purple-100 dark:bg-purple-900/30',
         iconColor: 'text-purple-600 dark:text-purple-400',
         label: 'Usage',
@@ -142,7 +142,7 @@ export default function ActivityLog({
             {/* Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                    <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <Clock className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
                 </div>
                 {showFilter && (
@@ -159,7 +159,7 @@ export default function ActivityLog({
                             <option value="quota_update">Quota Updates</option>
                             <option value="usage">Usage</option>
                         </select>
-                        <FunnelIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                        <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                     </div>
                 )}
             </div>

@@ -1,32 +1,32 @@
 import {
-    ExclamationTriangleIcon,
-    InformationCircleIcon,
-    QuestionMarkCircleIcon,
-    TrashIcon,
-} from '@heroicons/react/24/outline';
+    AlertTriangle,
+    HelpCircle,
+    Info,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 const DIALOG_TYPES = {
     danger: {
-        icon: TrashIcon,
+        icon: Trash2,
         iconBg: 'bg-red-100 dark:bg-red-900/30',
         iconColor: 'text-red-600 dark:text-red-400',
         confirmBg: 'bg-red-600 hover:bg-red-700',
     },
     warning: {
-        icon: ExclamationTriangleIcon,
+        icon: AlertTriangle,
         iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
         iconColor: 'text-yellow-600 dark:text-yellow-400',
         confirmBg: 'bg-yellow-600 hover:bg-yellow-700',
     },
     info: {
-        icon: InformationCircleIcon,
+        icon: Info,
         iconBg: 'bg-blue-100 dark:bg-blue-900/30',
         iconColor: 'text-blue-600 dark:text-blue-400',
         confirmBg: 'bg-blue-600 hover:bg-blue-700',
     },
     confirm: {
-        icon: QuestionMarkCircleIcon,
+        icon: HelpCircle,
         iconBg: 'bg-[#1d3557]/10 dark:bg-[#1d3557]/30',
         iconColor: 'text-[#1d3557] dark:text-blue-400',
         confirmBg: 'bg-[#1d3557] hover:bg-[#2d4a6f]',

@@ -5,26 +5,26 @@
 # Root Cause: No AI-generated code header present in legacy router.
 # Context: Extend for advanced SSO, SCIM, and user analytics. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
 
-from typing import List, Optional
 import json
 import uuid
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
+from ..dependencies import create_background_task, get_current_user, get_session, require_admin
 from ..logging_config import get_logger
-from ..dependencies import get_current_user, get_session, require_admin, create_background_task
-from ..models import User, UserStatus
 from ..logic import AuthManager
+from ..models import User, UserStatus
 from ..schemas import (
+    ApiKeyResponse,
+    QuotaStatusResponse,
     UserCreate,
     UserCreateResponse,
-    UserResponse,
-    ApiKeyResponse,
-    UserUpdate,
     UserProfileUpdate,
-    QuotaStatusResponse,
+    UserResponse,
+    UserUpdate,
 )
 
 logger = get_logger(__name__)
@@ -40,7 +40,9 @@ async def create_user(
     admin_user: User = Depends(get_current_user),
 ):
     """Create a new user with optimized database operations."""
-    existing_user = session.query(User).filter(User.email == user_data.email).first()
+    existing_user = session.exec(
+        select(User).where(User.email == user_data.email)
+    ).first()
     if existing_user:
         raise HTTPException(
             status_code=400, detail="Identity Conflict: A user with this email already exists."
@@ -107,7 +109,7 @@ async def rotate_api_key(
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Identifier Format.")
+        raise HTTPException(status_code=400, detail="Invalid Identifier Format.") from None
 
     user = session.get(User, user_uuid)
     if not user:
@@ -248,7 +250,7 @@ async def delete_user(
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Identifier Format.")
+        raise HTTPException(status_code=400, detail="Invalid Identifier Format.") from None
 
     user = session.get(User, user_uuid)
     if not user:

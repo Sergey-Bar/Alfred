@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     )
 
     # --- Network / Server Configuration ---
+    app_url: str = Field(
+        default="http://localhost:8000",
+        description="Public base URL of the Alfred application (used for OAuth callbacks, Slack redirects, etc.)",
+    )
     host: str = Field(default="0.0.0.0", description="The interface to bind the server to")
     port: int = Field(default=8000, ge=1, le=65535, description="TCP port for the application")
     workers: int = Field(

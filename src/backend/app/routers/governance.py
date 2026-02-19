@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter as _APIRouter
 from sqlmodel import Session, select
 
 from ..dependencies import create_background_task, get_current_user, get_session
@@ -46,7 +47,6 @@ router = APIRouter(prefix="/v1", tags=["Governance & Credit Reallocation"])
 # Why: Test suite expects /v1/governance/transfer to be accessible directly.
 # Root Cause: FastAPI prefixes can cause path mismatches if not aliased.
 # Context: This alias ensures test compatibility; remove if test suite changes.
-from fastapi import APIRouter as _APIRouter
 
 _alias_router = _APIRouter()
 
@@ -81,7 +81,7 @@ async def transfer_tokens(
         try:
             recipient = session.get(User, uuid.UUID(transfer.to_user_id))
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid Recipient ID format.")
+            raise HTTPException(status_code=400, detail="Invalid Recipient ID format.") from None
     elif transfer.recipient_email:
         recipient = session.exec(select(User).where(User.email == transfer.recipient_email)).first()
 
@@ -289,7 +289,7 @@ async def get_pending_approvals(
         # Check if they are a team admin
         admin_links = session.exec(
             select(TeamMemberLink).where(
-                TeamMemberLink.user_id == user.id, TeamMemberLink.is_admin == True
+                TeamMemberLink.user_id == user.id, TeamMemberLink.is_admin
             )
         ).all()
         if not admin_links:
@@ -297,12 +297,12 @@ async def get_pending_approvals(
                 status_code=403, detail="Access Denied: Administrative privileges required."
             )
 
-        team_ids = [l.team_id for l in admin_links]
+        team_ids = [link.team_id for link in admin_links]
         # Get team members
         member_links = session.exec(
             select(TeamMemberLink).where(TeamMemberLink.team_id.in_(team_ids))
         ).all()
-        managed_user_ids = {l.user_id for l in member_links}
+        managed_user_ids = {link.user_id for link in member_links}
 
         if not managed_user_ids:
             all_pending = []
@@ -412,7 +412,7 @@ async def resolve_approval(
 
             return {"msg": "Request Denied."}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/leaderboard", response_model=List[LeaderboardResponse])
@@ -480,7 +480,7 @@ async def get_usage_analytics(
     return {
         "period": f"{days} days",
         "total_requests": len(logs),
-        "total_cost": sum(l.cost_credits for l in logs),
+        "total_cost": sum(entry.cost_credits for entry in logs),
         "history": [{"date": d, "cost": v["cost"]} for d, v in sorted(history.items())],
         "by_model": {m: v["cost"] for m, v in by_model.items()},
     }

@@ -1,0 +1,123 @@
+# Alfred GitHub Action - AI Cost Gate
+#
+# [AI GENERATED - GOVERNANCE PROTOCOL]
+# ──────────────────────────────────────────────────────────────
+# Model:       Claude Opus 4.6
+# Tier:        L2
+# Logic:       GitHub Action to enforce AI cost budgets in CI/CD.
+# Root Cause:  Sprint task T190 — GitHub Actions cost gate.
+# Context:     Prevents runaway AI costs in automated pipelines.
+# Suitability: L2 — Standard GitHub Action patterns.
+# ──────────────────────────────────────────────────────────────
+
+name: "Alfred Cost Gate"
+description: "Enforce AI cost budgets and quotas in your CI/CD pipeline"
+author: "Alfred AI"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  api-key:
+    description: "Alfred API key"
+    required: true
+  api-url:
+    description: "Alfred API URL"
+    required: false
+    default: "https://api.alfred.ai"
+  budget-limit:
+    description: "Maximum cost allowed for this run (USD)"
+    required: false
+    default: "5.00"
+  fail-on-exceeded:
+    description: "Fail the workflow if budget is exceeded"
+    required: false
+    default: "true"
+  check-balance:
+    description: "Check wallet balance before proceeding"
+    required: false
+    default: "true"
+  min-balance:
+    description: "Minimum required balance to proceed (USD)"
+    required: false
+    default: "1.00"
+  report-usage:
+    description: "Post usage report as PR comment"
+    required: false
+    default: "true"
+
+outputs:
+  balance:
+    description: "Current wallet balance"
+  run-cost:
+    description: "Cost of AI operations in this run"
+  budget-remaining:
+    description: "Remaining budget for this run"
+  status:
+    description: "Gate status (passed/failed/warning)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check Alfred Balance
+      if: inputs.check-balance == 'true'
+      shell: bash
+      env:
+        ALFRED_API_KEY: ${{ inputs.api-key }}
+        ALFRED_API_URL: ${{ inputs.api-url }}
+        MIN_BALANCE: ${{ inputs.min-balance }}
+      run: |
+        echo "🔍 Checking Alfred wallet balance..."
+
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -H "Authorization: Bearer $ALFRED_API_KEY" \
+          -H "Content-Type: application/json" \
+          "$ALFRED_API_URL/v1/wallets/me")
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+        BODY=$(echo "$RESPONSE" | sed '$d')
+
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "❌ Failed to check balance: $BODY"
+          exit 1
+        fi
+
+        BALANCE=$(echo "$BODY" | jq -r '.balance // 0')
+        echo "💰 Current balance: \$$BALANCE"
+
+        # Compare balance to minimum
+        if (( $(echo "$BALANCE < $MIN_BALANCE" | bc -l) )); then
+          echo "❌ Insufficient balance: \$$BALANCE < \$$MIN_BALANCE required"
+          exit 1
+        fi
+
+        echo "balance=$BALANCE" >> $GITHUB_OUTPUT
+        echo "✅ Balance check passed"
+
+    - name: Initialize Cost Tracking
+      shell: bash
+      env:
+        ALFRED_API_KEY: ${{ inputs.api-key }}
+        ALFRED_API_URL: ${{ inputs.api-url }}
+      run: |
+        echo "📊 Initializing cost tracking for run $GITHUB_RUN_ID..."
+
+        # Store start timestamp
+        echo "ALFRED_RUN_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+        echo "ALFRED_RUN_ID=$GITHUB_RUN_ID" >> $GITHUB_ENV
+
+        # Get starting balance for cost calculation
+        RESPONSE=$(curl -s \
+          -H "Authorization: Bearer $ALFRED_API_KEY" \
+          "$ALFRED_API_URL/v1/wallets/me")
+
+        START_BALANCE=$(echo "$RESPONSE" | jq -r '.balance // 0')
+        echo "ALFRED_START_BALANCE=$START_BALANCE" >> $GITHUB_ENV
+
+        echo "✅ Cost tracking initialized"
+
+    - name: Set Budget Environment
+      shell: bash
+      run: |
+        echo "ALFRED_BUDGET_LIMIT=${{ inputs.budget-limit }}" >> $GITHUB_ENV
+        echo "ALFRED_FAIL_ON_EXCEEDED=${{ inputs.fail-on-exceeded }}" >> $GITHUB_ENV

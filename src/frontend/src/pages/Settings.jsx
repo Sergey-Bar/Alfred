@@ -1,16 +1,17 @@
 import {
-    BellIcon,
-    CheckCircleIcon,
-    Cog6ToothIcon,
-    GlobeAltIcon,
-    KeyIcon,
-    ShieldCheckIcon
-} from '@heroicons/react/24/outline';
+    Bell,
+    CheckCircle2,
+    Globe,
+    Key,
+    Settings as SettingsIcon,
+    ShieldCheck
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
-import api from '../services/api';
 import { useUser } from '../context/UserContext';
+import api from '../services/api';
 
 
+export default function Settings() {
 const { user, updateUser } = useUser();
 const [saved, setSaved] = useState(false);
 
@@ -107,9 +108,12 @@ const handleSave = async () => {
 };
 
 
-// API Key reveal/hide
+// API Key reveal/hide — only show masked prefix, never full key in DOM
 const [showApiKey, setShowApiKey] = useState(false);
-const apiKey = api.getApiKey();
+const rawApiKey = api.getApiKey();
+const apiKey = rawApiKey
+    ? (showApiKey ? rawApiKey.slice(0, 8) + '••••••••••••••••' : rawApiKey.slice(0, 4) + '••••••••••••••••••••')
+    : 'Not set';
 
 const ToggleSwitch = ({ enabled, onToggle }) => (
     <button
@@ -151,7 +155,7 @@ return (
         ) : adminConfig && (
             <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
                 <div className="flex items-center space-x-2 mb-4">
-                    <Cog6ToothIcon className="h-5 w-5 text-blue-400" />
+                    <SettingsIcon className="h-5 w-5 text-blue-400" />
                     <h2 className="text-lg font-semibold text-white">Admin Platform Config</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -224,7 +228,7 @@ return (
             </div>
             {saved && (
                 <span className="flex items-center px-3 py-1.5 rounded-lg text-sm bg-green-500/20 text-green-400">
-                    <CheckCircleIcon className="h-4 w-4 mr-1.5" />
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
                     Saved
                 </span>
             )}
@@ -233,12 +237,12 @@ return (
         {/* Appearance Section */}
         <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center space-x-2 mb-4">
-                <Cog6ToothIcon className="h-5 w-5 text-blue-400" />
+                <SettingsIcon className="h-5 w-5 text-blue-400" />
                 <h2 className="text-lg font-semibold text-white">Appearance</h2>
             </div>
 
             <SettingRow
-                icon={GlobeAltIcon}
+                icon={Globe}
                 label="Date Format"
                 description="Choose your preferred date format"
             >
@@ -257,12 +261,12 @@ return (
         {/* Notifications Section */}
         <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center space-x-2 mb-4">
-                <BellIcon className="h-5 w-5 text-blue-400" />
+                <Bell className="h-5 w-5 text-blue-400" />
                 <h2 className="text-lg font-semibold text-white">Notifications</h2>
             </div>
 
             <SettingRow
-                icon={BellIcon}
+                icon={Bell}
                 label="Email Notifications"
                 description="Receive important updates via email"
             >
@@ -273,7 +277,7 @@ return (
             </SettingRow>
 
             <SettingRow
-                icon={BellIcon}
+                icon={Bell}
                 label="Browser Notifications"
                 description="Show desktop notifications"
             >
@@ -284,7 +288,7 @@ return (
             </SettingRow>
 
             <SettingRow
-                icon={BellIcon}
+                icon={Bell}
                 label="Quota Warning"
                 description="Alert when quota usage exceeds 80%"
             >
@@ -295,7 +299,7 @@ return (
             </SettingRow>
 
             <SettingRow
-                icon={BellIcon}
+                icon={Bell}
                 label="Weekly Report"
                 description="Receive weekly usage summary"
             >
@@ -309,12 +313,12 @@ return (
         {/* Privacy Section */}
         <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center space-x-2 mb-4">
-                <ShieldCheckIcon className="h-5 w-5 text-blue-400" />
+                <ShieldCheck className="h-5 w-5 text-blue-400" />
                 <h2 className="text-lg font-semibold text-white">Privacy</h2>
             </div>
 
             <SettingRow
-                icon={ShieldCheckIcon}
+                icon={ShieldCheck}
                 label="Share Usage Statistics"
                 description="Help improve Alfred by sharing anonymous usage data"
             >
@@ -325,7 +329,7 @@ return (
             </SettingRow>
 
             <SettingRow
-                icon={ShieldCheckIcon}
+                icon={ShieldCheck}
                 label="Show Activity Status"
                 description="Let others see when you're online"
             >
@@ -339,14 +343,14 @@ return (
         {/* Data Section */}
         <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
             <div className="flex items-center space-x-2 mb-4">
-                <KeyIcon className="h-5 w-5 text-blue-400" />
+                <Key className="h-5 w-5 text-blue-400" />
                 <h2 className="text-lg font-semibold text-white">Data & Security</h2>
             </div>
 
 
 
             <SettingRow
-                icon={KeyIcon}
+                icon={Key}
                 label="API Key"
                 description="Your current session API key"
             >

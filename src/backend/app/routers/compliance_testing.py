@@ -87,31 +87,3 @@ def compliance_status():
     return {"gdpr": "passed", "soc2": "failed", "hipaa": "pending"}
 
 
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Scaffold backend router for compliance testing automation.
-# Why: Roadmap item 39 requires continuous monitoring and automated evidence collection.
-# Root Cause: No compliance test automation or evidence collection exists.
-# Context: This router provides stubs for compliance test orchestration and evidence management. Future: integrate with audit logs, compliance frameworks, and CI/CD. For advanced compliance, consider using a more advanced model (Claude Opus).
-
-from typing import List
-
-from fastapi import APIRouter
-
-router = APIRouter()
-
-
-@router.post("/compliance/run")
-def run_compliance_tests(standards: List[str]):
-    # TODO: Implement compliance test orchestration for given standards (e.g., SOC2, GDPR)
-    # - Run checks, collect evidence, generate reports
-    return {"message": "Compliance tests started", "standards": standards}
-
-
-@router.get("/compliance/evidence")
-def get_compliance_evidence():
-    # TODO: Return collected evidence and compliance status
-    return {"evidence": [], "status": "pending"}
-
-
-# --- Future: Integrate with audit logs, compliance frameworks, and CI/CD ---

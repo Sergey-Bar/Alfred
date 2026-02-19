@@ -12,29 +12,26 @@ docker-up:
 
 install:
 	python -m pip install --upgrade pip
-	pip install -r dev/backend/requirements/requirements.txt
+	pip install -r src/backend/requirements/requirements.txt
 
 dev:
-	uvicorn app.main:app --reload
+	cd src/backend && uvicorn app.main:app --reload
 
 lint:
-	black --check .
-	ruff check .
-	isort --check-only .
+	ruff check src/backend/
+	ruff format --check src/backend/
 
 format:
-	black .
-	ruff format .
-	isort .
+	ruff format src/backend/
 
 test:
 	pytest -v
 
 frontend-install:
-	cd frontend && npm ci
+	cd src/frontend && npm ci
 
 frontend-test:
-	cd frontend && npm run test:unit
+	cd src/frontend && npm run test:unit
 
 build:
 	docker-compose build
@@ -43,16 +40,12 @@ docker-up:
 	docker-compose up -d
 
 migrate:
-	alembic -c dev/backend/config/alembic.ini upgrade head
+	alembic -c src/backend/config/alembic.ini upgrade head
 
 reset-db:
 	rm -f alfred.db || del alfred.db
-	alembic -c dev/backend/config/alembic.ini downgrade base || true
-	alembic -c dev/backend/config/alembic.ini upgrade head
-
-minimal:
-	@echo "Building minimal artifact in ./dist"
-	./scripts/build_minimal.sh dist
+	alembic -c src/backend/config/alembic.ini downgrade base || true
+	alembic -c src/backend/config/alembic.ini upgrade head
 
 # Gateway local targets
 .PHONY: build-gateway gateway-run up down logs

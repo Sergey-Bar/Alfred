@@ -1,4 +1,4 @@
-import { CalendarIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { Calendar, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const RANGE_OPTIONS = [
@@ -116,9 +116,9 @@ export default function DateRangePicker({ value, onChange, className = '' }) {
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
             >
-                <CalendarIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <Calendar className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-800 dark:text-gray-200 font-medium">{getDisplayText()}</span>
-                <ChevronDownIcon className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (

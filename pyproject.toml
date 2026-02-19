@@ -38,7 +38,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["dev/backend/app*"]
+include = ["src/backend/app*"]
 
 [tool.black]
 line-length = 100
@@ -72,6 +72,8 @@ plugins = ["pydantic.mypy"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -81,20 +83,21 @@ select = [
     "B",   # flake8-bugbear
 ]
 ignore = [
-    "E501",  # line too long (handled by black)
+    "E501",  # line too long (handled by formatter)
     "B008",  # function call in argument defaults (FastAPI Depends pattern)
+    "C901",  # function complexity (addressed incrementally)
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["dev/QA/Backend", "qa/QA/Backend", "tests", "src/backend/app/tests"]
-pythonpath = ["src/backend", "dev/backend"]
+testpaths = ["tests", "qa/Backend", "src/backend/app/tests"]
+pythonpath = ["src/backend"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["dev/backend/app"]
+source = ["src/backend/app"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
@@ -132,4 +135,4 @@ exclude_lines = [
 directory = "htmlcov"
 
 [tool.pylint]
-ignore = ["dev/frontend", "dev/frontend/static"]
+ignore = ["src/frontend", "src/frontend/static"]

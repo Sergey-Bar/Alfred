@@ -43,6 +43,17 @@ from .sso import SSOManager, SSOProviderConfig
 from .teams import TeamsNotifier
 from .telegram import TelegramNotifier
 from .whatsapp import WhatsAppNotifier
+from .email import EmailNotifier, create_email_notifier
+from .webhook import WebhookNotifier, create_webhook_notifier
+from .escalation import (
+    AlertDeduplicator,
+    EscalationLadder,
+    EscalationLevel,
+    EscalationTarget,
+    EscalationRule,
+    DEFAULT_ESCALATION_RULES,
+)
+from .digest import daily_digest_loop
 
 # Global SSO Manager Singleton
 sso_manager: Optional[SSOManager] = None
@@ -69,6 +80,17 @@ __all__ = [
     "TeamsNotifier",
     "TelegramNotifier",
     "WhatsAppNotifier",
+    "EmailNotifier",
+    "create_email_notifier",
+    "WebhookNotifier",
+    "create_webhook_notifier",
+    "AlertDeduplicator",
+    "EscalationLadder",
+    "EscalationLevel",
+    "EscalationTarget",
+    "EscalationRule",
+    "DEFAULT_ESCALATION_RULES",
+    "daily_digest_loop",
     "NotificationManager",
     "setup_notifications",
     "get_notification_manager",

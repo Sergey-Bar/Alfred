@@ -56,13 +56,13 @@ async def create_share_link(
 async def list_share_links():
     return [
         {
-            "id": l.id,
-            "resource": l.resource,
-            "access_type": l.access_type,
-            "shared_with": l.shared_with,
-            "expires_at": l.expires_at,
+            "id": link.id,
+            "resource": link.resource,
+            "access_type": link.access_type,
+            "shared_with": link.shared_with,
+            "expires_at": link.expires_at,
         }
-        for l in SHARE_LINKS.values()
+        for link in SHARE_LINKS.values()
     ]
 
 

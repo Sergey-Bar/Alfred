@@ -1,11 +1,11 @@
 import {
-    CheckCircleIcon,
-    ClockIcon,
-    DocumentTextIcon,
-    PlusIcon,
-    XCircleIcon,
-    XMarkIcon,
-} from '@heroicons/react/24/outline';
+    CheckCircle2,
+    Clock,
+    FileText,
+    Plus,
+    X,
+    XCircle,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '../context/ToastContext';
 
@@ -139,7 +139,7 @@ export default function Approvals() {
                     onClick={() => setShowRequestModal(true)}
                     className="btn btn-primary flex items-center"
                 >
-                    <PlusIcon className="h-5 w-5 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Request Quota
                 </button>
             </div>
@@ -158,7 +158,7 @@ export default function Approvals() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="stat-card">
                     <div className="flex items-center">
-                        <ClockIcon className="h-8 w-8 text-yellow-500 mr-3" />
+                        <Clock className="h-8 w-8 text-yellow-500 mr-3" />
                         <div>
                             <p className="stat-value">{stats.pending}</p>
                             <p className="stat-label">Pending</p>
@@ -167,7 +167,7 @@ export default function Approvals() {
                 </div>
                 <div className="stat-card">
                     <div className="flex items-center">
-                        <CheckCircleIcon className="h-8 w-8 text-green-500 mr-3" />
+                        <CheckCircle2 className="h-8 w-8 text-green-500 mr-3" />
                         <div>
                             <p className="stat-value">{stats.approved}</p>
                             <p className="stat-label">Approved</p>
@@ -176,7 +176,7 @@ export default function Approvals() {
                 </div>
                 <div className="stat-card">
                     <div className="flex items-center">
-                        <XCircleIcon className="h-8 w-8 text-red-500 mr-3" />
+                        <XCircle className="h-8 w-8 text-red-500 mr-3" />
                         <div>
                             <p className="stat-value">{stats.rejected}</p>
                             <p className="stat-label">Rejected</p>
@@ -228,7 +228,7 @@ export default function Approvals() {
                                         {approval.user_email}
                                     </p>
                                     <div className="flex items-center text-sm mb-2">
-                                        <DocumentTextIcon className="h-4 w-4 text-gray-400 mr-2" />
+                                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
                                         <span className="text-gray-600 dark:text-gray-300">{approval.reason}</span>
                                     </div>
                                     <p className="text-xs text-gray-400">{formatDate(approval.created_at)}</p>
@@ -254,7 +254,7 @@ export default function Approvals() {
                                                 disabled={actionLoading === approval.id}
                                                 className="btn btn-sm bg-green-600 hover:bg-green-700 text-white"
                                             >
-                                                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                                <CheckCircle2 className="h-4 w-4 mr-1" />
                                                 Approve
                                             </button>
                                             <button
@@ -262,7 +262,7 @@ export default function Approvals() {
                                                 disabled={actionLoading === approval.id}
                                                 className="btn btn-sm bg-red-600 hover:bg-red-700 text-white"
                                             >
-                                                <XCircleIcon className="h-4 w-4 mr-1" />
+                                                <XCircle className="h-4 w-4 mr-1" />
                                                 Reject
                                             </button>
                                         </div>
@@ -292,7 +292,7 @@ export default function Approvals() {
                                 onClick={() => setShowRequestModal(false)}
                                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             >
-                                <XMarkIcon className="h-6 w-6" />
+                                <X className="h-6 w-6" />
                             </button>
                         </div>
                         <form onSubmit={handleCreateRequest} className="space-y-4">

@@ -24,11 +24,21 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from redis.asyncio import Redis
+from slowapi import Limiter
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
+from . import database as app_database
 from .config import settings
+from .database import get_db_session
 from .exceptions import setup_exception_handlers
+from .lifespan import alfred_lifespan
 from .logging_config import get_logger, setup_logging
 from .middleware import setup_middleware
+
+# Expose `get_session` for test fixtures that expect `app.main.get_session`
+get_session = get_db_session
 
 # Routers are imported lazily inside `register_routers` to reduce startup import
 # overhead. Each router module is resolved at registration time; missing modules
@@ -44,18 +54,6 @@ def _import_module(module_name: str) -> ModuleType | None:
         logger.debug("Optional router module '%s' not available: %s", module_name, e)
         return None
 
-
-from redis.asyncio import Redis
-from slowapi import Limiter
-from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
-
-from .database import get_db_session
-from .lifespan import alfred_lifespan
-from . import database as app_database
-
-# Expose `get_session` for test fixtures that expect `app.main.get_session`
-get_session = get_db_session
 
 # [AI GENERATED]
 # Model: GitHub Copilot (GPT-4.1)
@@ -129,7 +127,7 @@ def create_app(engine=None) -> FastAPI:
 
     # Setup Redis-backed rate limiting (best-effort)
     try:
-        redis = Redis.from_url(settings.redis_url)
+        Redis.from_url(settings.redis_url)
         limiter = Limiter(key_func=get_remote_address, storage_uri=settings.redis_url)
         app.state.limiter = limiter
         app.add_middleware(SlowAPIMiddleware)
@@ -210,7 +208,11 @@ def register_routers(app: FastAPI):
     ]
 
     # Governance & Credit Management
-    governance_routers = [("routers.governance", "Governance & Credit Reallocation")]
+    governance_routers = [
+        ("routers.governance", "Governance & Credit Reallocation"),
+        ("routers.wallets", "Wallet & Credit Management"),
+        ("routers.transfers", "Budget Transfer Workflow"),
+    ]
     # Alias router handled below if present on module
 
     # Analytics & Reporting
@@ -252,6 +254,12 @@ def register_routers(app: FastAPI):
     integration_routers = [
         ("routers.bi_connectors", "BI Tools Integration"),
         ("routers.compliance", "Compliance"),
+        ("routers.slack_app", "Slack App"),
+        ("routers.sso_rbac", "SSO & RBAC"),
+        ("routers.scim", "SCIM 2.0 Provisioning"),
+        ("routers.gdpr", "GDPR Compliance"),
+        ("routers.prompts", "Prompt Registry"),
+        ("routers.finops", "FinOps Integrations"),
     ]
 
     # Core API Gateway

@@ -5,7 +5,7 @@ import (
     "fmt"
     "time"
 
-    "github.com/<org>/alfred/services/gateway/config"
+    "github.com/AlfredDev/alfred/services/gateway/config"
     "github.com/redis/go-redis/v9"
 )
 

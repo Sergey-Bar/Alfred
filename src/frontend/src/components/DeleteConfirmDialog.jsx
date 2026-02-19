@@ -1,4 +1,4 @@
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { AlertTriangle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 // [AI GENERATED]
@@ -73,7 +73,7 @@ export default function DeleteConfirmDialog({
                     <div className="p-6">
                         {/* Icon */}
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-900/30">
-                            <ExclamationTriangleIcon className="h-6 w-6 text-red-400" />
+                            <AlertTriangle className="h-6 w-6 text-red-400" />
                         </div>
 
                         {/* Content */}

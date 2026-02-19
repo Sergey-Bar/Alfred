@@ -81,7 +81,7 @@ This workflow addresses all tasks identified in `reviews/Project Managment/Unres
 ## Phase 4: Tests & QA
 
 ### 4.1 Consolidate Test Directories
-- **Current**: `dev/QA/Backend`, `qa/QA/Backend`, `tests/`
+- **Current**: `qa/Backend`, `qa/QA/Backend`, `tests/`
 - **Action**: Merge into single structure
 
 ### 4.2 Centralize Test Credentials

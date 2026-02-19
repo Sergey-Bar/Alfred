@@ -1,9 +1,9 @@
 import {
-    MagnifyingGlassIcon,
-    PencilIcon,
-    PlusIcon,
-    TrashIcon,
-} from '@heroicons/react/24/outline';
+    Pencil,
+    Plus,
+    Search,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
 import { useToast } from '../context/ToastContext';
@@ -142,7 +142,7 @@ export default function Users() {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Manage user accounts and quotas</p>
                 </div>
                 <button onClick={openCreateModal} className="btn btn-primary flex items-center">
-                    <PlusIcon className="h-5 w-5 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Add User
                 </button>
             </div>
@@ -159,7 +159,7 @@ export default function Users() {
             {/* Search */}
             <div className="card mb-6">
                 <div className="relative">
-                    <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                    <Search className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
                     <input
                         type="text"
                         placeholder="Search users by name or email..."
@@ -231,13 +231,13 @@ export default function Users() {
                                             onClick={() => openEditModal(user)}
                                             className="p-1 text-gray-400 hover:text-blue-600"
                                         >
-                                            <PencilIcon className="h-5 w-5" />
+                                            <Pencil className="h-5 w-5" />
                                         </button>
                                         <button
                                             onClick={() => openDeleteDialog(user)}
                                             className="p-1 text-gray-400 hover:text-red-600"
                                         >
-                                            <TrashIcon className="h-5 w-5" />
+                                            <Trash2 className="h-5 w-5" />
                                         </button>
                                     </div>
                                 </td>

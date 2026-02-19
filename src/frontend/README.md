@@ -62,8 +62,8 @@ This builds the frontend into `../static/` directory, which is served by FastAPI
 ## Test Locations
 
 - **Unit Tests:** `src/frontend/src/__tests__/`
-- **E2E Tests:** `dev/QA/E2E/`
-- **Coverage & Results:** `dev/QA/results/`
+- **E2E Tests:** `qa/E2E/`
+- **Coverage & Results:** `qa/results/`
 
 ## API Endpoints
 

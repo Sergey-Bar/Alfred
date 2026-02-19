@@ -1,4 +1,4 @@
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 
@@ -56,12 +56,12 @@ export default function Integrations() {
                                     <div className="flex items-center">
                                         {config.enabled ? (
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-900/30 text-green-400 border border-green-900/50">
-                                                <CheckCircleIcon className="h-5 w-5 mr-1.5" />
+                                                <CheckCircle2 className="h-5 w-5 mr-1.5" />
                                                 Active
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400 border border-gray-600">
-                                                <XCircleIcon className="h-5 w-5 mr-1.5" />
+                                                <XCircle className="h-5 w-5 mr-1.5" />
                                                 Not Configured
                                             </span>
                                         )}

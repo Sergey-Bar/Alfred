@@ -1,9 +1,14 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Implements AI proxy gateway endpoints for unified quota enforcement and LLM request routing.
-# Why: Required for OpenAI-compatible API, quota management, and request interception.
-# Root Cause: No AI-generated code header present in legacy router.
-# Context: Extend for advanced credit governance, vacation sharing, and priority overrides. For complex workflows, consider Claude Sonnet or GPT-5.1-Codex.
+# [AI GENERATED - GOVERNANCE PROTOCOL]
+# ──────────────────────────────────────────────────────────────
+# Model:       Claude Opus 4.6
+# Tier:        L4
+# Logic:       Wires the unified SafetyPipeline (PII, secrets, injection)
+#              into the proxy router, replacing the basic InputValidator.
+# Root Cause:  InputValidator only does basic pattern matching; SafetyPipeline
+#              provides enterprise-grade detection with configurable enforcement.
+# Context:     Touches security-critical proxy path. Sergey Bar review required.
+# Suitability: L4 model mandatory for security middleware changes.
+# ──────────────────────────────────────────────────────────────
 
 import time
 from typing import Optional
@@ -21,6 +26,7 @@ from ..metrics import (
     quota_utilization,
 )
 from ..models import ChatCompletionRequest, ProjectPriority, User
+from ..safety.pipeline import SafetyPipeline, SafetyPolicy
 from ..security import InputValidator
 
 router = APIRouter(prefix="/v1", tags=["AI Gateway"])
@@ -102,8 +108,29 @@ async def chat_completions(
             message=quota_result.message, quota_remaining=float(quota_result.available_credits)
         )
 
-    # 4. Security Scrubbing
-    InputValidator.validate_chat_messages(request.messages)
+    # 4. Security Scrubbing — Unified Safety Pipeline
+    # Runs PII detection, secret scanning, and prompt injection detection
+    # in parallel with configurable enforcement (block/redact/warn).
+    InputValidator.validate_chat_messages(request.messages)  # Structural checks first
+
+    safety_pipeline = SafetyPipeline(SafetyPolicy.default())
+    combined_text = " ".join(m.content for m in request.messages if m.content)
+    safety_result = await safety_pipeline.check(
+        text=combined_text,
+        user_id=str(user.id),
+        allow_redaction=not strict_privacy,
+    )
+
+    if not safety_result.allowed:
+        from ..exceptions import LLMProviderException
+
+        provider = _detect_provider(request.model)
+        llm_requests_total.labels(
+            model=request.model, provider=provider, user_id=str(user.id), status="blocked_safety"
+        ).inc()
+        raise LLMProviderException(
+            f"Request blocked by safety pipeline: {safety_result.message}"
+        )
 
     # 5. Inference Orchestration
     # Forward the request to the upstream provider (OpenAI, Anthropic, Google, etc.)
@@ -117,7 +144,7 @@ async def chat_completions(
         llm_requests_total.labels(
             model=request.model, provider=provider, user_id=str(user.id), status="error"
         ).inc()
-        raise LLMProviderException(f"Upstream Provider Error: {str(e)}")
+        raise LLMProviderException(f"Upstream Provider Error: {str(e)}") from e
 
     # 6. Lifecycle Finalization
     actual_cost = CreditCalculator.calculate_cost(

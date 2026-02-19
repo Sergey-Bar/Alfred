@@ -6,11 +6,13 @@
 # Context: Used by test_data_management router for CRUD and compliance. Future: add indexes, masking, and audit fields.
 
 import uuid
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from decimal import Decimal
+from enum import Enum
+from typing import List, Optional
 
 from sqlalchemy import JSON, Column
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class TestDataSet(SQLModel, table=True):
@@ -23,9 +25,6 @@ class TestDataSet(SQLModel, table=True):
     anonymized: bool = Field(default=True)
     data: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
     created_by: Optional[str] = Field(default=None, max_length=100)
-
-
-from sqlmodel import Field, SQLModel
 
 
 # [AI GENERATED]
@@ -89,33 +88,17 @@ class LineageEventDB(SQLModel, table=True):
     details: Optional[str] = Field(default=None)
 
 
-"""
-Alfred - Enterprise AI Credit Governance Platform
-Database Models & Schema Definitions
-
-[ARCHITECTURAL ROLE]
-This module defines the Data Layer of the application using SQLModel (SQLAlchemy + Pydantic).
-It bridges the gap between Python objects and relational database rows, handling:
-1. Schema Generation: Automatically creates tables for SQLite/PostgreSQL.
-2. ORM Mapping: Typed access to relationships (Users, Teams, Logs).
-3. Serialization: Built-in Pydantic integration for API request/response validation.
-
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: This module defines all DB models, enums, and API schemas using SQLModel and Pydantic. It covers users, teams, logs, approvals, and governance settings.
-# Why: Centralizing models ensures type safety, maintainability, and API contract enforcement.
-# Root Cause: Scattered models lead to schema drift and API inconsistencies.
-# Context: All DB and API schemas should be defined here. Future: consider modularizing for large-scale growth.
-# Model Suitability: For SQLModel/Pydantic patterns, GPT-4.1 is sufficient; for advanced data modeling, a more advanced model may be preferred.
-"""
-
-import uuid
-from datetime import datetime, timezone
-from decimal import Decimal
-from enum import Enum
-from typing import List, Optional
-
-from sqlmodel import Field, Relationship, SQLModel
+# ---------------------------------------------------------------------------
+# Alfred - Enterprise AI Credit Governance Platform
+# Database Models & Schema Definitions
+#
+# [ARCHITECTURAL ROLE]
+# This module defines the Data Layer using SQLModel (SQLAlchemy + Pydantic).
+# It bridges the gap between Python objects and relational database rows:
+# 1. Schema Generation: Automatically creates tables for SQLite/PostgreSQL.
+# 2. ORM Mapping: Typed access to relationships (Users, Teams, Logs).
+# 3. Serialization: Built-in Pydantic integration for API request/response validation.
+# ---------------------------------------------------------------------------
 
 # --- Enumerations for Strong Typing ---
 
@@ -265,7 +248,7 @@ class User(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     email: str = Field(unique=True, index=True, max_length=255)
     name: str = Field(max_length=255)
-    api_key_hash: str = Field(max_length=255, description="Argon2 or PBKDF2 hash of the API secret")
+    api_key_hash: str = Field(index=True, max_length=255, description="Argon2 or PBKDF2 hash of the API secret")
 
     # Access Control
     is_admin: bool = Field(
@@ -338,9 +321,9 @@ class RequestLog(SQLModel, table=True):
 
     # Inference Metadata
     model: str = Field(
-        max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)"
+        index=True, max_length=100, description="Logical identifier of the LLM (e.g., gpt-4-turbo)"
     )
-    provider: str = Field(max_length=50, description="Backend platform (openai, anthropic, etc.)")
+    provider: str = Field(index=True, max_length=50, description="Backend platform (openai, anthropic, etc.)")
 
     # Token Intelligence (Granular usage tracking)
     prompt_tokens: int = Field(ge=0)
@@ -466,21 +449,30 @@ class ApprovalRequest(SQLModel, table=True):
 
 class AuditLog(SQLModel, table=True):
     # [AI GENERATED]
-    # Model: GitHub Copilot (GPT-4.1)
-    # Logic: Stores all privileged/admin actions for compliance and forensics.
+    # Model: Claude Opus 4.6
+    # Logic: Immutable hash-chained audit log for compliance forensics.
+    #        Every entry includes previous_hash → entry_hash chain for
+    #        tamper detection. sequence_number enables O(1) chain walk.
     # Why: Required for SOC2/ISO27001 and incident response.
-    # Root Cause: Admin actions must be permanently recorded.
-    # Context: Used by audit logging and compliance modules.
+    # Root Cause: Admin actions must be permanently recorded with integrity proof.
+    # Context: T138 — append-only, hash-chained audit log schema.
     """
-    Administrative Ledger.
-    Records every high-privileged action for compliance (SOC2/ISO27001 readiness).
+    Immutable Audit Ledger.
+    Records every high-privileged action for compliance (SOC2/ISO27001).
+    Hash chain ensures tamper detection — any modification breaks the chain.
+    
+    LEDGER SAFETY: No UPDATE or DELETE operations on this table — ever.
     """
 
     __tablename__ = "audit_logs"
     __table_args__ = {"extend_existing": True}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    sequence_number: int = Field(index=True, description="Monotonic sequence for chain ordering")
     actor_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
+    actor_type: str = Field(
+        default="user", max_length=50, description="user, system, cron, api_key"
+    )
     action: str = Field(
         max_length=200, description="Canonical action name (e.g. 'user.rotate_key')"
     )
@@ -490,6 +482,18 @@ class AuditLog(SQLModel, table=True):
     details_json: Optional[str] = Field(
         default=None, description="Opaque data representing the delta change"
     )
+    ip_address: Optional[str] = Field(default=None, max_length=45, description="Client IP")
+    user_agent: Optional[str] = Field(default=None, max_length=500)
+
+    # Hash chain fields (T138)
+    previous_hash: str = Field(
+        max_length=64, description="SHA-256 hash of the previous entry (genesis='0'*64)"
+    )
+    entry_hash: str = Field(
+        max_length=64, index=True,
+        description="SHA-256(sequence_number|action|actor|target|details|previous_hash|created_at)"
+    )
+
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
 
 
@@ -512,6 +516,7 @@ class TokenTransfer(SQLModel, table=True):
 
     sender_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     recipient_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    team_id: Optional[uuid.UUID] = Field(default=None, foreign_key="teams.id", index=True)
 
     amount: Decimal = Field(max_digits=12, decimal_places=2, description="Credits reallocated")
     message: Optional[str] = Field(default=None, max_length=500)
@@ -634,6 +639,193 @@ class ChatMessage(SQLModel):
     role: str
     content: str
     name: Optional[str] = None
+
+
+# --- Wallet Models (T050) ---
+
+
+class WalletType(str, Enum):
+    """Wallet hierarchy types."""
+    ORGANIZATION = "organization"
+    TEAM = "team"
+    USER = "user"
+    PROJECT = "project"
+
+
+class WalletStatus(str, Enum):
+    """Wallet lifecycle states."""
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    CLOSED = "closed"
+
+
+class Wallet(SQLModel, table=True):
+    """
+    [AI GENERATED - GOVERNANCE PROTOCOL]
+    ──────────────────────────────────────────────────────────────
+    Model:       Claude Opus 4.6
+    Tier:        L4
+    Logic:       Wallet data model for unified budget management.
+                 Supports hierarchy (org → team → user), hard/soft
+                 limits, monthly reset, and overdraft configuration.
+    Root Cause:  Sprint task T050 — Wallet data model + PostgreSQL schema.
+    Context:     Central financial entity replacing scattered quota
+                 fields on User and Team models. Enables atomic
+                 balance operations and audit-ready transactions.
+    Suitability: L4 for financial model — correctness critical.
+    ──────────────────────────────────────────────────────────────
+
+    Unified Budget Entity.
+    Manages credit allocation at any level of the organization hierarchy.
+    Supports hard limits (block), soft limits (alert), and monthly auto-reset.
+    """
+
+    __tablename__ = "wallets"
+    __table_args__ = {"extend_existing": True}
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str = Field(max_length=255, index=True)
+    wallet_type: WalletType = Field(default=WalletType.USER, index=True)
+    status: WalletStatus = Field(default=WalletStatus.ACTIVE, index=True)
+
+    # Ownership
+    owner_user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id", index=True)
+    owner_team_id: Optional[uuid.UUID] = Field(default=None, foreign_key="teams.id", index=True)
+
+    # Hierarchy: parent wallet for org→team→user cascading limits
+    parent_wallet_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="wallets.id", index=True
+    )
+
+    # Financial Ledger
+    hard_limit: Decimal = Field(
+        default=Decimal("10000.00"),
+        max_digits=14,
+        decimal_places=2,
+        description="Absolute spending cap — blocks requests once reached",
+    )
+    soft_limit_percent: Decimal = Field(
+        default=Decimal("80.00"),
+        max_digits=5,
+        decimal_places=2,
+        description="Soft limit as percentage of hard_limit — triggers alerts",
+    )
+    balance_used: Decimal = Field(
+        default=Decimal("0.00"),
+        max_digits=14,
+        decimal_places=2,
+        description="Cumulative spend in current period",
+    )
+    balance_reserved: Decimal = Field(
+        default=Decimal("0.00"),
+        max_digits=14,
+        decimal_places=2,
+        description="Reserved amount for in-flight requests",
+    )
+
+    # Overdraft (T058)
+    overdraft_enabled: bool = Field(default=False)
+    overdraft_percent: Decimal = Field(
+        default=Decimal("0.00"),
+        max_digits=5,
+        decimal_places=2,
+        description="Allowed overdraft as percentage of hard_limit",
+    )
+
+    # Reset Configuration (T056)
+    auto_reset: bool = Field(default=True)
+    reset_day: int = Field(default=1, ge=1, le=28, description="Day of month for auto-reset")
+    last_reset_at: Optional[datetime] = Field(default=None)
+
+    # Metadata
+    currency: str = Field(default="credits", max_length=20)
+    description: Optional[str] = Field(default=None, max_length=500)
+    metadata_json: Optional[str] = Field(default=None, description="Flexible metadata")
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    transactions: List["WalletTransaction"] = Relationship(back_populates="wallet")
+
+    @property
+    def balance_available(self) -> Decimal:
+        """Real-time available balance: hard_limit - used - reserved."""
+        effective_limit = self.hard_limit
+        if self.overdraft_enabled:
+            effective_limit += (self.hard_limit * self.overdraft_percent / Decimal("100"))
+        return effective_limit - self.balance_used - self.balance_reserved
+
+    @property
+    def utilization_percent(self) -> Decimal:
+        """Current utilization as percentage of hard_limit."""
+        if self.hard_limit == 0:
+            return Decimal("100.00")
+        return (self.balance_used / self.hard_limit) * Decimal("100")
+
+    @property
+    def soft_limit_reached(self) -> bool:
+        """Whether the soft limit threshold has been crossed."""
+        return self.utilization_percent >= self.soft_limit_percent
+
+    @property
+    def hard_limit_reached(self) -> bool:
+        """Whether the hard limit has been reached (no overdraft)."""
+        return self.balance_used + self.balance_reserved >= self.hard_limit
+
+    @property
+    def effective_limit(self) -> Decimal:
+        """Hard limit plus overdraft allowance."""
+        if self.overdraft_enabled:
+            return self.hard_limit + (self.hard_limit * self.overdraft_percent / Decimal("100"))
+        return self.hard_limit
+
+
+class WalletTransactionType(str, Enum):
+    """Types of wallet transactions."""
+    DEDUCTION = "deduction"
+    REFUND = "refund"
+    RESERVATION = "reservation"
+    SETTLEMENT = "settlement"
+    TOPUP = "topup"
+    RESET = "reset"
+    TRANSFER_IN = "transfer_in"
+    TRANSFER_OUT = "transfer_out"
+    ADJUSTMENT = "adjustment"
+
+
+class WalletTransaction(SQLModel, table=True):
+    """
+    Immutable wallet transaction log.
+    Every credit mutation is recorded here for audit and reconciliation.
+    """
+
+    __tablename__ = "wallet_transactions"
+    __table_args__ = {"extend_existing": True}
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    wallet_id: uuid.UUID = Field(foreign_key="wallets.id", index=True)
+
+    transaction_type: WalletTransactionType = Field(index=True)
+    amount: Decimal = Field(max_digits=14, decimal_places=6)
+    balance_before: Decimal = Field(max_digits=14, decimal_places=2)
+    balance_after: Decimal = Field(max_digits=14, decimal_places=2)
+
+    # Reference to the request that caused this transaction
+    request_id: Optional[str] = Field(default=None, max_length=100, index=True)
+    # For idempotent refunds (T045)
+    idempotency_key: Optional[str] = Field(default=None, max_length=100, index=True)
+
+    # Context
+    model: Optional[str] = Field(default=None, max_length=100)
+    provider: Optional[str] = Field(default=None, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=500)
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    created_by: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+
+    # Relationships
+    wallet: Optional[Wallet] = Relationship(back_populates="transactions")
 
 
 class ChatCompletionRequest(SQLModel):

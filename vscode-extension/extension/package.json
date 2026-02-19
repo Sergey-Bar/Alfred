@@ -10,7 +10,9 @@
         "Other"
     ],
     "activationEvents": [
-        "onView:alfredSidebar"
+        "onView:alfredSidebar",
+        "onView:alfredUsageReport",
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -28,14 +30,46 @@
                 {
                     "id": "alfredSidebar",
                     "name": "Transfer History"
+                },
+                {
+                    "id": "alfredUsageReport",
+                    "name": "Usage Report"
                 }
             ]
         },
         "commands": [
             {
                 "command": "alfred.refreshTransferHistory",
-                "title": "Refresh Transfer History",
+                "title": "Alfred: Refresh Transfer History",
                 "icon": "$(refresh)"
+            },
+            {
+                "command": "alfred.showSessionDetails",
+                "title": "Alfred: Show Session Details"
+            },
+            {
+                "command": "alfred.showCostBreakdown",
+                "title": "Alfred: Show Cost Breakdown"
+            },
+            {
+                "command": "alfred.selectModel",
+                "title": "Alfred: Select AI Model"
+            },
+            {
+                "command": "alfred.toggleEnvironment",
+                "title": "Alfred: Toggle Dev/Prod Environment"
+            },
+            {
+                "command": "alfred.resetSession",
+                "title": "Alfred: Reset Session"
+            },
+            {
+                "command": "alfred.checkBudget",
+                "title": "Alfred: Check Budget"
+            },
+            {
+                "command": "alfred.exportUsageReport",
+                "title": "Alfred: Export Usage Report"
             }
         ],
         "configuration": {
@@ -49,8 +83,74 @@
                 "alfred.apiKey": {
                     "type": "string",
                     "description": "Alfred API key for authentication"
+                },
+                "alfred.dailyBudget": {
+                    "type": "number",
+                    "default": 10.0,
+                    "description": "Daily AI budget in USD"
+                },
+                "alfred.sessionCostWarningThreshold": {
+                    "type": "number",
+                    "default": 1.0,
+                    "description": "Session cost threshold (USD) to show warning in status bar"
+                },
+                "alfred.budgetWarningPercent": {
+                    "type": "number",
+                    "default": 80,
+                    "description": "Budget usage percentage at which to show warning notifications"
+                },
+                "alfred.defaultModel": {
+                    "type": "string",
+                    "default": "gpt-4o",
+                    "enum": [
+                        "gpt-4o",
+                        "gpt-4o-mini",
+                        "gpt-3.5-turbo",
+                        "claude-3.5-sonnet",
+                        "claude-3-haiku",
+                        "gemini-1.5-pro",
+                        "gemini-1.5-flash",
+                        "mistral-large"
+                    ],
+                    "description": "Default AI model for requests"
+                },
+                "alfred.defaultEnvironment": {
+                    "type": "string",
+                    "default": "development",
+                    "enum": ["development", "production"],
+                    "description": "Default environment (development or production)"
+                },
+                "alfred.enableBudgetAlerts": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable budget warning notifications"
+                },
+                "alfred.showStatusBar": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Alfred status bar items"
                 }
             }
+        },
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "alfred.showSessionDetails",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.selectModel",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.toggleEnvironment",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.exportUsageReport",
+                    "when": "true"
+                }
+            ]
         }
     },
     "scripts": {

@@ -21,4 +21,4 @@ tags = ["aws", "credentials"]
 
 [[allowlist]]
 description = "Local dev artifact paths"
-paths = ["dev/QA/results", "assets/static/assets"]
+paths = ["qa/results"]

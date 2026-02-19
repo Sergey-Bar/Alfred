@@ -232,6 +232,18 @@ class ApiService {
         });
     }
 
+    async getTransferHistory({ page = 1, pageSize = 20, status, walletId } = {}) {
+        const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+        if (status) params.set('status', status);
+        if (walletId) params.set('wallet_id', walletId);
+        try {
+            return await this.fetchJson(`/transfers?${params.toString()}`);
+        } catch {
+            // Fallback to dashboard endpoint for backwards compatibility
+            return this.fetchJson(`/dashboard/transfers?limit=${pageSize}`);
+        }
+    }
+
     // User status (vacation mode)
     async updateUserStatus(status) {
         return this.fetchJson(`/users/me/status?status=${status}`, {

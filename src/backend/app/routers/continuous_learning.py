@@ -107,29 +107,3 @@ def list_hackathons():
         ),
     ]
 
-
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Scaffold doc and backend stub for continuous learning culture (knowledge sharing, hackathons).
-# Why: Roadmap item 40 requires infrastructure for knowledge sharing and innovation events.
-# Root Cause: No platform support for continuous learning or hackathons.
-# Context: This doc and router provide stubs for knowledge base, event scheduling, and hackathon management. Future: integrate with wiki, event calendar, and recognition systems. For advanced knowledge management, consider using a more advanced model (Claude Opus).
-
-from fastapi import APIRouter
-
-router = APIRouter()
-
-
-@router.post("/learning/event")
-def schedule_learning_event(event_type: str, title: str, date: str):
-    # TODO: Schedule a knowledge sharing or hackathon event
-    return {"message": "Event scheduled", "event_type": event_type, "title": title, "date": date}
-
-
-@router.get("/learning/events")
-def list_learning_events():
-    # TODO: List upcoming and past learning events
-    return {"events": []}
-
-
-# --- Future: Integrate with wiki, event calendar, and recognition systems ---

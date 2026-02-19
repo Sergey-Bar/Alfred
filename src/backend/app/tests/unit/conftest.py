@@ -10,8 +10,14 @@ from pathlib import Path
 
 import pytest
 
-# Ensure repository root is on sys.path so `tests.fixtures` is importable
-repo_root = Path(__file__).resolve().parents[5]
+# Locate repository root by finding the directory containing pyproject.toml
+_here = Path(__file__).resolve()
+repo_root = _here
+while repo_root != repo_root.parent:
+    if (repo_root / "pyproject.toml").exists():
+        break
+    repo_root = repo_root.parent
+
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
@@ -21,10 +27,10 @@ _tmp_dir.mkdir(exist_ok=True)
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_tmp_dir / 'test.db'}")
 os.environ.setdefault("ENVIRONMENT", "test")
 
-from app.main import app
-from fastapi.testclient import TestClient
+from app.main import app  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from tests.fixtures.shared_fixtures import *  # noqa: F401,F403
+from tests.fixtures.shared_fixtures import *  # noqa: F401,F403,E402
 
 
 @pytest.fixture

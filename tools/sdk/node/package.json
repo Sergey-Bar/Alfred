@@ -1,0 +1,47 @@
+{
+  "name": "@alfred-ai/sdk",
+  "version": "1.0.0",
+  "description": "Node.js SDK for Alfred AI Credit Governance Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src --ext ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "alfred",
+    "ai",
+    "llm",
+    "governance",
+    "openai",
+    "anthropic",
+    "sdk"
+  ],
+  "author": "Alfred Team <sdk@alfred.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlfredDev/alfred.git",
+    "directory": "tools/sdk/node"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

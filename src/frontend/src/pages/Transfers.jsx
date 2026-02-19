@@ -1,14 +1,28 @@
 import {
-    ArrowRightIcon,
-    ArrowsRightLeftIcon,
-    FunnelIcon,
-    PlusIcon,
-    XMarkIcon,
-} from '@heroicons/react/24/outline';
+    ArrowRight,
+    ArrowRightLeft,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    Clock,
+    Filter,
+    Plus,
+    X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useUser } from '../context/UserContext';
 import api from '../services/api';
+
+const STATUS_CONFIG = {
+    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400' },
+    approved: { label: 'Approved', color: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400' },
+    rejected: { label: 'Rejected', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400' },
+    expired: { label: 'Expired', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' },
+    cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-500' },
+};
+
+const PAGE_SIZE = 20;
 
 export default function Transfers() {
     const { user } = useUser();
@@ -18,6 +32,11 @@ export default function Transfers() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // all, sent, received
+    const [statusFilter, setStatusFilter] = useState('all'); // all, pending, approved, rejected, expired, cancelled
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalTransfers, setTotalTransfers] = useState(0);
     const [selectedUser, setSelectedUser] = useState(null);
     const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
     const popoverRef = useRef(null);
@@ -30,7 +49,7 @@ export default function Transfers() {
     useEffect(() => {
         fetchTransfers();
         fetchUsers();
-    }, []);
+    }, [page]);
 
     async function fetchUsers() {
         try {
@@ -67,22 +86,22 @@ export default function Transfers() {
     async function fetchTransfers() {
         try {
             setLoading(true);
-            const data = await api.getTransfers(100);
-            const transfersList = data.recent_transfers || data;
-            // Map backend fields to frontend expected format (normalize names)
-            const mappedTransfers = transfersList.map(t => ({
+            const data = await api.getTransferHistory({ page, pageSize: PAGE_SIZE, status: statusFilter !== 'all' ? statusFilter : undefined });
+            const transfersList = data.transfers || data.recent_transfers || data;
+            const mappedTransfers = (Array.isArray(transfersList) ? transfersList : []).map(t => ({
                 ...t,
-                from_user_name: t.sender,
-                to_user_name: t.recipient,
+                from_user_name: t.sender || t.from_user_name,
+                to_user_name: t.recipient || t.to_user_name,
                 from_user_id: t.sender_id || t.from_user_id || null,
                 to_user_id: t.recipient_id || t.to_user_id || null,
                 from_user_email: t.sender_email || t.from_user_email || null,
                 to_user_email: t.recipient_email || t.to_user_email || null,
-                created_at: t.timestamp || t.created_at
+                created_at: t.timestamp || t.created_at,
+                status: t.status || 'approved',
             }));
             setTransfers(mappedTransfers);
+            setTotalTransfers(data.total ?? mappedTransfers.length);
         } catch (err) {
-            // Surface the error and avoid using demo transfers silently
             setError(err?.message || 'Failed to load transfers');
             setTransfers([]);
         } finally {
@@ -103,13 +122,18 @@ export default function Transfers() {
     // Get current user name for filtering
     const currentUserName = user?.name || '';
 
-    // Filter transfers based on selected filter
+    // Filter transfers based on selected filters (direction + date range)
     const filteredTransfers = transfers.filter((transfer) => {
-        if (filter === 'all') return true;
-        if (filter === 'sent') return transfer.from_user_name === currentUserName;
-        if (filter === 'received') return transfer.to_user_name === currentUserName;
+        // Direction filter
+        if (filter === 'sent' && transfer.from_user_name !== currentUserName) return false;
+        if (filter === 'received' && transfer.to_user_name !== currentUserName) return false;
+        // Date range filter (client-side for additional precision)
+        if (dateFrom && new Date(transfer.created_at) < new Date(dateFrom)) return false;
+        if (dateTo && new Date(transfer.created_at) > new Date(dateTo + 'T23:59:59')) return false;
         return true;
     });
+
+    const totalPages = Math.max(1, Math.ceil(totalTransfers / PAGE_SIZE));
 
     // Handle user click to show popover
     function handleUserClick(event, userName, type, transfer) {
@@ -156,7 +180,7 @@ export default function Transfers() {
                     onClick={() => setShowTransferModal(true)}
                     className="btn btn-primary flex items-center"
                 >
-                    <PlusIcon className="h-5 w-5 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Reallocate Credits
                 </button>
             </div>
@@ -180,22 +204,75 @@ export default function Transfers() {
 
             {/* Filter */}
             <div className="card mb-6">
-                <div className="flex items-center space-x-4">
-                    <FunnelIcon className="h-5 w-5 text-gray-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Filter:</span>
-                    <div className="flex space-x-2">
-                        {['all', 'sent', 'received'].map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-3 py-1 text-sm rounded-full ${filter === f
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 font-medium'
-                                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                    }`}
-                            >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                            </button>
-                        ))}
+                <div className="flex flex-wrap items-center gap-4">
+                    <Filter className="h-5 w-5 text-gray-400" />
+                    <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Direction</span>
+                        <div className="flex space-x-2">
+                            {['all', 'sent', 'received'].map((f) => (
+                                <button
+                                    key={f}
+                                    onClick={() => { setFilter(f); setPage(1); }}
+                                    className={`px-3 py-1 text-sm rounded-full ${filter === f
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 font-medium'
+                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                        }`}
+                                >
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="border-l border-gray-200 dark:border-gray-600 pl-4">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Status</span>
+                        <div className="flex space-x-2">
+                            {['all', 'pending', 'approved', 'rejected', 'expired'].map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => { setStatusFilter(s); setPage(1); fetchTransfers(); }}
+                                    className={`px-3 py-1 text-sm rounded-full ${statusFilter === s
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 font-medium'
+                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                        }`}
+                                >
+                                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="border-l border-gray-200 dark:border-gray-600 pl-4">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Date Range</span>
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                                    className="input pl-8 py-1 text-sm w-36"
+                                    placeholder="From"
+                                />
+                            </div>
+                            <span className="text-gray-400 text-sm">to</span>
+                            <div className="relative">
+                                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                                    className="input pl-8 py-1 text-sm w-36"
+                                    placeholder="To"
+                                />
+                            </div>
+                            {(dateFrom || dateTo) && (
+                                <button
+                                    onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -245,7 +322,7 @@ export default function Transfers() {
                             <div className="flex items-center px-6">
                                 <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-4 py-2 rounded-full">
                                     <span className="font-semibold mr-2">{transfer.amount?.toLocaleString()}</span>
-                                    <ArrowRightIcon className="h-4 w-4" />
+                                    <ArrowRight className="h-4 w-4" />
                                 </div>
                             </div>
 
@@ -260,9 +337,17 @@ export default function Transfers() {
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Recipient</p>
                             </div>
 
-                            {/* Details */}
-                            <div className="ml-6 text-right w-48">
-                                <p className="text-sm text-gray-600 dark:text-gray-300">{transfer.reason || 'No reason provided'}</p>
+                            {/* Details + Status */}
+                            <div className="ml-6 text-right w-56">
+                                <div className="flex items-center justify-end gap-2 mb-1">
+                                    {transfer.status && STATUS_CONFIG[transfer.status] && (
+                                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_CONFIG[transfer.status].color}`}>
+                                            {transfer.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                                            {STATUS_CONFIG[transfer.status].label}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{transfer.reason || 'No reason provided'}</p>
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formatDate(transfer.created_at)}</p>
                             </div>
                         </div>
@@ -274,6 +359,34 @@ export default function Transfers() {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Showing {Math.min((page - 1) * PAGE_SIZE + 1, totalTransfers)}–{Math.min(page * PAGE_SIZE, totalTransfers)} of {totalTransfers} transfers
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="btn btn-secondary flex items-center px-3 py-1.5 text-sm disabled:opacity-40"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                            </button>
+                            <span className="text-sm text-gray-600 dark:text-gray-300 px-2">
+                                Page {page} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="btn btn-secondary flex items-center px-3 py-1.5 text-sm disabled:opacity-40"
+                            >
+                                Next <ChevronRight className="h-4 w-4 ml-1" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* User Info Popover */}
@@ -291,7 +404,7 @@ export default function Transfers() {
                             onClick={() => setSelectedUser(null)}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
-                            <XMarkIcon className="h-5 w-5" />
+                            <X className="h-5 w-5" />
                         </button>
                     </div>
                     <div className="space-y-2">
@@ -324,14 +437,14 @@ export default function Transfers() {
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                                <ArrowsRightLeftIcon className="h-6 w-6 mr-2 text-blue-500" />
+                                <ArrowRightLeft className="h-6 w-6 mr-2 text-blue-500" />
                                 Reallocate Credits
                             </h2>
                             <button
                                 onClick={() => setShowTransferModal(false)}
                                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             >
-                                <XMarkIcon className="h-6 w-6" />
+                                <X className="h-6 w-6" />
                             </button>
                         </div>
                         <form onSubmit={handleCreateTransfer} className="space-y-4">
