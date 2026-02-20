@@ -1,19 +1,115 @@
+# Git files
 .git
 .gitignore
+.gitattributes
+
+# Environment & secrets (use orchestration secrets)
 .env
-*.log
-*.tmp
+.env.*
+*.key
+*.pem
+
+# Build artifacts & dependencies
 bin/
 build/
-node_modules/
 vendor/
+node_modules/
+
+# Test files (exclude from production image)
+*_test.go
+**/*_test.go
+testdata/
+coverage.txt
+coverage.html
+*.test
+integration_test.go
+
+# Performance profiling & load testing
+perf/results/
+perf/**/*.json
+perf/**/*.log
+*.prof
+*.trace
+*.pprof
+pprof/
+
+# Logs & temporary files
+*.log
+*.tmp
+*.temp
+*.cache
+
+# CI/CD configurations
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Kubernetes & deployment configs (handled by CI/CD)
+k8s/
+patches/
+*.yaml
+*.yml
+!.golangci.yml
+
+# Database migrations (handled by migration tool)
+migrations/
+
+# Build tools
+Makefile
+CONTRIBUTING.md
+
+# IDE & OS files
+.idea/
+.vscode/
 .DS_Store
+Thumbs.DB
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Binary artifacts
 *.exe
 *.dll
 *.so
 *.dylib
+
+# Python artifacts (if any)
 __pycache__/
 *.pyc
+*.pyo
 .venv/
-.idea/
-.vscode/
+
+# Documentation (keep only README)
+*.md
+!README.md
+docs/
+LICENSE
+
+# Go workspace
+go.work
+go.work.sum
+
+# Development scripts
+scripts/
+tools/
+
+# Load testing scripts (not needed in prod)
+perf/*.sh
+perf/load-test.js
+
+# Analysis tools (not needed in prod)
+perf/analyze-performance.sh
+perf/profile-under-load.sh
+perf/compare-profiles.sh
+perf/run-complete-analysis.sh
+
+# Middleware & profiling code (if not needed in prod, comment these out if needed)
+# middleware/latency.go
+# profiling/
+
+# README files outside root
+perf/README.md
+middleware/README.md
+

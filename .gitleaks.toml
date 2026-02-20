@@ -1,9 +1,5 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-5 mini)
-# Logic: Provide gitleaks configuration with a focused rule to catch placeholder credentials and common test passwords.
-# Why: Detect placeholder secrets like "changeme" or "test_password" which appear in CI and tests.
-# Root Cause: Repo contains example placeholders and test credentials that should be gated by CI.
-# Context: This config is intentionally conservative; maintainers should tune rules to avoid false positives.
+# Alfred - Gitleaks Configuration
+# Secret scanning rules to detect placeholder credentials and test passwords.
 
 title = "Gitleaks config for Alfred"
 

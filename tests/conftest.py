@@ -19,15 +19,8 @@ _tmp_dir.mkdir(exist_ok=True)
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_tmp_dir / 'test.db'}")
 os.environ.setdefault("ENVIRONMENT", "test")
 
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-5 mini)
-# Logic: Create a concrete test Engine and inject it into the application
-# Why: Ensure tests and the FastAPI app share the same SQLAlchemy/SQLModel Engine
-# Root Cause: The app created an engine at import-time which could differ from
 #           the engine used by pytest fixtures, causing "no such table" errors.
-# Context: This must run before importing the application or fixtures that
 #          import the app.
-# Model suitability: GPT-5 mini is used for concise repo-wide refactor suggestions.
 from sqlmodel import SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
 

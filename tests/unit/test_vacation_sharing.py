@@ -1,11 +1,3 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Relocates vacation sharing unit tests to top-level tests/unit/ for reliable pytest discovery.
-# Why: Ensures all unit tests are collected and run in CI and local environments.
-# Root Cause: Pytest was not discovering tests in src/backend/app/tests/unit/ due to project structure.
-# Context: This file is a direct copy of the previously maintained vacation sharing tests.
-# Model Suitability: For test relocation and structure, GPT-4.1 is sufficient.
-
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 

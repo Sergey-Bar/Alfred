@@ -1,8 +1,1 @@
-import sys
-sys.path.insert(0, 'src/backend')
-import importlib
-m = importlib.import_module('app.main')
-app = getattr(m, 'app')
-print('Total routes:', len(app.routes))
-for r in app.routes:
-    print(r.path)
+importsyssys.path.insert(0,'services/backend')importimportlibm=importlib.import_module('app.main')app=getattr(m,'app')print('Totalroutes:',len(app.routes))forrinapp.routes:print(r.path)

@@ -1,0 +1,1 @@
+"usestrict";Object.defineProperty(exports,"__esModule",{value:true});exports.deactivate=exports.activate=void0;constsidebar_1=require("./sidebar");functionactivate(context){(0,sidebar_1.activateSidebar)(context);}exports.activate=activate;functiondeactivate(){}exports.deactivate=deactivate;//#sourceMappingURL=extension.js.map

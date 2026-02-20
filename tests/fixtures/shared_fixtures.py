@@ -1,5 +1,4 @@
 """
-[AI GENERATED]
 Model: GitHub Copilot (GPT-5 mini)
 Logic: Centralized shared pytest fixtures used across unit, integration and E2E tests.
 Why: Consolidate duplicate fixtures and provide a single source of truth for engine/session/test client and credentials.

@@ -1,0 +1,1 @@
+#GrafanaDashboardProvisioning#Auto-loadsAlfreddashboardsfromthemountedvolume.apiVersion:1providers:-name:AlfredorgId:1folder:Alfredtype:filedisableDeletion:falseeditable:trueoptions:path:/var/lib/grafana/dashboards/alfredfoldersFromFilesStructure:false

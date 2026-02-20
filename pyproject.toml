@@ -1,10 +1,6 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Project metadata, build system, and tool config for Alfred Python backend. Defines dependencies, authors, and formatting/linting rules.
-# Why: Ensures reproducible builds, dependency management, and code style enforcement.
-# Root Cause: Missing or inconsistent config leads to build failures and style drift.
-# Context: Used by pip, setuptools, Black, isort, and mypy. Future: add test/coverage tools.
-# Model Suitability: Project config logic is standard; GPT-4.1 is sufficient.
+# Alfred - Enterprise AI Credit Governance Platform
+# Project configuration: dependencies, build tools, linting, and formatting.
+
 [project]
 name = "alfred"
 version = "1.0.0"
@@ -38,7 +34,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["src/backend/app*"]
+include = ["services/backend/app*"]
 
 [tool.black]
 line-length = 100
@@ -72,21 +68,49 @@ plugins = ["pydantic.mypy"]
 
 [tool.ruff]
 line-length = 100
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # Pyflakes
-    "I",   # isort
-    "C",   # flake8-comprehensions
-    "B",   # flake8-bugbear
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort
+    "C4",   # flake8-comprehensions
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade (modernize syntax)
+    "S",    # flake8-bandit (security)
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print (no print statements)
+    "RET",  # flake8-return (return statement issues)
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # eradicate (commented-out code)
+    "PLC",  # Pylint convention
+    "PLE",  # Pylint error
+    "PLW",  # Pylint warning
+    "RUF",  # Ruff-specific rules
 ]
 ignore = [
-    "E501",  # line too long (handled by formatter)
-    "B008",  # function call in argument defaults (FastAPI Depends pattern)
-    "C901",  # function complexity (addressed incrementally)
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in argument defaults (FastAPI Depends pattern)
+    "C901",   # function complexity (addressed incrementally)
+    "S101",   # assert usage (fine in tests)
+    "S104",   # binding to 0.0.0.0 (intentional in server config)
+    "T201",   # print found (allow in CLI tools)
+    "RET504", # unnecessary assignment before return (readability preference)
+    "UP007",  # use X | Y for union types (keep Optional for 3.10 compat)
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S106", "T201", "ERA001"]
+"qa/**/*.py" = ["S101", "S106", "T201", "ERA001"]
+"tools/**/*.py" = ["T201", "S603", "S607"]
+"src/backend/app/routers/*.py" = ["B008"]  # FastAPI Depends() in defaults
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+force-single-line = false
+combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "qa/Backend", "src/backend/app/tests"]

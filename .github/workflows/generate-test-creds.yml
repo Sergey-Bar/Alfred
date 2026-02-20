@@ -1,9 +1,4 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-5 mini)
-# Logic: Demonstration workflow that generates test credentials from GitHub Secrets and uploads as an artifact.
-# Why: Provides a safe, reviewable example for CI pipelines to create ephemeral test credential files.
-# Root Cause: Tests require credentials but repository must not contain real secrets.
-# Context: Map required secrets into job env; set `TEST_CREDENTIAL_KEYS` to a comma-separated list to control keys.
+# Workflow to generate test credentials from GitHub Secrets
 name: Generate Test Credentials (artifact)
 
 on:

@@ -1,10 +1,3 @@
-## [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Ensures src/backend is in sys.path for all test modules, so 'from app.*' works.
-# Why: Fixes ModuleNotFoundError for 'app' in all test contexts.
-# Root Cause: Pytest may not set sys.path to package root when running from outside src/backend.
-# Context: This is safe and robust for monorepo and CI/CD.
-# Model Suitability: Standard import fix; GPT-4.1 is sufficient.
 from __future__ import annotations
 
 import importlib.util

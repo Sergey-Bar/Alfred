@@ -1,7 +1,1 @@
-import sys, traceback, importlib
-sys.path.insert(0, 'src/backend')
-try:
-    importlib.import_module('app.routers.users')
-    print('OK')
-except Exception:
-    traceback.print_exc()
+importsys,traceback,importlibsys.path.insert(0,'services/backend')try:importlib.import_module('app.routers.users')print('OK')exceptException:traceback.print_exc()

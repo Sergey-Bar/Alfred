@@ -1,14 +1,63 @@
-# CODEOWNERS - map areas of the repo to responsible teams
-# Use GitHub usernames or team slugs
+# ─────────────────────────────────────────────────────────
+# CODEOWNERS — Alfred Enterprise AI Platform
+# ─────────────────────────────────────────────────────────
+# Maps code areas to responsible owners for automatic PR review assignment.
+# Sergey Bar is the final merge authority for main.
+# Teams are auto-assigned as reviewers on PRs.
 
 # Default owners for the entire repo
 * @AlfredDev/maintainers
 
-# Area specific owners
-/docs/ @AlfredDev/docs-team
-/src/frontend/ @AlfredDev/frontend-team
-/src/backend/app/ @AlfredDev/backend-team
-/devops/ @AlfredDev/platform-team
-/services/gateway/ @AlfredDev/platform-team
-/devops/scripts/ @AlfredDev/devops-team
-/qa/ @AlfredDev/qa-team
+# ═══════════════ Critical (L4) — Requires @SergeyBar ═══════════════
+
+# Ledger & financial logic
+/services/backend/app/logic.py               @AlfredDev/maintainers
+/services/backend/app/routers/wallets.py     @AlfredDev/maintainers
+/services/backend/app/routers/transfers.py   @AlfredDev/maintainers
+/services/backend/app/routers/finops.py      @AlfredDev/maintainers
+
+# Auth & security
+/services/backend/app/routers/users.py       @AlfredDev/maintainers
+/services/backend/app/routers/sso_rbac.py    @AlfredDev/maintainers
+/services/backend/app/audit.py               @AlfredDev/maintainers
+/services/backend/app/safety/                @AlfredDev/maintainers
+/services/gateway/security/                  @AlfredDev/maintainers @AlfredDev/platform-team
+/services/gateway/middleware/auth.go         @AlfredDev/maintainers
+
+# DB migrations (schema changes)
+/services/backend/alembic/                   @AlfredDev/maintainers
+
+# CI/CD & deployment
+/.github/workflows/                          @AlfredDev/maintainers @AlfredDev/devops-team
+/infrastructure/                             @AlfredDev/platform-team @AlfredDev/devops-team
+
+# ═══════════════ Backend (Python/FastAPI) ═══════════════
+/services/backend/                           @AlfredDev/backend-team
+/services/backend/app/routers/               @AlfredDev/backend-team
+
+# ═══════════════ Gateway (Go) ═══════════════
+/services/gateway/                           @AlfredDev/platform-team
+/services/gateway/provider/                  @AlfredDev/platform-team
+/services/gateway/redisclient/               @AlfredDev/platform-team
+/services/gateway/middleware/                @AlfredDev/platform-team
+/services/gateway/routing/                   @AlfredDev/platform-team
+/services/gateway/observability/             @AlfredDev/platform-team
+
+# ═══════════════ Frontend (React/Vite) ═══════════════
+/services/frontend/                          @AlfredDev/frontend-team
+
+# ═══════════════ Testing & QA ═══════════════
+/qa/                                         @AlfredDev/qa-team
+/tests/                                      @AlfredDev/qa-team
+
+# ═══════════════ Documentation ═══════════════
+/docs/                                       @AlfredDev/docs-team
+
+# ═══════════════ Project config ═══════════════
+/pyproject.toml                              @AlfredDev/maintainers
+/docker-compose.yml                          @AlfredDev/maintainers
+/Makefile                                    @AlfredDev/maintainers
+/services/gateway/go.mod                     @AlfredDev/platform-team
+/services/gateway/go.sum                     @AlfredDev/platform-team
+/src/frontend/package.json                   @AlfredDev/frontend-team
+/src/frontend/package-lock.json              @AlfredDev/frontend-team

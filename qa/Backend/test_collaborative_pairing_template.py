@@ -1,11 +1,3 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: Provides a collaborative test design template for QA and developers to pair on test creation and review.
-# Why: Enables structured, repeatable, and transparent test authoring and review.
-# Root Cause: Lack of standardized collaborative test templates.
-# Context: Use this template for all new backend tests requiring QA/dev pairing. Review together before merging.
-# Model Suitability: For advanced test generation, consider GPT-4 Turbo or Claude Sonnet.
-
 import pytest
 
 

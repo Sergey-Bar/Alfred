@@ -1,10 +1,6 @@
-# [AI GENERATED]
-# Model: GitHub Copilot (GPT-4.1)
-# Logic: CI workflow for linting, testing, and building backend and frontend on push/PR. Runs Python and Node jobs, sets up DB, and enforces code quality.
-# Why: Ensures code quality, test coverage, and build health for every change.
-# Root Cause: Manual or inconsistent CI leads to regressions and broken deploys.
-# Context: Runs on GitHub Actions for every PR and push. Future: add deploy, coverage, and security scan steps.
-# Model Suitability: CI workflow logic is standard; GPT-4.1 is sufficient.
+# Alfred CI Workflow
+# Runs linting, tests, and builds for backend and frontend on push/PR.
+
 name: CI
 
 on:
@@ -26,20 +22,20 @@ jobs:
       - name: Install backend dev deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r src/backend/requirements/requirements-dev.txt
+          pip install -r services/backend/requirements/requirements-dev.txt
       - name: Run Ruff
-        run: ruff check src/backend/app/ qa/Backend/
+        run: ruff check services/backend/app/ qa/Backend/
       - name: Run mypy type checks
-        run: mypy src/backend/app/ --ignore-missing-imports
+        run: mypy services/backend/app/ --ignore-missing-imports
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install frontend deps
-        working-directory: src/frontend
+        working-directory: services/frontend
         run: npm ci
       - name: Run ESLint
-        working-directory: src/frontend
+        working-directory: services/frontend
         run: npm run lint
 
   test-backend:
@@ -69,7 +65,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r src/backend/requirements/requirements-dev.txt
+          pip install -r services/backend/requirements/requirements-dev.txt
       - name: Run tests
         env:
           DATABASE_URL: postgresql://alfred_test:${{ secrets.CI_POSTGRES_PASSWORD || 'alfred_test_pw' }}@localhost:5432/alfred_test
@@ -81,7 +77,7 @@ jobs:
     needs: lint
     defaults:
       run:
-        working-directory: src/frontend
+        working-directory: services/frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -89,7 +85,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: src/frontend/package-lock.json
+          cache-dependency-path: services/frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Run unit tests
@@ -109,7 +105,7 @@ jobs:
     needs: [test-backend, test-frontend]
     defaults:
       run:
-        working-directory: src/frontend
+        working-directory: services/frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -117,7 +113,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: src/frontend/package-lock.json
+          cache-dependency-path: services/frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright browsers
@@ -127,10 +123,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install backend dependencies
-        run: pip install -r ../../src/backend/requirements/requirements.txt
+        run: pip install -r ../../services/backend/requirements/requirements.txt
       - name: Start backend server
         run: |
-          cd ../../src/backend
+          cd ../../services/backend
           python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
           sleep 5
       - name: Build frontend
@@ -172,7 +168,7 @@ jobs:
         uses: azure/setup-helm@v1
       - name: Render chart
         run: |
-          helm template alfred devops/charts/alfred -f devops/charts/alfred/values.yaml
+          helm template alfred tools/helm/alfred -f tools/helm/alfred/values.yaml
 
   secret-scan:
     name: Secret scan (gitleaks)
@@ -218,7 +214,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: devops/Dockerfile
+          file: infrastructure/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 

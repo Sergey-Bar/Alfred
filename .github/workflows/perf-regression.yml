@@ -1,0 +1,255 @@
+# Alfred Performance Regression Gate
+# Go benchmark comparison on PRs — runs current vs base benchmarks
+# and fails if any regressions exceed thresholds (default: 15%)
+
+name: Performance Regression Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "services/gateway/**"
+      - "!services/gateway/**_test.go"
+      - "!services/gateway/README.md"
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: "Regression threshold percentage (default: 15)"
+        required: false
+        default: "15"
+
+concurrency:
+  group: perf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.21"
+  BENCH_COUNT: 5
+  REGRESSION_THRESHOLD: ${{ github.event.inputs.threshold || '15' }}
+
+jobs:
+  benchmark:
+    name: Go benchmark comparison
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/gateway/go.sum
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
+      - name: Run benchmarks on PR branch
+        working-directory: services/gateway
+        run: |
+          echo "=== Running benchmarks on PR branch ==="
+          go test ./handler/... ./streaming/... -bench=. -benchmem -count=${{ env.BENCH_COUNT }} -benchtime=1s \
+            -run=^$ 2>&1 | tee /tmp/bench-new.txt
+          echo "PR benchmarks complete"
+      - name: Checkout base branch
+        run: |
+          git stash || true
+          git checkout ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+      - name: Run benchmarks on base branch
+        working-directory: services/gateway
+        run: |
+          echo "=== Running benchmarks on base branch ==="
+          go test ./handler/... ./streaming/... -bench=. -benchmem -count=${{ env.BENCH_COUNT }} -benchtime=1s \
+            -run=^$ 2>&1 | tee /tmp/bench-old.txt
+          echo "Base benchmarks complete"
+      - name: Compare benchmarks
+        id: compare
+        run: |
+          echo "=== Benchmark Comparison ==="
+          benchstat /tmp/bench-old.txt /tmp/bench-new.txt | tee /tmp/bench-comparison.txt
+          
+          # Parse benchstat output for regressions
+          # Look for lines where new is slower (percentage with +)
+          REGRESSIONS=$(grep -E '\+[0-9]+\.[0-9]+%' /tmp/bench-comparison.txt | \
+            awk -v threshold="${{ env.REGRESSION_THRESHOLD }}" '
+            {
+              for (i=1; i<=NF; i++) {
+                if ($i ~ /^\+[0-9]+\.[0-9]+%$/) {
+                  pct = $i
+                  gsub(/[+%]/, "", pct)
+                  if (pct + 0 > threshold + 0) {
+                    print $0
+                    found = 1
+                  }
+                }
+              }
+            }
+            END { exit found ? 1 : 0 }
+            ' 2>&1) || REGRESSION_FOUND=$?
+          
+          if [ "${REGRESSION_FOUND:-0}" = "1" ]; then
+            echo "regression_found=true" >> $GITHUB_OUTPUT
+            echo "::warning::Performance regressions detected exceeding ${REGRESSION_THRESHOLD}% threshold"
+          else
+            echo "regression_found=false" >> $GITHUB_OUTPUT
+            echo "No significant performance regressions detected"
+          fi
+          
+          # Always save comparison for the PR comment
+          echo "comparison<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/bench-comparison.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Post benchmark results to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comparison = `${{ steps.compare.outputs.comparison }}`;
+            const regressionFound = '${{ steps.compare.outputs.regression_found }}' === 'true';
+            const threshold = '${{ env.REGRESSION_THRESHOLD }}';
+            const icon = regressionFound ? '🔴' : '🟢';
+            const status = regressionFound
+              ? `**REGRESSION DETECTED** — exceeds ${threshold}% threshold`
+              : `**No significant regressions** (threshold: ${threshold}%)`;
+            
+            const body = [
+              `## ${icon} Performance Benchmark Results`,
+              '',
+              status,
+              '',
+              '### benchstat comparison (base → PR)',
+              '',
+              '```',
+              comparison,
+              '```',
+              '',
+              '<details>',
+              '<summary>ℹ️ How to read this</summary>',
+              '',
+              '- **ns/op** — nanoseconds per operation (lower is better)',
+              '- **B/op** — bytes allocated per operation (lower is better)',
+              '- **allocs/op** — allocations per operation (lower is better)',
+              '- Values show `old → new` with percentage change',
+              '- `~` means no statistically significant change',
+              '',
+              `Regressions > ${threshold}% will block merge.`,
+              '',
+              '</details>',
+              '',
+              `_Benchmark: ${new Date().toISOString()} · Runs: ${{ env.BENCH_COUNT }} · Go ${{ env.GO_VERSION }}_`,
+            ].join('\n');
+            
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Performance Benchmark Results')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Fail on regression
+        if: steps.compare.outputs.regression_found == 'true'
+        run: |
+          echo "::error::Performance regression exceeding ${{ env.REGRESSION_THRESHOLD }}% detected!"
+          echo "Review the benchmark comparison above and optimize before merging."
+          exit 1
+
+  gateway-load-test:
+    name: Gateway load test (smoke)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/gateway/go.sum
+      - name: Build gateway
+        working-directory: services/gateway
+        run: go build -o /tmp/gateway .
+      - name: Start gateway
+        run: |
+          GATEWAY_ADDR=:9090 GATEWAY_ENV=development /tmp/gateway &
+          sleep 3
+          curl -sf http://localhost:9090/healthz || (echo "Gateway failed to start" && exit 1)
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D68
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+      - name: Run smoke load test
+        run: |
+          cat > /tmp/smoke.js << 'SCRIPT'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+          
+          export const options = {
+            stages: [
+              { duration: '10s', target: 10 },
+              { duration: '20s', target: 50 },
+              { duration: '10s', target: 0 },
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<200', 'p(99)<500'],
+              http_req_failed: ['rate<0.01'],
+            },
+          };
+          
+          export default function () {
+            const healthRes = http.get('http://localhost:9090/healthz');
+            check(healthRes, {
+              'health status 200': (r) => r.status === 200,
+              'health latency <50ms': (r) => r.timings.duration < 50,
+            });
+            
+            const modelsRes = http.get('http://localhost:9090/v1/models', {
+              headers: { Authorization: 'Bearer test-key-for-ci' },
+            });
+            check(modelsRes, {
+              'models status ok': (r) => r.status === 200 || r.status === 401,
+              'models latency <100ms': (r) => r.timings.duration < 100,
+            });
+            
+            sleep(0.1);
+          }
+          SCRIPT
+          k6 run /tmp/smoke.js --summary-export=/tmp/k6-summary.json
+      - name: Check thresholds
+        run: |
+          if [ -f /tmp/k6-summary.json ]; then
+            echo "=== k6 Summary ==="
+            cat /tmp/k6-summary.json | python3 -m json.tool 2>/dev/null || cat /tmp/k6-summary.json
+          fi
+      - name: Upload k6 results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-smoke-results
+          path: /tmp/k6-summary.json
+          retention-days: 7
