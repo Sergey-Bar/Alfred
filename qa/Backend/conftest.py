@@ -58,68 +58,52 @@ def engine():
     """
     import uuid
     from sqlalchemy.pool import NullPool
+    from sqlmodel import SQLModel, create_engine
     
     # Use a unique file per test to avoid connection sharing issues
     unique_db = _tmp_dir / f"test_{uuid.uuid4().hex[:8]}.db"
     unique_db_url = f"sqlite:///{unique_db}"
     
     # Use NullPool to avoid connection caching issues
-    from sqlmodel import create_engine
     engine = create_engine(
         unique_db_url,
         connect_args={"check_same_thread": False},
         poolclass=NullPool,
     )
     
-    # Import models to register metadata if available
+    # Import models to register metadata - MUST happen before create_all
     try:
         import app.models  # noqa: F401
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to import app.models: {e}")
 
-    # create metadata and patch app database engine if present
+    # Create all tables on this engine - use explicit bind= parameter
     try:
-        SQLModel = shared.SQLModel
-        SQLModel.metadata.create_all(engine)
-    except Exception:
-        pass
+        SQLModel.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.warning(f"Failed to create_all: {e}")
 
+    # Patch app database engine to use test engine
     try:
-        import app.database as _app_db  # type: ignore
-        from sqlmodel import SQLModel
-
-        # Prefer the public setter so the module's proxy is updated correctly
+        import app.database as _app_db
         try:
             _app_db.set_engine(engine)
         except Exception:
-            # Fallback for older code paths that expect direct assignment
             _app_db.engine = engine
-
-        # Reset create_all guard and ensure schema exists on the injected engine
-        try:
-            _app_db._tables_created = False
-        except Exception:
-            pass
-        try:
-            SQLModel.metadata.create_all(_app_db.get_engine())
-        except Exception:
-            pass
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to patch app.database: {e}")
 
     yield engine
 
+    # Cleanup
     try:
-        SQLModel = shared.SQLModel
-        SQLModel.metadata.drop_all(engine)
+        SQLModel.metadata.drop_all(bind=engine)
     except Exception:
         pass
     try:
         engine.dispose()
     except Exception:
         pass
-    
-    # Clean up the unique DB file
     try:
         if unique_db.exists():
             unique_db.unlink()
@@ -131,6 +115,7 @@ def engine():
 def test_client(engine, monkeypatch):
     """Create FastAPI test client with isolated database (adapter-specific)."""
     import app.main as main_module
+    import app.database as app_database
     # Also import dependencies module so we can override its get_session dependency
     try:
         import app.dependencies as app_dependencies
@@ -139,6 +124,28 @@ def test_client(engine, monkeypatch):
     from fastapi.testclient import TestClient
     from sqlmodel import Session
 
+    # Ensure models are imported so metadata is populated
+    try:
+        import app.models  # noqa: F401
+    except Exception:
+        pass
+
+    # Create tables on the test engine before creating the app
+    try:
+        from sqlmodel import SQLModel
+        SQLModel.metadata.create_all(engine)
+    except Exception:
+        pass
+
+    # Set the app's engine to our test engine
+    try:
+        app_database.set_engine(engine)
+    except Exception:
+        try:
+            app_database.engine = engine
+        except Exception:
+            pass
+
     # Create an app instance wired to the test engine so all internals use it
     test_app = main_module.create_app(engine=engine)
 
@@ -146,7 +153,15 @@ def test_client(engine, monkeypatch):
         with Session(engine) as session:
             yield session
 
-    # Override session provider used by the app and by dependency modules
+    # Override ALL session providers - both get_session and get_db_session
+    try:
+        test_app.dependency_overrides[app_database.get_session] = get_test_session
+    except Exception:
+        pass
+    try:
+        test_app.dependency_overrides[app_database.get_db_session] = get_test_session
+    except Exception:
+        pass
     try:
         test_app.dependency_overrides[main_module.get_session] = get_test_session
     except Exception:
@@ -159,24 +174,10 @@ def test_client(engine, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("ENVIRONMENT", "test")
 
-    # Ensure the application's engine has tables created for the test run
+    # Final table creation pass to ensure all models are registered
     try:
-        import app.database as _app_db  # type: ignore
         from sqlmodel import SQLModel
-
-        try:
-            import app.models  # noqa: F401
-        except Exception:
-            pass
-        # Ensure the app is using the same engine instance and create tables
-        try:
-            _app_db.set_engine(engine)
-        except Exception:
-            try:
-                _app_db.engine = engine
-            except Exception:
-                pass
-        SQLModel.metadata.create_all(_app_db.get_engine())
+        SQLModel.metadata.create_all(app_database.get_engine())
     except Exception:
         pass
 

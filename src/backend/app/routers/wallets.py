@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from sqlmodel import Session, select
 
-from ..database import get_session
+from ..database import get_db_session
 from ..models import (
     Wallet,
     WalletStatus,
@@ -43,7 +43,7 @@ router = APIRouter(prefix="/v1/wallets", tags=["wallets"])
 
 class WalletCreate(BaseModel):
     """Schema for creating a new wallet."""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)  # Allow JSON coercion for API input
 
     name: str = Field(max_length=255)
     wallet_type: WalletType = WalletType.USER
@@ -62,7 +62,7 @@ class WalletCreate(BaseModel):
 
 class WalletUpdate(BaseModel):
     """Schema for updating wallet config."""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)  # Allow JSON coercion for API input
 
     name: Optional[str] = None
     hard_limit: Optional[Decimal] = None
@@ -215,7 +215,7 @@ def _get_wallet_or_404(session: Session, wallet_id: uuid.UUID) -> Wallet:
 
 
 @router.post("", response_model=WalletResponse, status_code=201)
-def create_wallet(body: WalletCreate, session: Session = Depends(get_session)):
+def create_wallet(body: WalletCreate, session: Session = Depends(get_db_session)):
     """Create a new wallet (T051)."""
     wallet = Wallet(
         name=body.name,
@@ -246,7 +246,7 @@ def list_wallets(
     owner_team_id: Optional[uuid.UUID] = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """List wallets with optional filters (T051)."""
     stmt = select(Wallet)
@@ -264,7 +264,7 @@ def list_wallets(
 
 
 @router.get("/{wallet_id}", response_model=WalletResponse)
-def get_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
+def get_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_db_session)):
     """Get a single wallet (T051)."""
     wallet = _get_wallet_or_404(session, wallet_id)
     return _wallet_to_response(wallet)
@@ -274,7 +274,7 @@ def get_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
 def update_wallet(
     wallet_id: uuid.UUID,
     body: WalletUpdate,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """Update wallet configuration (T051)."""
     wallet = _get_wallet_or_404(session, wallet_id)
@@ -289,7 +289,7 @@ def update_wallet(
 
 
 @router.delete("/{wallet_id}", status_code=204)
-def delete_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
+def delete_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_db_session)):
     """Soft-delete a wallet by setting status to CLOSED (T051)."""
     wallet = _get_wallet_or_404(session, wallet_id)
     wallet.status = WalletStatus.CLOSED
@@ -302,7 +302,7 @@ def delete_wallet(wallet_id: uuid.UUID, session: Session = Depends(get_session))
 
 
 @router.get("/{wallet_id}/balance", response_model=WalletBalance)
-def get_balance(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
+def get_balance(wallet_id: uuid.UUID, session: Session = Depends(get_db_session)):
     """Get wallet balance (T055)."""
     wallet = _get_wallet_or_404(session, wallet_id)
     return WalletBalance(
@@ -326,7 +326,7 @@ def get_balance(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
 def deduct_balance(
     wallet_id: uuid.UUID,
     body: DeductRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """
     Atomic balance deduction using SELECT FOR UPDATE (T052).
@@ -475,7 +475,7 @@ def deduct_balance(
 def refund_balance(
     wallet_id: uuid.UUID,
     body: RefundRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """
     Idempotent refund on provider error.
@@ -530,7 +530,7 @@ def refund_balance(
 def topup_balance(
     wallet_id: uuid.UUID,
     body: TopUpRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """Add credits to a wallet."""
     wallet = _get_wallet_or_404(session, wallet_id)
@@ -570,7 +570,7 @@ def list_transactions(
     transaction_type: Optional[WalletTransactionType] = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """Get wallet transaction history."""
     _get_wallet_or_404(session, wallet_id)  # Verify wallet exists.
@@ -625,7 +625,7 @@ def _check_hierarchy_limit(
 
 
 @router.get("/{wallet_id}/children", response_model=List[WalletResponse])
-def list_children(wallet_id: uuid.UUID, session: Session = Depends(get_session)):
+def list_children(wallet_id: uuid.UUID, session: Session = Depends(get_db_session)):
     """List child wallets under a parent (T057)."""
     _get_wallet_or_404(session, wallet_id)
     stmt = select(Wallet).where(Wallet.parent_wallet_id == wallet_id)
@@ -659,7 +659,7 @@ class SettleRequest(BaseModel):
 def reserve_balance(
     wallet_id: uuid.UUID,
     body: ReserveRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """
     Reserve funds before calling the provider (T059).
@@ -723,7 +723,7 @@ def reserve_balance(
 def settle_reservation(
     wallet_id: uuid.UUID,
     body: SettleRequest,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """
     Settle a reservation with the actual cost (T059).
@@ -780,7 +780,7 @@ async def export_chargeback(
     wallet_type: Optional[str] = Query(default=None, description="Filter by wallet type (team, user, org)"),
     start_date: Optional[datetime] = Query(default=None, description="Start date (inclusive)"),
     end_date: Optional[datetime] = Query(default=None, description="End date (exclusive)"),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db_session),
 ):
     """
     T061: Chargeback export — aggregate spend by team/wallet and date range.
