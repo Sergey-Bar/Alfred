@@ -1,0 +1,170 @@
+{
+    "name": "alfred",
+    "displayName": "Alfred",
+    "description": "Alfred Enterprise AI Credit Governance Platform - VS Code Extension",
+    "version": "1.0.0",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onView:alfredSidebar",
+        "onView:alfredUsageReport",
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "alfredSidebarContainer",
+                    "title": "Alfred",
+                    "icon": "$(credit-card)"
+                }
+            ]
+        },
+        "views": {
+            "alfredSidebarContainer": [
+                {
+                    "id": "alfredSidebar",
+                    "name": "Transfer History"
+                },
+                {
+                    "id": "alfredUsageReport",
+                    "name": "Usage Report"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "alfred.refreshTransferHistory",
+                "title": "Alfred: Refresh Transfer History",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "alfred.showSessionDetails",
+                "title": "Alfred: Show Session Details"
+            },
+            {
+                "command": "alfred.showCostBreakdown",
+                "title": "Alfred: Show Cost Breakdown"
+            },
+            {
+                "command": "alfred.selectModel",
+                "title": "Alfred: Select AI Model"
+            },
+            {
+                "command": "alfred.toggleEnvironment",
+                "title": "Alfred: Toggle Dev/Prod Environment"
+            },
+            {
+                "command": "alfred.resetSession",
+                "title": "Alfred: Reset Session"
+            },
+            {
+                "command": "alfred.checkBudget",
+                "title": "Alfred: Check Budget"
+            },
+            {
+                "command": "alfred.exportUsageReport",
+                "title": "Alfred: Export Usage Report"
+            }
+        ],
+        "configuration": {
+            "title": "Alfred",
+            "properties": {
+                "alfred.apiUrl": {
+                    "type": "string",
+                    "default": "http://localhost:8000",
+                    "description": "Alfred API base URL"
+                },
+                "alfred.apiKey": {
+                    "type": "string",
+                    "description": "Alfred API key for authentication"
+                },
+                "alfred.dailyBudget": {
+                    "type": "number",
+                    "default": 10.0,
+                    "description": "Daily AI budget in USD"
+                },
+                "alfred.sessionCostWarningThreshold": {
+                    "type": "number",
+                    "default": 1.0,
+                    "description": "Session cost threshold (USD) to show warning in status bar"
+                },
+                "alfred.budgetWarningPercent": {
+                    "type": "number",
+                    "default": 80,
+                    "description": "Budget usage percentage at which to show warning notifications"
+                },
+                "alfred.defaultModel": {
+                    "type": "string",
+                    "default": "gpt-4o",
+                    "enum": [
+                        "gpt-4o",
+                        "gpt-4o-mini",
+                        "gpt-3.5-turbo",
+                        "claude-3.5-sonnet",
+                        "claude-3-haiku",
+                        "gemini-1.5-pro",
+                        "gemini-1.5-flash",
+                        "mistral-large"
+                    ],
+                    "description": "Default AI model for requests"
+                },
+                "alfred.defaultEnvironment": {
+                    "type": "string",
+                    "default": "development",
+                    "enum": ["development", "production"],
+                    "description": "Default environment (development or production)"
+                },
+                "alfred.enableBudgetAlerts": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable budget warning notifications"
+                },
+                "alfred.showStatusBar": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Alfred status bar items"
+                }
+            }
+        },
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "alfred.showSessionDetails",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.selectModel",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.toggleEnvironment",
+                    "when": "true"
+                },
+                {
+                    "command": "alfred.exportUsageReport",
+                    "when": "true"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/node": "^16.18.126",
+        "@types/vscode": "^1.74.0",
+        "eslint": "^8.28.0",
+        "typescript": "^4.9.4"
+    }
+}

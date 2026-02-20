@@ -86,10 +86,27 @@ logs/
 dmypy.json
 
 # QA test results
-dev/QA/results/html/
-dev/QA/results/test-results/
-dev/QA/results/coverage/
-dev/QA/results/results.json
-dev/QA/results/*.mp4
-dev/QA/results/*.webm
-dev/QA/results/*.zip
+qa/results/html/
+qa/results/test-results/
+qa/results/coverage/
+qa/results/results.json
+qa/results/*.mp4
+qa/results/*.webm
+qa/results/*.zip
+
+# Build artifacts & outputs
+*.db
+*.sqlite3
+htmlcov/
+.coverage
+.pytest_tmp/
+.ruff_cache/
+
+# Test output files
+tests/**/*.txt
+
+# Vite build output
+assets/static/assets/
+
+# Node
+node_modules/

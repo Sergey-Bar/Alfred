@@ -1,29 +1,202 @@
-name: Security Scan
+# Comprehensive multi-ecosystem vulnerability scanning
+# Trivy (containers/filesystem), pip-audit (Python), npm audit (frontend),
+# govulncheck (Go), and GitHub CodeQL. Fails on HIGH/CRITICAL vulnerabilities.
+
+name: Security & Vulnerability Scanning
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  schedule:
+    # Run daily at 02:00 UTC for continuous security monitoring
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual triggers
 
 jobs:
-  trivy-scan:
-    name: Trivy vulnerability scan
+  # ─── Python Dependency Scanning ────────────────────────────
+  python-vuln-scan:
+    name: Python Dependency Vulnerabilities
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Trivy filesystem scan (OS & Python deps)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Scan Python dependencies
+        run: |
+          cd src/backend
+          pip-audit --desc --fix-dryrun --format json --output python-vulns.json || true
+          pip-audit --desc  # Human-readable output
+        continue-on-error: false # Fail CI on vulnerabilities
+
+      - name: Upload Python vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-vulnerability-report
+          path: src/backend/python-vulns.json
+          retention-days: 30
+
+  # ─── Frontend Dependency Scanning ──────────────────────────
+  frontend-vuln-scan:
+    name: Frontend Dependency Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run npm audit
+        run: |
+          cd src/frontend
+          npm audit --audit-level=high --json > npm-audit.json || true
+          npm audit --audit-level=high  # Human-readable
+        continue-on-error: false
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: src/frontend/npm-audit.json
+          retention-days: 30
+
+  # ─── Go Dependency Scanning ────────────────────────────────
+  go-vuln-scan:
+    name: Go Dependency Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: |
+          cd services/gateway
+          govulncheck -json ./... > govulncheck.json || true
+          govulncheck ./...
+        continue-on-error: false
+
+      - name: Upload govulncheck report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-vulnerability-report
+          path: services/gateway/govulncheck.json
+          retention-days: 30
+
+  # ─── Container & Filesystem Scanning (Trivy) ───────────────
+  trivy-scan:
+    name: Trivy Container & Filesystem Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: "fs"
           scan-ref: "."
-          format: "table"
-          vuln-type: "os,library"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "HIGH,CRITICAL"
+          exit-code: 1 # Fail on HIGH/CRITICAL
+
+      - name: Upload Trivy SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
 
       - name: Run Trivy Dockerfile scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: "config"
-          scan-ref: "devops/merged/docker/Dockerfile"
+          scan-ref: "."
           format: "table"
+          severity: "HIGH,CRITICAL"
+
+  # ─── Secret Scanning (TruffleHog) ──────────────────────────
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for secret scanning
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified --fail
+
+  # ─── GitHub CodeQL Analysis ────────────────────────────────
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: ["python", "javascript", "go"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # ─── Summary & Issue Creation ──────────────────────────────
+  vuln-summary:
+    name: Vulnerability Summary
+    runs-on: ubuntu-latest
+    needs: [python-vuln-scan, frontend-vuln-scan, go-vuln-scan, trivy-scan]
+    if: always()
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+
+      - name: Generate summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Reports Generated:" >> $GITHUB_STEP_SUMMARY
+          echo "- Python: pip-audit" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: npm audit" >> $GITHUB_STEP_SUMMARY
+          echo "- Go: govulncheck" >> $GITHUB_STEP_SUMMARY
+          echo "- Containers: Trivy" >> $GITHUB_STEP_SUMMARY
+          echo "- Secrets: TruffleHog" >> $GITHUB_STEP_SUMMARY
+          echo "- Code: CodeQL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Check individual job results above" >> $GITHUB_STEP_SUMMARY

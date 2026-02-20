@@ -1,0 +1,38 @@
+[project]
+name = "alfred-cli"
+version = "1.0.0"
+description = "Command-line interface for Alfred AI Credit Governance Platform"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Alfred Team", email = "cli@alfred.ai"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "click>=8.0.0",
+    "httpx>=0.25.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+alfred = "alfred_cli:cli"
+
+[project.urls]
+Homepage = "https://alfred.ai"
+Documentation = "https://docs.alfred.ai/cli"
+Repository = "https://github.com/AlfredDev/alfred/tree/main/tools/cli"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

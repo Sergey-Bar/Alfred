@@ -1,0 +1,20 @@
+# Alfred - Gitleaks Configuration
+# Secret scanning rules to detect placeholder credentials and test passwords.
+
+title = "Gitleaks config for Alfred"
+
+[[rules]]
+id = "placeholder-credentials"
+description = "Detect common placeholder or test passwords and obvious placeholders"
+regex = '''(?i)\b(changeme|test_password(?:_?\d*)?|admin_password(?:_?\d*)?|password123|passw0rd)\b'''
+tags = ["credentials", "placeholder", "testing"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS access key ID pattern"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "credentials"]
+
+[[allowlist]]
+description = "Local dev artifact paths"
+paths = ["qa/results"]

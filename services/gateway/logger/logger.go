@@ -1,0 +1,1 @@
+packageloggerimport("os""github.com/AlfredDev/alfred/services/gateway/config""github.com/rs/zerolog")//Newreturnsaconfiguredzerolog.LoggerfuncNew(cfg*config.Config)zerolog.Logger{out:=zerolog.ConsoleWriter{Out:os.Stderr}lvl:=zerolog.InfoLevelifcfg.Env=="development"{lvl=zerolog.DebugLevel}zerolog.SetGlobalLevel(lvl)log:=zerolog.New(out).With().Timestamp().Logger()returnlog}

@@ -1,0 +1,43 @@
+# Workflow to generate test credentials from GitHub Secrets
+name: Generate Test Credentials (artifact)
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  generate-creds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Generate credentials from secrets
+        env:
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          API_KEY: ${{ secrets.API_KEY }}
+          # Optionally set TEST_CREDENTIAL_KEYS to override keys used by the generator script
+          TEST_CREDENTIAL_KEYS: ${{ secrets.TEST_CREDENTIAL_KEYS }}
+        run: |
+          python dev/ci/generate_test_credentials.py
+
+      - name: List generated file
+        if: always()
+        run: |
+          ls -la tests/fixtures || true
+
+      - name: Upload credentials artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-credentials
+          path: tests/fixtures/credentials.py
