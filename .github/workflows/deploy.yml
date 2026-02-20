@@ -25,7 +25,7 @@ jobs:
       url: https://staging.alfred.dev
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure kubeconfig
         run: |
@@ -59,7 +59,7 @@ jobs:
     needs: []
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure kubeconfig
         run: |
